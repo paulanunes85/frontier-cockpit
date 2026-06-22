@@ -341,12 +341,12 @@ for trace_id in trace_ids:
             summary["attribution_source"] = apply_workspace_record(summary, active_workspace, "span_repo_registry_enriched")
     else:
         registry_record = workspace_registry.get(summary["workspace_path_hash"])
-        if registry_record:
+        if cwd_workspace and summary["workspace_path_hash"] in ("", "unknown", root_workspace_hash):
+            summary["attribution_source"] = apply_workspace_record(summary, cwd_workspace, "active_cwd_fallback")
+        elif registry_record:
             summary["attribution_source"] = apply_workspace_record(summary, registry_record, "registry_hash")
         elif active_workspace and summary["workspace_path_hash"] in ("", "unknown", root_workspace_hash):
             summary["attribution_source"] = apply_workspace_record(summary, active_workspace, "active_workspace_fallback")
-        elif cwd_workspace and summary["workspace_path_hash"] in ("", "unknown", root_workspace_hash):
-            summary["attribution_source"] = apply_workspace_record(summary, cwd_workspace, "active_cwd_fallback")
 
     has_repo = meaningful(summary["repo"])
     summary["usage_scope"] = "workspace_real" if has_repo else "non_workspace_real"

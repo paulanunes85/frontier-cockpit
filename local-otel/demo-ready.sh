@@ -19,6 +19,7 @@ print "repo_root=$repo_root"
 print "repo_remote=$(git config --get remote.origin.url 2>/dev/null || print unknown)"
 print "branch=$(git branch --show-current 2>/dev/null || print unknown)"
 print ""
+current_repo="$(git config --get remote.origin.url 2>/dev/null || print unknown)"
 
 "$HOME/frontier-cockpit/local-otel/enable-user-env.sh"
 "$HOME/frontier-cockpit/local-otel/start-full-stack.sh"
@@ -28,14 +29,15 @@ print ""
 COPILOT_MATERIALIZE_FORCE_REPLAY=true COPILOT_MATERIALIZE_ACTIVE_WORKSPACE=true "$HOME/frontier-cockpit/local-otel/materialize-copilot-sessions.sh"
 "$HOME/frontier-cockpit/local-otel/sample-vscode-memory.sh" >/dev/null 2>&1 || true
 
-python3 <<'PY'
+CURRENT_REPO="$current_repo" python3 <<'PY'
 import json
+import os
 import sys
 import urllib.parse
 import urllib.request
 
 PROM = "http://localhost:9090"
-CURRENT_REPO = "$(git config --get remote.origin.url 2>/dev/null || print unknown)"
+CURRENT_REPO = os.environ.get("CURRENT_REPO", "unknown")
 
 def query(expr):
     url = f"{PROM}/api/v1/query?query={urllib.parse.quote(expr)}"
