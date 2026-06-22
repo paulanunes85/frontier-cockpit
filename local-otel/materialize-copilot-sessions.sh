@@ -20,6 +20,7 @@ import hashlib
 import json
 import os
 import pathlib
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -30,6 +31,7 @@ show_content = show_content.lower() == "true"
 limit = int(limit)
 prometheus_url = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
 force_replay = os.environ.get("COPILOT_MATERIALIZE_FORCE_REPLAY", "false").lower() == "true"
+use_active_workspace = os.environ.get("COPILOT_MATERIALIZE_ACTIVE_WORKSPACE", "false").lower() == "true"
 state_path = pathlib.Path(state_file)
 if state_path.exists():
     try:
@@ -143,6 +145,31 @@ def load_workspace_registry():
     return by_hash, active
 
 workspace_registry, active_workspace = load_workspace_registry()
+
+def run_git(args):
+    try:
+        return subprocess.check_output(["git", *args], text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        return ""
+
+def workspace_from_cwd():
+    git_root = run_git(["rev-parse", "--show-toplevel"])
+    if not git_root:
+        return None
+    remote = run_git(["config", "--get", "remote.origin.url"])
+    branch = run_git(["branch", "--show-current"]) or run_git(["rev-parse", "--short", "HEAD"])
+    workspace_hash = hashlib.sha256(git_root.encode("utf-8")).hexdigest()
+    return {
+        "workspace_path_hash": workspace_hash,
+        "workspace_name": pathlib.Path(git_root).name,
+        "workspace_kind": "git",
+        "repo": remote or pathlib.Path(git_root).name,
+        "branch": branch or "unknown",
+        "repo_owner": "unknown",
+        "repo_name": pathlib.Path(git_root).name,
+    }
+
+cwd_workspace = workspace_from_cwd() if use_active_workspace else None
 
 def apply_workspace_record(summary, record, source):
     if not record:
@@ -318,6 +345,8 @@ for trace_id in trace_ids:
             summary["attribution_source"] = apply_workspace_record(summary, registry_record, "registry_hash")
         elif active_workspace and summary["workspace_path_hash"] in ("", "unknown", root_workspace_hash):
             summary["attribution_source"] = apply_workspace_record(summary, active_workspace, "active_workspace_fallback")
+        elif cwd_workspace and summary["workspace_path_hash"] in ("", "unknown", root_workspace_hash):
+            summary["attribution_source"] = apply_workspace_record(summary, cwd_workspace, "active_cwd_fallback")
 
     has_repo = meaningful(summary["repo"])
     summary["usage_scope"] = "workspace_real" if has_repo else "non_workspace_real"
