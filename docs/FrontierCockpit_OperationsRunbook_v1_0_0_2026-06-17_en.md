@@ -47,6 +47,25 @@ Expected outcome:
 - Tempo, Loki, Prometheus, Grafana, and PostgreSQL running.
 - VS Code OTel user settings enabled.
 - Launchd user environment configured.
+- Versioned LaunchAgent templates present and installed when scheduled automation is expected.
+
+Install user-level scheduled automation from repository templates:
+
+```bash
+~/.copilot-otel/install-launchagents.sh
+```
+
+Remove scheduled automation:
+
+```bash
+~/.copilot-otel/uninstall-launchagents.sh
+```
+
+Delete copied plist files too:
+
+```bash
+~/.copilot-otel/uninstall-launchagents.sh --delete
+```
 
 ### 1.2 Real Session Materialization
 

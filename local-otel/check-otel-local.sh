@@ -189,6 +189,37 @@ for name in COPILOT_OTEL_ENABLED COPILOT_OTEL_ENDPOINT OTEL_INSTRUMENTATION_GENA
   fi
 done
 
+launchagent_template_dir="$HOME/frontier-cockpit/local-otel/launchagents"
+launchagent_target_dir="$HOME/Library/LaunchAgents"
+expected_launchagents=(
+  com.frontier.copilot-otel-env
+  com.frontier.copilot-otel-autostart
+  com.frontier.copilot-otel-materializer
+  com.frontier.copilot-otel-vscode-memory
+  com.frontier.copilot-otel-daily-rollup
+  com.frontier.copilot-otel-github-enterprise
+  com.frontier.copilot-otel-github-orgs
+  com.frontier.copilot-otel-github-audit-stream-renewal
+)
+
+if [[ -d "$launchagent_template_dir" ]]; then
+  ok "Versioned LaunchAgent templates are present."
+  for label in $expected_launchagents; do
+    if [[ -f "$launchagent_template_dir/$label.plist" ]]; then
+      ok "LaunchAgent template $label is present."
+    else
+      warn "LaunchAgent template $label is missing from $launchagent_template_dir."
+    fi
+    if [[ -f "$launchagent_target_dir/$label.plist" ]]; then
+      ok "LaunchAgent $label is installed for this user."
+    else
+      warn "LaunchAgent $label is not installed. Run $HOME/frontier-cockpit/local-otel/install-launchagents.sh to enable scheduled automation."
+    fi
+  done
+else
+  warn "Versioned LaunchAgent templates directory is missing: $launchagent_template_dir"
+fi
+
 if [[ "$OTEL_RESOURCE_ATTRIBUTES" == *"workspace.name="* ]]; then
   ok "Current shell OTEL_RESOURCE_ATTRIBUTES includes workspace.name."
 else

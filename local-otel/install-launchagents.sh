@@ -1,0 +1,39 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+# Install Frontier Developer Cockpit user LaunchAgents from versioned templates.
+# This copies plist files to ~/Library/LaunchAgents and loads them for the current GUI user.
+
+script_dir="${0:A:h}"
+template_dir="$script_dir/launchagents"
+target_dir="$HOME/Library/LaunchAgents"
+gui_domain="gui/$(id -u)"
+
+if [[ ! -d "$template_dir" ]]; then
+  print -u2 "LaunchAgent template directory not found: $template_dir"
+  exit 1
+fi
+
+mkdir -p "$target_dir"
+
+for template_file in "$template_dir"/*.plist(N); do
+  plist_name="${template_file:t}"
+  target_file="$target_dir/$plist_name"
+  label="${plist_name%.plist}"
+
+  cp "$template_file" "$target_file"
+  chmod 644 "$target_file"
+
+  launchctl bootout "$gui_domain" "$target_file" >/dev/null 2>&1 || true
+  launchctl bootstrap "$gui_domain" "$target_file"
+  launchctl enable "$gui_domain/$label" >/dev/null 2>&1 || true
+
+  if [[ "$label" == "com.frontier.copilot-otel-env" || "$label" == "com.frontier.copilot-otel-autostart" ]]; then
+    launchctl kickstart -k "$gui_domain/$label" >/dev/null 2>&1 || true
+  fi
+
+  print "Installed $label"
+done
+
+print "Frontier Developer Cockpit LaunchAgents installed under $target_dir."
+print "Restart VS Code Insiders after the environment agent runs."

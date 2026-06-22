@@ -1,6 +1,25 @@
-# GitHub Copilot Chat OpenTelemetry Local Kit
+---
+title: "Frontier Developer Cockpit Local OpenTelemetry Kit"
+description: "User-level local OpenTelemetry runtime for Frontier Developer Cockpit, including Aspire, Grafana, Prometheus, Tempo, Loki, local materialization, and Azure hybrid forwarding."
+author: "Frontier Cockpit Team"
+date: "2026-06-22"
+version: "1.0.1"
+status: "approved"
+tags: ["frontier-developer-cockpit", "github-copilot", "opentelemetry", "aspire", "grafana", "local-runtime"]
+---
 
-This user-level kit configures local OpenTelemetry validation for GitHub Copilot Chat in VS Code Insiders. It uses Aspire Dashboard as the local backend. It lives outside any workspace on purpose, so it applies to your user profile and can be reused while teaching customers.
+<!-- markdownlint-disable MD025 -->
+
+# Frontier Developer Cockpit Local OpenTelemetry Kit
+
+This user-level kit configures the local runtime for Frontier Developer Cockpit. It captures GitHub Copilot Chat and agent telemetry in VS Code Insiders, routes it through a local OpenTelemetry Collector, and fans out to Aspire Dashboard, Tempo, Prometheus, Loki, Grafana, and optional Azure hybrid forwarding.
+
+## Change Log
+
+| Version | Date | Author | Changes |
+| --- | --- | --- | --- |
+| 1.0.1 | 2026-06-22 | Frontier Cockpit Team | Aligned title, frontmatter, and settings with the Frontier Developer Cockpit offer. |
+| 1.0.0 | 2026-06-17 | Frontier Cockpit Team | Initial local OpenTelemetry kit. |
 
 The setup is scoped to your macOS user and applies across VS Code Insiders windows, workspaces, and repositories. It also exports standard OTel environment variables for terminal-launched dev agents and tools that honor OTLP.
 
@@ -30,7 +49,7 @@ VS Code Insiders user settings are configured with:
 - `github.copilot.chat.otel.exporterType`: `otlp-http`
 - `github.copilot.chat.otel.otlpEndpoint`: `http://localhost:4318`
 - `github.copilot.chat.otel.captureContent`: `true`
-- `github.copilot.chat.otel.maxAttributeSizeChars`: `20000`
+- `github.copilot.chat.otel.maxAttributeSizeChars`: `0`
 - `github.copilot.chat.otel.dbSpanExporter.enabled`: `true`
 
 The integrated terminal user environment also receives OTel variables so terminal sessions can inherit the local endpoint.
@@ -47,9 +66,31 @@ The shell and macOS user environment are configured through:
 
 - `$HOME/frontier-cockpit/local-otel/env.zsh`
 - `$HOME/frontier-cockpit/local-otel/enable-user-env.sh`
-- `~/Library/LaunchAgents/com.frontier.copilot-otel-env.plist`
+- `$HOME/frontier-cockpit/local-otel/launchagents/`
+- `$HOME/frontier-cockpit/local-otel/install-launchagents.sh`
+- `~/Library/LaunchAgents/com.frontier.copilot-otel-*.plist`
 
 This covers new terminal sessions, integrated terminals, and GUI apps launched after the user environment is enabled. GitHub Copilot spans still add per-project attributes such as repository, branch, and commit when the workspace is inside a Git repository.
+
+Install the scheduled user automation from the versioned templates:
+
+```bash
+$HOME/frontier-cockpit/local-otel/install-launchagents.sh
+```
+
+Remove the scheduled automation while preserving copied plist files:
+
+```bash
+$HOME/frontier-cockpit/local-otel/uninstall-launchagents.sh
+```
+
+Remove the copied plist files too:
+
+```bash
+$HOME/frontier-cockpit/local-otel/uninstall-launchagents.sh --delete
+```
+
+The LaunchAgents cover user environment setup, stack autostart, session materialization every five minutes, VS Code process memory sampling every minute, daily rollups, GitHub Enterprise ingestion, organization status ingestion, and audit stream renewal. They do not contain secrets. Runtime logs and state are ignored by git.
 
 ## Workspace tags
 
@@ -76,6 +117,8 @@ Use these attributes to filter traces by project in Aspire Dashboard, Applicatio
 ## Security note
 
 Content capture is enabled for teaching and local validation. It can include prompts, source code, file paths, tool inputs, and tool results. Keep this local for demos, and disable content capture before using this with sensitive customer repositories unless the customer explicitly approves it.
+
+Frontier Developer Cockpit telemetry is operational telemetry. It is useful for coaching, debugging, context analysis, and cost-awareness education. Official billing, AI Credits, and adoption reporting require GitHub billing exports, usage metrics, or another approved source.
 
 ## Start local backends
 
