@@ -63,6 +63,7 @@ External agents, skills, prompts, and instructions must keep source metadata, pa
 - `docs/FrontierCockpit_DeveloperLocalGuide_v1_0_0_2026-06-17_en.md`
 - `docs/FrontierCockpit_AzureEnterpriseGuide_v1_0_0_2026-06-17_en.md`
 - `docs/FrontierCockpit_DataConsolidationGuide_v1_0_0_2026-06-17_en.md`
+- `docs/FrontierCockpit_EnterpriseReadinessChecklist_v1_0_0_2026-06-22_en.md`
 - `docs/FrontierCockpit_ArchitectureDiagrams_v1_0_0_2026-06-18_en.md`
 - `docs/FrontierCockpit_OperationsRunbook_v1_0_0_2026-06-17_en.md`
 - `docs/FrontierCockpit_LocalLinksGuide_v1_0_0_2026-06-19_en.md`

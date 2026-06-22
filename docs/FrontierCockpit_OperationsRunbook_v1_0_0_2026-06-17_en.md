@@ -133,6 +133,17 @@ az account set --subscription "your-subscription-name"
 ~/.copilot-otel/azure/validate.sh
 ```
 
+For non-dev environments, set the deployment parameters before validation:
+
+```bash
+export AZURE_LOCATION=eastus
+export AZURE_WORKLOAD=agentobs
+export AZURE_ENVIRONMENT_NAME=dev
+export AZURE_REGION_ABBR=eus
+export AZURE_INSTANCE=001
+~/.copilot-otel/azure/validate.sh
+```
+
 ### 3.3 Deploy
 
 ```bash
@@ -153,6 +164,12 @@ az containerapp show \
   -n ca-otelcol-dev-eus-001 \
   --query '{runningStatus:properties.runningStatus,provisioningState:properties.provisioningState,fqdn:properties.configuration.ingress.fqdn}' \
   -o json
+```
+
+Run the consolidated read-only runtime gate:
+
+```bash
+~/.copilot-otel/azure/check-azure-runtime.sh
 ```
 
 ## 4. Dashboard Operations

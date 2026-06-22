@@ -63,6 +63,7 @@ instructions_count="$(find "$ROOT/.github/instructions" -maxdepth 1 -name '*.ins
   printf '%s\n' '- `docs/FrontierCockpit_DeveloperLocalGuide_v1_0_0_2026-06-17_en.md`'
   printf '%s\n' '- `docs/FrontierCockpit_AzureEnterpriseGuide_v1_0_0_2026-06-17_en.md`'
   printf '%s\n' '- `docs/FrontierCockpit_DataConsolidationGuide_v1_0_0_2026-06-17_en.md`'
+  printf '%s\n' '- `docs/FrontierCockpit_EnterpriseReadinessChecklist_v1_0_0_2026-06-22_en.md`'
   printf '%s\n' '- `docs/FrontierCockpit_ArchitectureDiagrams_v1_0_0_2026-06-18_en.md`'
   printf '%s\n' '- `docs/FrontierCockpit_OperationsRunbook_v1_0_0_2026-06-17_en.md`'
   printf '%s\n' '- `docs/FrontierCockpit_LocalLinksGuide_v1_0_0_2026-06-19_en.md`'

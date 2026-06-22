@@ -48,6 +48,7 @@ The local experience teaches developers how GitHub Copilot sessions behave. The 
 | Developer Operations | [Python And Aspire Local Architecture](docs/FrontierCockpit_PythonAspireLocalArchitecture_v1_0_0_2026-06-18_en.md) | Python-first local architecture with Aspire, DuckDB or SQLite, Prometheus, and Grafana. |
 | Enterprise FinOps | [Azure Enterprise Guide](docs/FrontierCockpit_AzureEnterpriseGuide_v1_0_0_2026-06-17_en.md) | Azure deployment, hybrid forwarding, Log Analytics, Azure Managed Grafana, and redaction strategy. |
 | Enterprise FinOps | [Data Consolidation Guide](docs/FrontierCockpit_DataConsolidationGuide_v1_0_0_2026-06-17_en.md) | Combining local OpenTelemetry rollups with GitHub APIs, billing exports, repository metadata, and governance signals. |
+| Enterprise FinOps | [Enterprise Readiness Checklist](docs/FrontierCockpit_EnterpriseReadinessChecklist_v1_0_0_2026-06-22_en.md) | Package readiness criteria for offer coherence, local runtime, Azure, GitHub Intelligence, dashboards, privacy, validation, and workshops. |
 | Enterprise FinOps | [Operations Runbook](docs/FrontierCockpit_OperationsRunbook_v1_0_0_2026-06-17_en.md) | Operations, validation, troubleshooting, security, retention, and teardown. |
 | Architecture | [Architecture Diagrams](docs/FrontierCockpit_ArchitectureDiagrams_v1_0_0_2026-06-18_en.md) | Draw.io source, exported SVGs, diagram index, and validation notes. |
 | Implementation | [End-to-End Implementation Manual](docs/FrontierCockpit_EndToEndImplementationManual_v1_0_0_2026-06-18_en.md) | Step-by-step record of implemented local, Azure, GitHub Enterprise, and dashboard work. |
@@ -87,7 +88,8 @@ Frontier Developer Cockpit always includes **Prometheus and Grafana** for the co
 2. Review [Taxonomy And Platform Layers](docs/FrontierCockpit_TaxonomyAndPlatformLayers_v1_0_0_2026-06-18_en.md) and [Architecture Diagrams](docs/FrontierCockpit_ArchitectureDiagrams_v1_0_0_2026-06-18_en.md).
 3. Use the [Azure Enterprise Guide](docs/FrontierCockpit_AzureEnterpriseGuide_v1_0_0_2026-06-17_en.md) for hybrid forwarding and enterprise dashboards.
 4. Use the [Data Consolidation Guide](docs/FrontierCockpit_DataConsolidationGuide_v1_0_0_2026-06-17_en.md) to plan official GitHub usage, billing, repository, and governance joins.
-5. Use the [Operations Runbook](docs/FrontierCockpit_OperationsRunbook_v1_0_0_2026-06-17_en.md) for validation, troubleshooting, security, retention, and teardown.
+5. Use the [Enterprise Readiness Checklist](docs/FrontierCockpit_EnterpriseReadinessChecklist_v1_0_0_2026-06-22_en.md) before customer or field delivery.
+6. Use the [Operations Runbook](docs/FrontierCockpit_OperationsRunbook_v1_0_0_2026-06-17_en.md) for validation, troubleshooting, security, retention, and teardown.
 
 ## Deck Deliverables
 

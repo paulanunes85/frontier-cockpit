@@ -92,12 +92,25 @@ The Azure Collector receives OTLP/HTTP over HTTPS with bearer token authenticati
 ~/.copilot-otel/azure/validate.sh
 ```
 
+For customer environments, override deployment parameters before validation:
+
+```bash
+export AZURE_LOCATION=eastus
+export AZURE_WORKLOAD=agentobs
+export AZURE_ENVIRONMENT_NAME=dev
+export AZURE_REGION_ABBR=eus
+export AZURE_INSTANCE=001
+~/.copilot-otel/azure/validate.sh
+```
+
 ### 4.2 Deploy
 
 ```bash
 az account set --subscription "your-subscription-name"
 ~/.copilot-otel/azure/deploy.sh
 ```
+
+`deploy.sh` preserves the dev defaults, but accepts the same `AZURE_LOCATION`, `AZURE_WORKLOAD`, `AZURE_ENVIRONMENT_NAME`, `AZURE_REGION_ABBR`, `AZURE_INSTANCE`, `AZURE_COLLECTOR_MIN_REPLICAS`, and `AZURE_COLLECTOR_MAX_REPLICAS` overrides. It writes those values plus the generated collector endpoint and token to `~/.copilot-otel/azure/.env`.
 
 ### 4.3 Destroy
 
@@ -213,6 +226,16 @@ az monitor log-analytics query \
   -w $(az monitor log-analytics workspace show -g rg-agentobs-dev-eus-001 -n log-agentobs-dev-eus-001 --query customerId -o tsv) \
   --analytics-query 'AppMetrics | summarize Count=count(), Sum=sum(Sum) by Name | order by Count desc | take 20'
 ```
+
+### 9.5 Runtime Validation Script
+
+Run the read-only Azure runtime gate after deployment or before a customer demo:
+
+```bash
+~/.copilot-otel/azure/check-azure-runtime.sh
+```
+
+The script checks the resource group, Container App running state, Log Analytics workspace queries, and Azure Managed Grafana readability. It does not deploy, delete, or rotate secrets.
 
 ## 10. Redaction Strategy
 
