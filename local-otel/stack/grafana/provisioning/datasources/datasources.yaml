@@ -1,0 +1,44 @@
+apiVersion: 1
+
+# Local Grafana datasources for the GitHub Copilot agent observability stack.
+# Prometheus for metrics history, Tempo for trace history, Loki for log history.
+
+datasources:
+  - name: Prometheus
+    uid: prometheus-local
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod: POST
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo-local
+
+  - name: Tempo
+    uid: tempo-local
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki-local
+      tracesToMetrics:
+        datasourceUid: prometheus-local
+      serviceMap:
+        datasourceUid: prometheus-local
+      nodeGraph:
+        enabled: true
+
+  - name: Loki
+    uid: loki-local
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - name: trace_id
+          matcherRegex: '"trace_id":"(\w+)"'
+          url: "$${__value.raw}"
+          datasourceUid: tempo-local

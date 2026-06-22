@@ -1,0 +1,70 @@
+# Local OpenTelemetry Collector config for the GitHub Copilot agent observability stack.
+# The Collector is the stable local ingress: VS Code, GitHub Copilot Chat, the Agent Host,
+# CLI and Claude agents, and instrumented local apps all send OTLP here on 4317 (gRPC) and
+# 4318 (HTTP). The Collector then fans out to Aspire (live), Tempo (traces), Prometheus
+# (metrics), and Loki (logs). The Azure forwarding pipeline is added by the hybrid overlay
+# (otel-collector-azure.yaml) and is not part of this base config, so the local stack runs
+# fully offline.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  resource:
+    attributes:
+      - key: collector.instance
+        value: local
+        action: upsert
+  batch: {}
+
+exporters:
+  # Live view in the Aspire Dashboard (internal OTLP/gRPC port 18889).
+  otlp_grpc/aspire:
+    endpoint: aspire-dashboard:18889
+    headers:
+      x-otlp-api-key: ${env:ASPIRE_DASHBOARD_API_KEY}
+    tls:
+      insecure: true
+
+  # Trace history in Tempo (OTLP/gRPC).
+  otlp_grpc/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # Metric history: expose a Prometheus scrape endpoint the Prometheus service scrapes.
+  prometheus:
+    endpoint: 0.0.0.0:9464
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # Log history in Loki via its native OTLP endpoint.
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
+
+service:
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp_grpc/aspire, otlp_grpc/tempo]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp_grpc/aspire, prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp_grpc/aspire, otlp_http/loki]

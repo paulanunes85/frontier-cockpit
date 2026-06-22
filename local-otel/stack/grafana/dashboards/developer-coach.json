@@ -1,0 +1,588 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "title": "Aspire live traces",
+      "url": "http://localhost:18888",
+      "targetBlank": true
+    },
+    {
+      "title": "Prometheus metrics",
+      "url": "http://localhost:9090",
+      "targetBlank": true
+    },
+    {
+      "title": "Tempo traces",
+      "url": "http://localhost:3200",
+      "targetBlank": true
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "How to read this dashboard",
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "# Developer coach for GitHub Copilot agent work\n\nUse this dashboard as a learning loop, not as official billing. Read it from left to right:\n\n1. **Where am I working?** Confirm the workspace/repo/branch registry.\n2. **How much context am I spending?** Watch input vs output tokens and model mix.\n3. **How much work did the agent do?** Tools, turns, duration, and errors show complexity.\n4. **Did it produce useful code?** Lines changed, accepted edits, survival, and feedback show outcome quality.\n5. **What should I change next?** Use the coaching panel to improve prompt shape, context, and agent workflow.\n\nThese are local operational metrics from GitHub Copilot Chat and local agents. They are real telemetry, but they are not the official GitHub Copilot billing ledger, AI Credits reconciliation, or enterprise adoption dashboard."
+      }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Workspace registry, what project am I looking at?",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "copilot_workspace_registry_ratio",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "instance": true,
+              "job": true,
+              "otel_scope_name": true,
+              "service_name": true,
+              "service_version": true,
+              "collector_instance": true,
+              "exported_job": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "workspace_name": "Workspace",
+              "git_repository_name": "Repository",
+              "git_branch": "Branch",
+              "workspace_kind": "Kind",
+              "workspace_path_hash": "Workspace hash",
+              "github_copilot_git_repository": "Remote"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Input tokens, real workspace sessions",
+      "description": "Materialized real workspace sessions. If this is high, reduce prompt scope and context.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1000000
+              },
+              {
+                "color": "red",
+                "value": 5000000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "type": "bargauge",
+      "title": "Input vs output tokens, real workspace sessions",
+      "description": "Input is context volume. Output is response/code generation volume.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}) or vector(0)",
+          "legendFormat": "input",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          },
+          "expr": "sum(copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"}) or vector(0)",
+          "legendFormat": "output"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "piechart",
+      "title": "Model mix by input tokens, real workspace sessions",
+      "description": "Telemetry model labels from materialized real sessions. Labels are not official billing product names.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (request_model) (copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"})",
+          "legendFormat": "{{request_model}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right"
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "AIU, real workspace sessions",
+      "description": "AIU reported in local telemetry, not official billing.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\"}) / 1e9 or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "LLM duration p95 by model",
+      "description": "Slow model calls may be acceptable for architecture or refactoring, but not for simple search or formatting tasks.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, gen_ai_request_model) (rate(gen_ai_client_operation_duration_bucket{workspace_path_hash=~\"$workspace\"}[$__rate_interval])))",
+          "legendFormat": "{{gen_ai_request_model}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Top tools used by agents",
+      "description": "A lot of terminal/read/edit tools can be healthy for implementation. Repeated tools with little progress usually mean the task needs a sharper prompt or better plan.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(12, sum by (gen_ai_tool_name, success) (increase(copilot_chat_tool_call_count_total{workspace_path_hash=~\"$workspace\"}[$__range])))",
+          "legendFormat": "{{gen_ai_tool_name}} {{success}}",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "orientation": "horizontal",
+        "showValue": "always",
+        "stacking": "none",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Agent turn count and invocation duration",
+      "description": "More turns can mean healthy decomposition, or poor instruction quality. Pair this with tool count and output quality.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, gen_ai_agent_name) (rate(copilot_chat_agent_invocation_duration_bucket{workspace_path_hash=~\"$workspace\"}[$__rate_interval])))",
+          "legendFormat": "duration p95 {{gen_ai_agent_name}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(copilot_chat_agent_turn_count_bucket{workspace_path_hash=~\"$workspace\"}[$__rate_interval])))",
+          "legendFormat": "turns p95",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Lines changed by AI edits",
+      "description": "Watch the balance between added and removed lines. Big changes need stronger verification and review discipline.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (type, copilot_chat_language_id) (increase(copilot_chat_lines_of_code_count_total{workspace_path_hash=~\"$workspace\"}[$__range]))",
+          "legendFormat": "{{type}} {{copilot_chat_language_id}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "text",
+      "title": "Prompt and workflow coaching rules",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Coaching checklist\n\n- **High input tokens:** reduce context, name the exact files, and ask for a plan before code.\n- **Many repeated tool calls:** define success criteria, file boundaries, and when the agent should stop and summarize.\n- **Expensive model mix:** route simple search, formatting, and mechanical edits to smaller models where available.\n- **Large code changes:** require tests, build, render checks, or a focused review pass.\n- **Errors rising:** inspect Tempo traces first, then tighten prompt constraints or tool permissions.\n- **Low workspace attribution:** reload VS Code and open a terminal in the target repo so workspace tags are present before the next session."
+      }
+    },
+    {
+      "id": 12,
+      "type": "text",
+      "title": "Developer prompt template",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Use this prompt shape for better agent work\n\n**Goal:** what outcome you want.\n\n**Scope:** exact files, folders, or feature boundary.\n\n**Constraints:** what not to change, security/privacy rules, performance expectations.\n\n**Verification:** build/test/render commands or acceptance checks.\n\n**Telemetry question:** ask the agent to keep an eye on token use, tool loops, errors, and workspace tags in Grafana/Tempo.\n\nExample: 'Implement X in folder Y. Reuse existing patterns. Do not touch audited deliverables. Run command Z. If tool calls repeat or input tokens spike, pause and summarize the blocker before continuing.'"
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "github-copilot",
+    "agents",
+    "developer-coach",
+    "opentelemetry"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "workspace",
+        "label": "Workspace hash (see registry table)",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-local"
+        },
+        "query": "label_values(copilot_workspace_registry_ratio, workspace_path_hash)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "model",
+        "label": "Model",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-local"
+        },
+        "query": "label_values(gen_ai_client_token_usage_sum, gen_ai_request_model)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "GitHub Copilot Developer Coach (Local)",
+  "uid": "copilot-developer-coach-local",
+  "version": 1,
+  "weekStart": ""
+}

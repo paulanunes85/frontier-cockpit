@@ -1,0 +1,169 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "agentobs-github-api-ingestion",
+    "title": "Frontier Cockpit, GitHub Intelligence",
+    "tags": [
+      "agentobs",
+      "copilot",
+      "enterprise",
+      "frontier-cockpit",
+      "github",
+      "github-intelligence-layer"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "5m",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "text",
+        "title": "GitHub Intelligence Layer",
+        "gridPos": {
+          "h": 5,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "# Frontier Cockpit, GitHub Intelligence\n\nThis dashboard shows GitHub Enterprise audit log ingestion, organization Copilot policy status, and Copilot metrics availability. It records unavailable APIs as data quality signals instead of fabricating usage."
+        }
+      },
+      {
+        "id": 2,
+        "type": "table",
+        "title": "Enterprise ingestion status",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 5
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppTraces | where AppRoleName == 'github-enterprise-ingestion' | summarize Count=count(), Last=max(TimeGenerated) by tostring(Properties.record_type), tostring(Properties.enterprise) | order by Last desc",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "cellHeight": "sm"
+        }
+      },
+      {
+        "id": 3,
+        "type": "table",
+        "title": "Org Copilot metrics availability",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 5
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppTraces | where AppRoleName == 'github-org-ingestion' | where tostring(Properties.record_type) == 'org_copilot_metrics_status' | summarize Count=count(), Last=max(TimeGenerated) by tostring(Properties.copilot_metrics_status), tostring(Properties.membership_role), tostring(Properties.error_status) | order by Last desc",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "cellHeight": "sm"
+        }
+      },
+      {
+        "id": 4,
+        "type": "table",
+        "title": "Org details",
+        "gridPos": {
+          "h": 14,
+          "w": 24,
+          "x": 0,
+          "y": 13
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppTraces | where AppRoleName == 'github-org-ingestion' | where tostring(Properties.record_type) == 'org_copilot_metrics_status' | project TimeGenerated, Org=tostring(Properties.org), Role=tostring(Properties.membership_role), Status=tostring(Properties.copilot_metrics_status), ErrorStatus=tostring(Properties.error_status), Message=tostring(Properties.error_message) | order by TimeGenerated desc | take 100",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "cellHeight": "sm"
+        }
+      },
+      {
+        "id": 5,
+        "type": "table",
+        "title": "Recent enterprise audit events",
+        "gridPos": {
+          "h": 14,
+          "w": 24,
+          "x": 0,
+          "y": 27
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppTraces | where AppRoleName == 'github-enterprise-ingestion' | where tostring(Properties.record_type) == 'audit_log' | project TimeGenerated, Action=tostring(Properties.action), Org=tostring(Properties.org), Repo=tostring(Properties.repo), Message | order by TimeGenerated desc | take 100",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "cellHeight": "sm"
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

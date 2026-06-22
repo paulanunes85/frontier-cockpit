@@ -1,0 +1,18 @@
+# Hybrid overlay for docker compose. Use together with docker-compose.yml to forward local
+# telemetry to the Azure cloud Collector in addition to the local backends.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.azure.yaml up -d
+#
+# Set AZURE_OTLP_ENDPOINT and AZURE_OTLP_TOKEN in the shell first (start-full-stack.sh
+# --hybrid loads them from $HOME/frontier-cockpit/local-otel/azure/.env when present).
+
+services:
+  otel-collector:
+    command:
+      - "--config=/etc/otelcol-contrib/config.yaml"
+      - "--config=/etc/otelcol-contrib/azure.yaml"
+    volumes:
+      - ./otel-collector-azure.yaml:/etc/otelcol-contrib/azure.yaml:ro
+    environment:
+      AZURE_OTLP_ENDPOINT: "${AZURE_OTLP_ENDPOINT:-}"
+      AZURE_OTLP_TOKEN: "${AZURE_OTLP_TOKEN:-}"

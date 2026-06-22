@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Hybrid GitHub Copilot agent observability architecture</title>
+  <desc id="desc">Local user-level OpenTelemetry Collector sends telemetry to Aspire, local Grafana stack, and an Azure Container Apps Collector that exports to Application Insights and Azure Managed Grafana.</desc>
+  <defs>
+    <style>
+      .label{font-family:Inter,Segoe UI,Arial,sans-serif;font-size:18px;fill:#1f2328}.small{font-size:13px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.box{fill:#fff;stroke:#00A4EF;stroke-width:2}.local{fill:#F2FBFF;stroke:#00A4EF;stroke-width:3;stroke-dasharray:10 6}.azure{fill:#FFFDF2;stroke:#FFB900;stroke-width:3;stroke-dasharray:10 6}.hist{stroke:#F25022}.green{stroke:#7FBA00}.yellow{stroke:#FFB900}.arrow{fill:none;stroke:#00A4EF;stroke-width:3;marker-end:url(#arrow)}.arrow2{fill:none;stroke:#F25022;stroke-width:3;marker-end:url(#arrowRed)}.arrow3{fill:none;stroke:#FFB900;stroke-width:3;marker-end:url(#arrowYellow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#00A4EF"/></marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#F25022"/></marker>
+    <marker id="arrowYellow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#FFB900"/></marker>
+  </defs>
+  <rect x="40" y="40" width="700" height="760" rx="4" class="local"/>
+  <text x="60" y="75" class="label">Local user machine, all VS Code Insiders workspaces</text>
+  <rect x="820" y="40" width="700" height="760" rx="4" class="azure"/>
+  <text x="840" y="75" class="label">Azure resource group, rg-agentobs-dev-eus-001, East US</text>
+
+  <rect x="85" y="120" width="180" height="90" rx="8" class="box"/>
+  <text x="105" y="150" class="label small">GitHub Copilot Chat</text><text x="105" y="172" class="label small">Agent Host, CLI agents</text><text x="105" y="194" class="label small">local instrumented apps</text>
+  <rect x="315" y="120" width="200" height="90" rx="8" class="box"/>
+  <text x="340" y="148" class="label small">OpenTelemetry Collector</text><text x="340" y="170" class="mono">localhost:4318 HTTP</text><text x="340" y="190" class="mono">localhost:4317 gRPC</text>
+  <rect x="555" y="120" width="140" height="80" rx="8" fill="#fff" stroke="#7FBA00" stroke-width="2"/>
+  <text x="575" y="150" class="label small">Aspire Dashboard</text><text x="575" y="174" class="mono">live :18888</text>
+
+  <rect x="90" y="340" width="150" height="80" rx="8" fill="#fff" class="hist" stroke-width="2"/>
+  <text x="125" y="370" class="label small">Tempo</text><text x="112" y="394" class="mono">traces 14d</text>
+  <rect x="275" y="340" width="150" height="80" rx="8" fill="#fff" class="hist" stroke-width="2"/>
+  <text x="305" y="370" class="label small">Prometheus</text><text x="298" y="394" class="mono">metrics 30d</text>
+  <rect x="460" y="340" width="150" height="80" rx="8" fill="#fff" class="hist" stroke-width="2"/>
+  <text x="510" y="370" class="label small">Loki</text><text x="493" y="394" class="mono">logs 14d</text>
+  <rect x="285" y="530" width="160" height="80" rx="8" fill="#fff" class="yellow" stroke-width="2"/>
+  <text x="322" y="562" class="label small">Grafana OSS</text><text x="316" y="586" class="mono">history :3000</text>
+  <rect x="485" y="530" width="135" height="80" rx="8" fill="#fff" class="green" stroke-width="2"/>
+  <text x="512" y="562" class="label small">PostgreSQL</text><text x="502" y="586" class="mono">Grafana metadata</text>
+
+  <rect x="875" y="120" width="185" height="90" rx="8" class="box"/>
+  <text x="900" y="150" class="label small">Container Apps Env</text><text x="898" y="174" class="mono">cae-agentobs-dev-eus-001</text>
+  <rect x="1100" y="120" width="210" height="95" rx="8" class="box"/>
+  <text x="1130" y="148" class="label small">Container App Collector</text><text x="1128" y="172" class="mono">ca-otelcol-dev-eus-001</text><text x="1128" y="194" class="mono">HTTPS OTLP + bearer</text>
+  <rect x="1350" y="120" width="135" height="90" rx="8" fill="#fff" class="green" stroke-width="2"/>
+  <text x="1376" y="152" class="label small">Managed</text><text x="1376" y="174" class="label small">Identity</text>
+
+  <rect x="910" y="340" width="180" height="90" rx="8" class="box"/>
+  <text x="940" y="372" class="label small">Application Insights</text><text x="930" y="396" class="mono">appi-agentobs-dev-eus-001</text>
+  <rect x="1150" y="340" width="185" height="90" rx="8" class="box"/>
+  <text x="1175" y="372" class="label small">Log Analytics</text><text x="1170" y="396" class="mono">log-agentobs-dev-eus-001</text>
+  <rect x="910" y="560" width="185" height="90" rx="8" class="box"/>
+  <text x="932" y="592" class="label small">Azure Monitor workspace</text><text x="930" y="616" class="mono">amw-agentobs-dev-eus-001</text>
+  <rect x="1220" y="560" width="190" height="90" rx="8" class="box"/>
+  <text x="1245" y="592" class="label small">Azure Managed Grafana</text><text x="1240" y="616" class="mono">amg-agentobs-dev-eus-001</text>
+
+  <path class="arrow" d="M265 165 H315"/><text x="270" y="150" class="mono">OTLP</text>
+  <path class="arrow" d="M515 165 H555"/><text x="520" y="148" class="mono">live</text>
+  <path class="arrow2" d="M415 210 V300 H165 V340"/><text x="180" y="315" class="mono">traces</text>
+  <path class="arrow2" d="M415 210 V300 H350 V340"/><text x="330" y="315" class="mono">metrics</text>
+  <path class="arrow2" d="M415 210 V300 H535 V340"/><text x="518" y="315" class="mono">logs</text>
+  <path class="arrow3" d="M165 420 V500 H365 V530"/><path class="arrow3" d="M350 420 V530"/><path class="arrow3" d="M535 420 V500 H365 V530"/>
+  <path class="arrow3" d="M445 570 H485"/><text x="455" y="555" class="mono">metadata</text>
+  <path class="arrow" d="M515 165 C700 165 780 165 1100 165"/><text x="690" y="145" class="mono">OTLP HTTP over HTTPS, bearer token</text>
+  <path class="arrow" d="M1060 165 H1100"/><path class="arrow" d="M1350 165 H1310"/>
+  <path class="arrow2" d="M1205 215 V340 H1000"/><text x="1038" y="320" class="mono">azuremonitor exporter</text>
+  <path class="arrow2" d="M1090 385 H1150"/><text x="1095" y="366" class="mono">workspace-based</text>
+  <path class="arrow3" d="M1000 430 V505 H1315 V560"/><text x="1110" y="490" class="mono">Azure Monitor datasource</text>
+  <path class="arrow3" d="M1095 605 H1220"/><text x="1110" y="587" class="mono">Prometheus integration</text>
+</svg>

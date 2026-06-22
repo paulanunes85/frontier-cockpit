@@ -1,0 +1,113 @@
+# Cloud OpenTelemetry Collector config for Azure Container Apps.
+# Receives OTLP/HTTP from the local Collector over HTTPS ingress and exports traces,
+# metrics, and logs to Application Insights through the Azure Monitor exporter.
+#
+# Required env vars in the Container App:
+#   COLLECTOR_BEARER_TOKEN
+#   APPLICATIONINSIGHTS_CONNECTION_STRING
+
+extensions:
+  bearertokenauth/server:
+    scheme: Bearer
+    token: ${env:COLLECTOR_BEARER_TOKEN}
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        auth:
+          authenticator: bearertokenauth/server
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  resource:
+    attributes:
+      - key: collector.instance
+        value: azure
+        action: upsert
+      - key: cloud.provider
+        value: azure
+        action: upsert
+      - key: cloud.region
+        value: eastus
+        action: upsert
+  transform/azure_redact:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - delete_key(span.attributes, "gen_ai.input.messages")
+          - delete_key(span.attributes, "gen_ai.output.messages")
+          - delete_key(span.attributes, "gen_ai.system_instructions")
+          - delete_key(span.attributes, "gen_ai.tool.definitions")
+          - delete_key(span.attributes, "gen_ai.tool.call.arguments")
+          - delete_key(span.attributes, "gen_ai.tool.call.result")
+          - delete_key(span.attributes, "copilot_chat.user_request")
+          - delete_key(span.attributes, "copilot_chat.reasoning_content")
+          - delete_key(span.attributes, "copilot_chat.hook_input")
+          - delete_key(span.attributes, "copilot_chat.hook_output")
+          - delete_key(span.attributes, "copilot_chat.request.shape")
+          - delete_key(span.attributes, "github.copilot.tool.parameters.command")
+          - delete_key(span.attributes, "toolDefinitions")
+    metric_statements:
+      - context: datapoint
+        statements:
+          - delete_key(datapoint.attributes, "request_shape")
+          - delete_key(datapoint.attributes, "copilot_chat.request.shape")
+          - delete_key(datapoint.attributes, "copilot_chat.hook_input")
+          - delete_key(datapoint.attributes, "copilot_chat.hook_output")
+          - delete_key(datapoint.attributes, "toolDefinitions")
+          - delete_key(datapoint.attributes, "gen_ai.input.messages")
+          - delete_key(datapoint.attributes, "gen_ai.output.messages")
+          - delete_key(datapoint.attributes, "gen_ai.system_instructions")
+          - delete_key(datapoint.attributes, "gen_ai.tool.definitions")
+          - delete_key(datapoint.attributes, "gen_ai.tool.call.arguments")
+          - delete_key(datapoint.attributes, "gen_ai.tool.call.result")
+          - delete_key(datapoint.attributes, "copilot_chat.user_request")
+          - delete_key(datapoint.attributes, "copilot_chat.reasoning_content")
+    log_statements:
+      - context: log
+        statements:
+          - delete_key(log.attributes, "gen_ai.input.messages")
+          - delete_key(log.attributes, "gen_ai.output.messages")
+          - delete_key(log.attributes, "gen_ai.system_instructions")
+          - delete_key(log.attributes, "gen_ai.tool.definitions")
+          - delete_key(log.attributes, "gen_ai.tool.call.arguments")
+          - delete_key(log.attributes, "gen_ai.tool.call.result")
+          - delete_key(log.attributes, "copilot_chat.user_request")
+          - delete_key(log.attributes, "copilot_chat.reasoning_content")
+          - delete_key(log.attributes, "copilot_chat.hook_input")
+          - delete_key(log.attributes, "copilot_chat.hook_output")
+          - delete_key(log.attributes, "copilot_chat.request.shape")
+          - delete_key(log.attributes, "toolDefinitions")
+  batch: {}
+
+exporters:
+  azuremonitor:
+    connection_string: ${env:APPLICATIONINSIGHTS_CONNECTION_STRING}
+    spaneventsenabled: true
+    custom_events_enabled: true
+    exception_events_enabled: true
+
+service:
+  extensions: [bearertokenauth/server]
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, transform/azure_redact, batch]
+      exporters: [azuremonitor]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, transform/azure_redact, batch]
+      exporters: [azuremonitor]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, transform/azure_redact, batch]
+      exporters: [azuremonitor]

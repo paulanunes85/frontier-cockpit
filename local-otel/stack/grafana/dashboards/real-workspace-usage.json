@@ -1,0 +1,497 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "title": "Tempo Explore, workspace traces",
+      "url": "/explore?left={\"datasource\":\"tempo-local\",\"queries\":[{\"query\":\"{service.name=\\\"copilot-chat\\\" && github.copilot.git.repository!=\\\"\\\"}\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}",
+      "targetBlank": false
+    },
+    {
+      "title": "Data Quality",
+      "url": "/d/copilot-data-quality-local/github-copilot-data-quality-local",
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Only real workspace sessions",
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "# Real workspace usage only\n\nThis dashboard includes only materialized traces where GitHub Copilot emitted a real repository attribute, such as `github.copilot.git.repository` or `copilot_chat.repo.remote_url`.\n\nExcluded by design: next edit suggestions, background wrappers, synthetic test spans, and any telemetry that cannot be assigned to a repository.\n\nMode is shown as **mode_bucket**, an inferred local bucket from real span attributes. Today, Prometheus does not expose a clean Ask/Plan/Agent UI mode label. For exact trace details, open Tempo or Aspire.\n\nCost is not shown unless you explicitly register trusted prices. Tokens are real local telemetry; AI Credits and official spend must come from GitHub billing/usage exports."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Workspace sessions",
+      "gridPos": {
+        "h": 6,
+        "w": 4,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "none",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Input tokens",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 4,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Output tokens",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 9,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Cache-read tokens",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 14,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_real_session_cache_read_tokens_ratio{usage_scope=\"workspace_real\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Captured content chars",
+      "gridPos": {
+        "h": 6,
+        "w": 5,
+        "x": 19,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_real_session_content_capture_chars_ratio{usage_scope=\"workspace_real\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "area",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Real workspace sessions by inferred mode",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count by (mode_bucket) (copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"})",
+          "legendFormat": "{{mode_bucket}}",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Token volume by emitted model label",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (request_model) (copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"})",
+          "legendFormat": "input {{request_model}}",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (request_model) (copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"})",
+          "legendFormat": "output {{request_model}}",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "barchart",
+      "title": "Tool calls and errors by session",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (trace_id) (copilot_real_session_tool_calls_ratio{usage_scope=\"workspace_real\"})",
+          "legendFormat": "tools {{trace_id}}",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (trace_id) (copilot_real_session_error_count_ratio{usage_scope=\"workspace_real\"})",
+          "legendFormat": "errors {{trace_id}}",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Real workspace sessions, exact trace/session/model/context rows",
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "collector_instance": true,
+              "exported_job": true,
+              "otel_scope_name": true,
+              "service_name": true,
+              "service_version": true,
+              "real_usage": true,
+              "workspace_filterable": true
+            },
+            "renameByName": {
+              "Value": "Input tokens",
+              "trace_id": "Trace ID",
+              "session_id": "Session ID",
+              "conversation_id": "Conversation ID",
+              "repo": "Repository",
+              "branch": "Branch",
+              "commit": "Commit",
+              "mode_bucket": "Inferred mode",
+              "agent_name": "Agent",
+              "request_model": "Requested model label",
+              "response_model": "Resolved model label",
+              "chat_models": "Chat span models",
+              "workspace_name": "Workspace name",
+              "workspace_path_hash": "Workspace hash",
+              "request_shape": "Request shape"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 11,
+      "type": "text",
+      "title": "Content capture is inspected in Aspire or Tempo, not shown by default",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Content capture is intentionally not a default table\n\nRaw prompts, tool arguments, file snippets, and tool results can be sensitive. Frontier Developer Cockpit keeps that detail local and available for trusted debugging in Aspire or Tempo, but this dashboard does not show raw content by default.\n\nUse Aspire at `http://localhost:18888` for live span inspection, or Grafana Explore with Tempo for trace attributes. Use `$HOME/frontier-cockpit/local-otel/show-trace-content.sh` for CLI inspection. Use `--show-content` only in trusted local demos."
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "github-copilot",
+    "workspace-real",
+    "sessions",
+    "content-capture"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "GitHub Copilot Real Workspace Usage (Local)",
+  "uid": "copilot-real-workspace-usage-local",
+  "version": 1,
+  "weekStart": ""
+}

@@ -1,0 +1,122 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    { "title": "Developer Coach", "url": "/d/copilot-developer-coach-local/github-copilot-developer-coach-local", "targetBlank": false },
+    { "title": "Aspire live traces", "url": "http://localhost:18888", "targetBlank": true }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Is this data real?",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "# Data quality guide\n\nThis stack shows **local operational telemetry**, not official GitHub billing.\n\n**Real local telemetry:** `service_name=\"copilot-chat\"` metrics and traces emitted by GitHub Copilot Chat/Agent Host. This includes model, duration, tokens, tools, edit outcomes, and workspace tags when available.\n\n**Registry metadata:** `service_name=\"copilot-workspace-registry\"` is a helper metric created locally to map `workspace_path_hash` to a human-friendly workspace/repo/branch. It is not usage.\n\n**Synthetic validation:** `service.name=\"copilot-otel-local-test\"` traces come from `send-test-span.sh` and exist only to prove the pipeline works.\n\n**Not official:** AI Credits, enterprise adoption, billing, and seat usage must come from GitHub Copilot usage metrics and billing exports."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Real GitHub Copilot token telemetry",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "sum(increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range]))", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area", "colorMode": "value" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Workspace attribution coverage",
+      "description": "Percentage of token telemetry that has a non-empty workspace_path_hash. Low coverage means some sessions started before workspace tagging was available or came from a non-workspace context.",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "100 * sum(increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\", workspace_path_hash=~\".+\"}[$__range])) / sum(increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range]))", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1, "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 60 }, { "color": "green", "value": 85 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area", "colorMode": "value" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Registered workspaces",
+      "description": "Friendly mappings created locally by register-workspace.sh. These are labels, not usage volume.",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "count(copilot_workspace_registry_ratio)", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "colorMode": "value" }
+    },
+    {
+      "id": 5,
+      "type": "text",
+      "title": "Synthetic validation traces",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 7 },
+      "options": {
+        "mode": "markdown",
+        "content": "Synthetic validation spans come from `send-test-span.sh` and appear in Tempo as `service.name = copilot-otel-local-test`. They prove the pipeline works, but they do not represent developer work, token usage, AI Credits, or productivity."
+      }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Workspace registry, friendly names for hashes",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "copilot_workspace_registry_ratio", "format": "table", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "transformations": [
+        { "id": "labelsToFields", "options": { "mode": "columns" } },
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "Value": true, "__name__": true, "instance": true, "job": true, "otel_scope_name": true, "service_name": true, "service_version": true, "collector_instance": true, "exported_job": true }, "renameByName": { "workspace_name": "Workspace", "workspace_kind": "Kind", "workspace_path_hash": "Hash", "git_repository_owner": "Owner", "git_repository_name": "Repository", "git_branch": "Branch", "github_copilot_git_repository": "Remote" } } }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } }, "overrides": [] },
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    },
+    {
+      "id": 7,
+      "type": "bargauge",
+      "title": "Token telemetry by attribution state",
+      "description": "Tagged tokens can be filtered by workspace. Untagged tokens are still real GitHub Copilot telemetry, but cannot be reliably assigned to a workspace.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [
+        { "refId": "A", "expr": "sum(increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\", workspace_path_hash=~\".+\"}[$__range]))", "legendFormat": "tagged", "datasource": { "type": "prometheus", "uid": "prometheus-local" } },
+        { "refId": "B", "expr": "sum(increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range])) - sum(increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\", workspace_path_hash=~\".+\"}[$__range]))", "legendFormat": "untagged", "datasource": { "type": "prometheus", "uid": "prometheus-local" } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "Real token telemetry by model and type",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range]))", "legendFormat": "{{gen_ai_request_model}} {{gen_ai_token_type}}", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 9,
+      "type": "text",
+      "title": "Interpretation rules",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 29 },
+      "options": {
+        "mode": "markdown",
+        "content": "## Interpretation rules\n\n- Token metrics from `service_name=\"copilot-chat\"` are real local telemetry.\n- They are **not** official billing or AI Credits reconciliation.\n- Workspace registry rows are helper labels, not usage volume.\n- Untagged tokens are still real telemetry, but they cannot be safely assigned to a workspace.\n- Synthetic validation spans prove plumbing, not developer behavior.\n- Official AI Credits, enterprise adoption, and seat usage require GitHub billing and GitHub Copilot usage metrics exports."
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["github-copilot", "data-quality", "opentelemetry"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "GitHub Copilot Data Quality (Local)",
+  "uid": "copilot-data-quality-local",
+  "version": 1,
+  "weekStart": ""
+}

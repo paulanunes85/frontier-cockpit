@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Hybrid Agent Observability" id="agentobs-hybrid">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="local" value="Local user machine, all VS Code Insiders workspaces" style="rounded=0;dashed=1;verticalAlign=top;align=left;spacingLeft=8;html=1;fillColor=#F2FBFF;strokeColor=#00A4EF;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="700" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="azure" value="Azure resource group, rg-agentobs-dev-eus-001, East US" style="rounded=0;dashed=1;verticalAlign=top;align=left;spacingLeft=8;html=1;fillColor=#FFFDF2;strokeColor=#FFB900;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="40" width="700" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="sources" value="GitHub Copilot Chat&lt;br&gt;Agent Host&lt;br&gt;CLI and Claude agents&lt;br&gt;Instrumented local apps" style="shape=mxgraph.gcp2.github;html=1;whiteSpace=wrap;verticalLabelPosition=bottom;verticalAlign=top;align=center;fillColor=#FFFFFF;strokeColor=#24292F;" vertex="1" parent="local">
+          <mxGeometry x="40" y="80" width="170" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="local-collector" value="OpenTelemetry Collector&lt;br&gt;localhost:4318 HTTP&lt;br&gt;localhost:4317 gRPC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#00A4EF;fontStyle=1;" vertex="1" parent="local">
+          <mxGeometry x="270" y="80" width="190" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="aspire" value="Aspire Dashboard&lt;br&gt;live view, :18888" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7FBA00;" vertex="1" parent="local">
+          <mxGeometry x="500" y="70" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tempo" value="Tempo&lt;br&gt;trace history, 14d" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F25022;" vertex="1" parent="local">
+          <mxGeometry x="80" y="300" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="prometheus" value="Prometheus&lt;br&gt;metric history, 30d" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F25022;" vertex="1" parent="local">
+          <mxGeometry x="270" y="300" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="loki" value="Loki&lt;br&gt;log history, 14d" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F25022;" vertex="1" parent="local">
+          <mxGeometry x="460" y="300" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana-local" value="Grafana OSS&lt;br&gt;local history, :3000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FFB900;fontStyle=1;" vertex="1" parent="local">
+          <mxGeometry x="270" y="470" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="postgres" value="PostgreSQL&lt;br&gt;Grafana metadata" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFFFFF;strokeColor=#7FBA00;" vertex="1" parent="local">
+          <mxGeometry x="470" y="470" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="aca-env" value="Azure Container Apps Environment&lt;br&gt;cae-agentobs-dev-eus-001" style="sketch=0;html=1;shape=mxgraph.azure.app_services;whiteSpace=wrap;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="azure">
+          <mxGeometry x="80" y="80" width="170" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cloud-collector" value="Container App, OTel Collector&lt;br&gt;ca-otelcol-dev-eus-001&lt;br&gt;HTTPS OTLP/HTTP + bearer" style="sketch=0;html=1;shape=mxgraph.azure.app_services;whiteSpace=wrap;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="azure">
+          <mxGeometry x="300" y="80" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="identity" value="Managed Identity&lt;br&gt;id-agentobs-dev-eus-001" style="sketch=0;html=1;shape=mxgraph.azure.azure_active_directory;whiteSpace=wrap;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="azure">
+          <mxGeometry x="530" y="90" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="appinsights" value="Application Insights&lt;br&gt;appi-agentobs-dev-eus-001" style="sketch=0;html=1;shape=mxgraph.azure.monitor;whiteSpace=wrap;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="azure">
+          <mxGeometry x="130" y="300" width="170" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="loganalytics" value="Log Analytics workspace&lt;br&gt;log-agentobs-dev-eus-001" style="sketch=0;html=1;shape=mxgraph.azure.monitor;whiteSpace=wrap;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="azure">
+          <mxGeometry x="360" y="300" width="170" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="amw" value="Azure Monitor workspace&lt;br&gt;amw-agentobs-dev-eus-001" style="sketch=0;html=1;shape=mxgraph.azure.monitor;whiteSpace=wrap;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="azure">
+          <mxGeometry x="130" y="500" width="170" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="amg" value="Azure Managed Grafana&lt;br&gt;amg-agentobs-dev-eus-001" style="sketch=0;html=1;shape=mxgraph.azure.monitor;whiteSpace=wrap;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="azure">
+          <mxGeometry x="400" y="500" width="180" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="OTLP HTTP/gRPC" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#00A4EF;" edge="1" parent="1" source="sources" target="local-collector"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" value="OTLP gRPC, live" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#7FBA00;" edge="1" parent="1" source="local-collector" target="aspire"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" value="traces" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#F25022;" edge="1" parent="1" source="local-collector" target="tempo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" value="metrics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#F25022;" edge="1" parent="1" source="local-collector" target="prometheus"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="logs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#F25022;" edge="1" parent="1" source="local-collector" target="loki"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="datasources" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#FFB900;" edge="1" parent="1" source="tempo" target="grafana-local"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" value="datasources" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#FFB900;" edge="1" parent="1" source="prometheus" target="grafana-local"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" value="datasources" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#FFB900;" edge="1" parent="1" source="loki" target="grafana-local"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="metadata" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#7FBA00;" edge="1" parent="1" source="grafana-local" target="postgres"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" value="OTLP HTTP over HTTPS, bearer token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#00A4EF;fontStyle=1;" edge="1" parent="1" source="local-collector" target="cloud-collector"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" value="runs in" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#00A4EF;" edge="1" parent="1" source="aca-env" target="cloud-collector"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" value="user-assigned MI" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#7FBA00;" edge="1" parent="1" source="identity" target="cloud-collector"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" value="azuremonitor exporter" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#F25022;" edge="1" parent="1" source="cloud-collector" target="appinsights"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" value="workspace-based" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#F25022;" edge="1" parent="1" source="appinsights" target="loganalytics"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" value="Azure Monitor datasource" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#FFB900;" edge="1" parent="1" source="appinsights" target="amg"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e16" value="managed Prometheus integration" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#FFB900;" edge="1" parent="1" source="amw" target="amg"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,77 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "What this measures",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "# VS Code process memory, OS level\n\nThis is the resident set size (RSS) of the VS Code and Electron processes on your Mac, sampled locally by `$HOME/frontier-cockpit/local-otel/sample-vscode-memory.sh`. It is operating system memory, not GitHub Copilot model context. Use it to watch editor and extension host memory pressure during heavy agent sessions. For model context and cache, use the Context and Cost dashboard."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total VS Code RSS",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "max(vscode_process_memory_rss_bytes{component=\"all_vscode\"})", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 6000000000 }, { "color": "red", "value": 10000000000 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area", "colorMode": "value" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "VS Code process count",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "max(vscode_process_count_ratio{component=\"all_vscode\"})", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none", "colorMode": "value" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Helper processes RSS",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "max(vscode_process_memory_rss_bytes{component=\"code_helpers\"})", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area", "colorMode": "value" }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "VS Code RSS over time by component",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 11 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "vscode_process_memory_rss_bytes{component=~\"code_insiders_main|code_main|code_helpers|node_processes\"}", "legendFormat": "{{component}}", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "VS Code process count over time",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-local" },
+      "targets": [ { "refId": "A", "expr": "vscode_process_count_ratio{component=~\"code_insiders_main|code_helpers|node_processes\"}", "legendFormat": "{{component}}", "datasource": { "type": "prometheus", "uid": "prometheus-local" } } ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["vscode", "memory", "host"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timezone": "browser",
+  "title": "VS Code Process Memory (Local)",
+  "uid": "vscode-process-memory-local",
+  "version": 1,
+  "weekStart": ""
+}

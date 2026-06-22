@@ -1,0 +1,152 @@
+name: copilot-otel-local
+
+services:
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    container_name: aspire-dashboard
+    env_file:
+      - ./aspire-api-key.env
+    environment:
+      DOTNET_DASHBOARD_OTLP_ENDPOINT_URL: "http://0.0.0.0:18889"
+      DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL: "http://0.0.0.0:18890"
+      DASHBOARD__OTLP__AUTHMODE: "ApiKey"
+      DASHBOARD__OTLP__PRIMARYAPIKEY: "${ASPIRE_DASHBOARD_API_KEY}"
+      DASHBOARD__API__ENABLED: "true"
+      DASHBOARD__API__AUTHMODE: "ApiKey"
+      DASHBOARD__API__PRIMARYAPIKEY: "${ASPIRE_DASHBOARD_API_KEY}"
+      DASHBOARD__TELEMETRYLIMITS__MAXLOGCOUNT: "50000"
+      DASHBOARD__TELEMETRYLIMITS__MAXTRACECOUNT: "50000"
+      DASHBOARD__TELEMETRYLIMITS__MAXMETRICSCOUNT: "50000"
+      DASHBOARD__TELEMETRYLIMITS__MAXATTRIBUTECOUNT: "512"
+    ports:
+      - "18888:18888"
+    restart: unless-stopped
+    networks:
+      - observability
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.154.0
+    container_name: copilot-otel-collector
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    env_file:
+      - ./aspire-api-key.env
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "9464:9464"
+    depends_on:
+      - aspire-dashboard
+      - tempo
+      - loki
+    restart: unless-stopped
+    networks:
+      - observability
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: copilot-otel-tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+    restart: unless-stopped
+    networks:
+      - observability
+
+  loki:
+    image: grafana/loki:3.3.2
+    container_name: copilot-otel-loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./loki.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    networks:
+      - observability
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: copilot-otel-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - observability
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: copilot-otel-postgres
+    environment:
+      POSTGRES_DB: grafana
+      POSTGRES_USER: grafana
+      POSTGRES_PASSWORD: grafana
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grafana -d grafana"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - observability
+
+  grafana:
+    image: grafana/grafana-oss:11.4.0
+    container_name: copilot-otel-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: postgres:5432
+      GF_DATABASE_NAME: grafana
+      GF_DATABASE_USER: grafana
+      GF_DATABASE_PASSWORD: grafana
+      GF_DATABASE_SSL_MODE: disable
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+      tempo:
+        condition: service_started
+      loki:
+        condition: service_started
+    networks:
+      - observability
+
+networks:
+  observability:
+    name: copilot-otel-local
+
+volumes:
+  grafana-data:
+  loki-data:
+  postgres-data:
+  prometheus-data:
+  tempo-data:

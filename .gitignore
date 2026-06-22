@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Local editor and test scratch
+.playwright-mcp/
+
+# Frontier Cockpit local runtime state
+local-otel/.venv/
+local-otel/**/*.log
+local-otel/**/*-log.txt
+local-otel/*.out
+local-otel/*.err
+local-otel/materialized-traces.json
+local-otel/frontier-insights.duckdb
+local-otel/workspaces/
+
+# Local Azure and GitHub state, secrets, and exports
+local-otel/azure/.env
+local-otel/azure/*state*.json
+local-otel/azure/*token*
+local-otel/azure/audit-storage-*.txt
+local-otel/github-enterprise/*.json
+local-otel/github-orgs/*.json
+
+# Docker/generated runtime files
+local-otel/stack/aspire-api-key.env
+local-otel/stack/**/*.db
+local-otel/stack/**/data/
+
+# Migration backups kept local only
+_archive/

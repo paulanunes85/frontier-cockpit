@@ -1,0 +1,212 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "agentobs-azure-copilot-overview",
+    "title": "Frontier FinOps Cockpit, Azure Enterprise",
+    "tags": [
+      "agentobs",
+      "azure",
+      "frontier-cockpit",
+      "frontier-finops-cockpit",
+      "github-copilot",
+      "opentelemetry"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 1,
+    "refresh": "1m",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "text",
+        "title": "Frontier FinOps Cockpit",
+        "gridPos": {
+          "h": 5,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "options": {
+          "mode": "markdown",
+          "content": "# Frontier FinOps Cockpit in Azure\n\nThis dashboard is the centralized enterprise view for sanitized GitHub Copilot and agentic development telemetry. It complements Frontier Developer Cockpit, which remains the local full-fidelity developer experience."
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Telemetry traces by role",
+        "gridPos": {
+          "h": 6,
+          "w": 8,
+          "x": 0,
+          "y": 5
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppTraces | summarize Count=count()",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "options": {
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ]
+          },
+          "graphMode": "none",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 3,
+        "type": "table",
+        "title": "Trace roles",
+        "gridPos": {
+          "h": 8,
+          "w": 16,
+          "x": 8,
+          "y": 5
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppTraces | summarize Count=count() by AppRoleName | order by Count desc",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "cellHeight": "sm"
+        }
+      },
+      {
+        "id": 4,
+        "type": "table",
+        "title": "Top custom metrics",
+        "gridPos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 13
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppMetrics | summarize Count=count(), Sum=sum(value) by name | order by Count desc | take 30",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "cellHeight": "sm"
+        }
+      },
+      {
+        "id": 5,
+        "type": "table",
+        "title": "Daily workspace rollup, real local workspace telemetry",
+        "gridPos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 23
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppTraces | where AppRoleName == 'copilot-daily-rollup' | project TimeGenerated, Message, Properties | order by TimeGenerated desc | take 20",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "cellHeight": "md"
+        }
+      },
+      {
+        "id": 6,
+        "type": "table",
+        "title": "Content capture records, hidden/summarized",
+        "gridPos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 33
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "azure-monitor-oob"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "queryType": "Azure Log Analytics",
+            "azureLogAnalytics": {
+              "resources": [
+                "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-agentobs-dev-eus-001/providers/Microsoft.OperationalInsights/workspaces/log-agentobs-dev-eus-001"
+              ],
+              "query": "AppTraces | where AppRoleName == 'copilot-real-content-capture' | project TimeGenerated, Message, Properties | order by TimeGenerated desc | take 20",
+              "resultFormat": "table"
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "cellHeight": "md"
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}

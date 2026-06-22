@@ -1,0 +1,224 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "title": "Tempo Explore",
+      "url": "/explore?left={\"datasource\":\"tempo-local\",\"queries\":[{\"query\":\"{service.name=\\\"copilot-chat\\\"}\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}",
+      "targetBlank": false
+    },
+    {
+      "title": "Aspire live traces",
+      "url": "http://localhost:18888",
+      "targetBlank": true
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Read this first, model names, chat modes, content, and spend",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "# Sessions and model labels\n\nThis dashboard separates what is **real local telemetry** from what is **planning-only**.\n\n- `gen_ai_request_model` and `gen_ai_response_model` are the exact model labels emitted by the GitHub Copilot runtime. They may be internal, preview, routed, or resolved labels. Treat them as telemetry labels, not friendly product names.\n- Local Prometheus currently exposes `gen_ai_operation_name=chat`, but not a clean dashboard label for Ask/Edit/Agent/Plan mode. When emitted, mode-like details are in Tempo span attributes such as `copilot_chat.request.shape`, not in the Prometheus metric labels.\n- Content capture is visible in trace attributes in Aspire or Tempo, for example `gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.tool.call.arguments`, and `gen_ai.tool.call.result`. Do not put raw content in Grafana dashboards by default.\n- Spend per session is only an estimate if you register local prices. It is not official GitHub billing or AI Credits reconciliation."
+      }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Telemetry model labels by session and token type",
+      "description": "These are the model labels emitted by telemetry, grouped by session. They are the best local source for model usage, but not necessarily the UI-friendly model name.",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(50, sum by (session_id, gen_ai_request_model, gen_ai_response_model, gen_ai_token_type, workspace_path_hash) (increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range])))",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true
+            },
+            "renameByName": {
+              "Value": "Tokens",
+              "session_id": "Session",
+              "gen_ai_request_model": "Requested model label",
+              "gen_ai_response_model": "Resolved model label",
+              "gen_ai_token_type": "Token type",
+              "workspace_path_hash": "Workspace hash"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tokens"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 3,
+      "type": "barchart",
+      "title": "Token volume by telemetry model label",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range]))",
+          "legendFormat": "{{gen_ai_request_model}} {{gen_ai_token_type}}",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "text",
+      "title": "Local price registry is not configured",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Price registry intentionally disabled\n\nThis environment does not currently publish `copilot_model_price_usd_per_million_ratio`. That is expected. Local telemetry shows token, AIU, context, and tool behavior. Official spend and AI Credits must come from GitHub billing or usage exports. Register local planning prices only when there is a trusted source."
+      }
+    },
+    {
+      "id": 5,
+      "type": "text",
+      "title": "Estimated spend is disabled until trusted prices exist",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## No estimated local spend shown\n\nThis dashboard avoids fake precision. It does not estimate spend unless a trusted local price registry has been explicitly loaded. Use AIU and token trends for developer coaching, and use GitHub billing or usage exports for official FinOps reporting."
+      }
+    },
+    {
+      "id": 6,
+      "type": "text",
+      "title": "How to see content capture safely",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Content capture\n\nContent capture is not shown in Grafana dashboards by default because it may include prompts, file snippets, tool arguments, and tool results.\n\nUse one of these paths:\n\n1. **Aspire:** open `http://localhost:18888`, go to Traces, select a `copilot-chat` trace, open a `chat` or `execute_tool` span, inspect attributes like `gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.tool.call.arguments`, and `gen_ai.tool.call.result`.\n\n2. **Grafana Tempo Explore:** open Explore, choose Tempo, query `{service.name=\"copilot-chat\"}`, select a trace, inspect span attributes.\n\n3. **CLI safe inspection:** use `$HOME/frontier-cockpit/local-otel/show-trace-content.sh` to list content-capture keys without printing raw content. Use `--show-content` only in trusted local demos.\n\nFor customer environments, keep content capture off unless the customer explicitly approves it."
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "github-copilot",
+    "sessions",
+    "models",
+    "cost-planning",
+    "opentelemetry"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "GitHub Copilot Sessions and Model Labels (Local)",
+  "uid": "copilot-sessions-models-local",
+  "version": 1,
+  "weekStart": ""
+}

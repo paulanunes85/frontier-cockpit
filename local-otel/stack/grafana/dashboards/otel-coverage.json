@@ -1,0 +1,275 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "title": "Data Quality",
+      "url": "/d/copilot-data-quality-local/github-copilot-data-quality-local",
+      "targetBlank": false
+    },
+    {
+      "title": "Sessions and Models",
+      "url": "/d/copilot-sessions-models-local/github-copilot-sessions-and-model-labels-local",
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Coverage promise",
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "# GitHub Copilot OTel coverage, local reality check\n\nThis dashboard answers: **which signals from the monitoring article have actually appeared in your local telemetry?**\n\n- **Observed** means the signal appeared in Prometheus or Tempo.\n- **Not observed yet** means the stack is ready, but you have not triggered that behavior locally, or the current emitter did not send that field.\n- This dashboard does not use synthetic usage data. The only synthetic part is the audit metadata row that says whether a signal was observed.\n- Content capture is verified by attribute presence and size, not by showing raw prompt or code in Grafana.\n- Official usage/billing still comes from GitHub APIs and billing exports."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Metrics observed",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_otel_coverage_status_ratio{signal_type=~\".*metric.*\", status=\"observed\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "none",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Trace attributes observed",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(copilot_otel_coverage_status_ratio{signal_type=~\".*attribute.*\", status=\"observed\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "none",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Signals not observed yet",
+      "description": "Count of expected signals that have not appeared yet. This usually means the matching behavior has not been triggered locally.",
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(copilot_otel_coverage_status_ratio{status!=\"observed\"}) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "graphMode": "none",
+        "colorMode": "value"
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Coverage matrix, observed vs not observed yet",
+      "gridPos": {
+        "h": 20,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "copilot_otel_coverage_status_ratio",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          }
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "collector_instance": true,
+              "exported_job": true,
+              "otel_scope_name": true,
+              "service_name": true,
+              "service_version": true
+            },
+            "renameByName": {
+              "Value": "Observed (1/0)",
+              "signal_type": "Signal type",
+              "signal_name": "Signal",
+              "status": "Status",
+              "meaning": "Meaning"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Observed (1/0)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 6,
+      "type": "text",
+      "title": "How to make missing signals appear",
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## Missing does not mean broken\n\nSome fields appear only when that behavior happens. Current typical gaps are expected unless you trigger them:\n\n- **User actions and feedback:** copy/insert/apply/follow-up actions and thumbs up/down.\n- **Cloud and PR flows:** cloud session start, PR creation, PR-ready notification.\n- **MCP-specific tool calls:** MCP server name, MCP server hash, MCP tool name.\n- **Cache creation tokens:** appears only when the runtime reports cache creation, not every request.\n- **Hooks:** configure and trigger hooks to see `execute_hook` and hook attributes.\n- **Repository tags:** open a Git repo, register the workspace, and reload VS Code before starting the session.\n\nThis dashboard is a coverage checklist for local validation, not a generated usage report."
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "github-copilot",
+    "coverage",
+    "opentelemetry"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "GitHub Copilot OTel Coverage (Local)",
+  "uid": "copilot-otel-coverage-local",
+  "version": 1,
+  "weekStart": ""
+}
