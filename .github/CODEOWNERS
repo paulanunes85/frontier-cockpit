@@ -1,0 +1,11 @@
+/.github/scripts/ @your-handle
+/.github/workflows/ @your-handle
+/.github/agents/ @your-handle
+/.github/skills/ @your-handle
+/.github/prompts/ @your-handle
+/.github/instructions/ @your-handle
+/README.md @your-handle
+/.github/CONTRIBUTING.md @your-handle
+/.github/SECURITY.md @your-handle
+/.github/CODEOWNERS @your-handle
+/llms.txt @your-handle

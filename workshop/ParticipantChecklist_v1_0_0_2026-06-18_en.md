@@ -1,0 +1,111 @@
+---
+title: "Participant Checklist"
+description: "Completion checklist for developers participating in the Frontier Developer Cockpit hands-on workshop."
+author: "Frontier Cockpit Team"
+date: "2026-06-18"
+version: "1.0.0"
+status: "approved"
+tags: ["github-copilot", "workshop", "checklist", "developer"]
+---
+
+<!-- markdownlint-disable MD025 -->
+
+# Participant Checklist
+
+Use this checklist to confirm each participant leaves the workshop with a working local control tower and an understanding of the Frontier FinOps Cockpit.
+
+## Change Log
+
+| Version | Date | Author | Changes |
+| --- | --- | --- | --- |
+| 1.0.0 | 2026-06-18 | Frontier Cockpit Team | Initial participant checklist. |
+
+## Table of Contents
+
+- [1. Local Setup](#1-local-setup)
+- [2. Real Telemetry](#2-real-telemetry)
+- [3. Dashboard Understanding](#3-dashboard-understanding)
+- [4. Azure Understanding](#4-azure-understanding)
+- [5. GitHub Enterprise Understanding](#5-github-enterprise-understanding)
+- [6. Prompt Improvement](#6-prompt-improvement)
+- [7. Final Evidence](#7-final-evidence)
+- [References](#references)
+
+## 1. Local Setup
+
+- [ ] Docker Desktop is running.
+- [ ] VS Code Insiders is open.
+- [ ] GitHub Copilot Chat works.
+- [ ] Local stack starts with `~/.copilot-otel/start-full-stack.sh`.
+- [ ] `~/.copilot-otel/check-otel-local.sh` reports ready.
+- [ ] Aspire opens at `http://localhost:18888`.
+- [ ] Grafana opens at `http://localhost:3000`.
+
+## 2. Real Telemetry
+
+- [ ] A real GitHub Copilot Chat or agent session was generated.
+- [ ] A `copilot-chat` trace was found in Aspire.
+- [ ] The trace includes `chat` spans.
+- [ ] The trace includes tool spans when tools were used.
+- [ ] `~/.copilot-otel/materialize-copilot-sessions.sh` ran successfully.
+- [ ] A real workspace session appears in Grafana if repository attribution was emitted.
+
+## 3. Dashboard Understanding
+
+- [ ] Participant can explain Aspire vs Grafana.
+- [ ] Participant can explain input tokens and output tokens.
+- [ ] Participant can explain hot/warm/cold context.
+- [ ] Participant can explain AIU as an operational signal.
+- [ ] Participant can explain why model names are telemetry labels.
+- [ ] Participant can explain `workspace_real` vs `non_workspace_real`.
+- [ ] Participant can identify one prompt improvement from telemetry.
+
+## 4. Azure Understanding
+
+- [ ] Participant understands that Azure receives sanitized telemetry.
+- [ ] Participant can open the Azure Managed Grafana dashboard if access is available.
+- [ ] Participant understands that raw prompts and tool outputs stay local by default.
+- [ ] Participant understands that official billing requires GitHub billing or usage exports.
+
+## 5. GitHub Enterprise Understanding
+
+- [ ] Participant can explain enterprise audit log vs Copilot metrics API.
+- [ ] Participant understands that `404` for Copilot metrics is a real status.
+- [ ] Participant understands that some policies must be enabled in GitHub UI.
+- [ ] Participant understands that audit log streaming can be configured through GitHub API.
+
+## 6. Prompt Improvement
+
+Participant rewrote a broad prompt into this shape:
+
+```text
+Objective:
+Scope:
+Relevant files:
+Non-goals:
+Validation:
+Stop condition:
+Telemetry question:
+```
+
+The improved prompt should reduce ambiguity and make telemetry easier to interpret.
+
+## 7. Final Evidence
+
+Collect screenshots or notes for:
+
+- [ ] Aspire trace detail.
+- [ ] Local Context and Cost dashboard.
+- [ ] Local Data Quality dashboard.
+- [ ] Local Developer Coach dashboard.
+- [ ] Azure dashboard, optional.
+- [ ] One before/after prompt example.
+
+## References
+
+- [Workshop README](README.md)
+- [Lab 01, Local Developer Cockpit](Lab_01_LocalDeveloperCockpit_v1_0_0_2026-06-18_en.md)
+- [Lab 02, Real Telemetry And Session Insights](Lab_02_RealTelemetryAndSessionInsights_v1_0_0_2026-06-18_en.md)
+- [Lab 03, Context Cost And Prompt Optimization](Lab_03_ContextCostAndPromptOptimization_v1_0_0_2026-06-18_en.md)
+- [Lab 04, Azure Enterprise Sync](Lab_04_AzureEnterpriseSync_v1_0_0_2026-06-18_en.md)
+- [Lab 05, GitHub Enterprise Signals](Lab_05_GitHubEnterpriseSignals_v1_0_0_2026-06-18_en.md)
