@@ -2,8 +2,8 @@
 title: "Frontier Developer Cockpit Local OpenTelemetry Kit"
 description: "User-level local OpenTelemetry runtime for Frontier Developer Cockpit, including Aspire, Grafana, Prometheus, Tempo, Loki, local materialization, and Azure hybrid forwarding."
 author: "Frontier Cockpit Team"
-date: "2026-06-22"
-version: "1.0.1"
+date: "2026-06-23"
+version: "1.0.2"
 status: "approved"
 tags: ["frontier-developer-cockpit", "github-copilot", "opentelemetry", "aspire", "grafana", "local-runtime"]
 ---
@@ -18,6 +18,7 @@ This user-level kit configures the local runtime for Frontier Developer Cockpit.
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.0.2 | 2026-06-23 | Frontier Cockpit Team | Standardized local Tempo, Prometheus, and Loki retention to 30 days and clarified the Docker and Azure sync boundary. |
 | 1.0.1 | 2026-06-22 | Frontier Cockpit Team | Aligned title, frontmatter, and settings with the Frontier Developer Cockpit offer. |
 | 1.0.0 | 2026-06-17 | Frontier Cockpit Team | Initial local OpenTelemetry kit. |
 
@@ -28,6 +29,8 @@ The kit has three run modes:
 - Aspire-only: lightweight live view for quick demos.
 - Full local stack: OpenTelemetry Collector + Aspire + Tempo + Prometheus + Loki + Grafana + PostgreSQL, with local history.
 - Hybrid Azure: full local stack plus forwarding to an Azure Container Apps Collector, Application Insights, Log Analytics, Azure Monitor workspace, and Azure Managed Grafana.
+
+The full local stack runs in Docker and keeps trace, metric, and log history locally for 30 days. Hybrid Azure mode does not wait for local retention to expire. It forwards sanitized telemetry while the stack is running, and the scheduled rollup jobs keep the Azure view refreshed with approved summary signals.
 
 Default local endpoints:
 
@@ -121,6 +124,8 @@ Use these attributes to filter traces by project in Aspire Dashboard, Applicatio
 Content capture is enabled for teaching and local validation. It can include prompts, source code, file paths, tool inputs, and tool results. Keep this local for demos, and disable content capture before using this with sensitive customer repositories unless the customer explicitly approves it.
 
 Frontier Developer Cockpit telemetry is operational telemetry. It is useful for coaching, debugging, context analysis, and cost-awareness education. Official billing, AI Credits, and adoption reporting require GitHub billing exports, usage metrics, or another approved source.
+
+Aspire Dashboard runs with anonymous browser access for local convenience and is bound to localhost only. Do not expose port `18888` publicly. OTLP and Dashboard API ingestion still use the local API key configured in `local-otel/stack/aspire-api-key.env` when the full stack is running.
 
 ## Start local backends
 
@@ -346,11 +351,11 @@ Export the local VS Code span database:
 ## What is persisted
 
 - Aspire Dashboard: live, in-memory diagnostic view.
-- Tempo: local trace history, 14 days.
+- Tempo: local trace history, 30 days.
 - Prometheus: local metric history, 30 days.
-- Loki: local log history, 14 days.
+- Loki: local log history, 30 days.
 - PostgreSQL: Grafana metadata, dashboards, datasources, users, and preferences.
-- Azure: Application Insights and Log Analytics hold the cloud telemetry after hybrid forwarding is enabled.
+- Azure: Application Insights and Log Analytics hold sanitized telemetry and rollups after hybrid forwarding is enabled. Raw local content is not batch-sent when the 30-day local retention expires.
 
 ## Architecture outputs
 
