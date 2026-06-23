@@ -182,6 +182,18 @@ else
   err "VS Code Insiders user settings file was not found."
 fi
 
+agent_host_db="$HOME/Library/Application Support/Code - Insiders/User/globalStorage/github.copilot-chat/agent-traces.db"
+if [[ -f "$agent_host_db" ]]; then
+  span_count="$(sqlite3 "$agent_host_db" 'select count(*) from spans;' 2>/dev/null || print 0)"
+  if [[ "$span_count" -gt 0 ]]; then
+    ok "VS Code Agent Host OTel SQLite DB is present with $span_count spans."
+  else
+    warn "VS Code Agent Host OTel SQLite DB is present but has no spans yet."
+  fi
+else
+  warn "VS Code Agent Host OTel SQLite DB was not found yet. Use GitHub Copilot Chat after dbSpanExporter is enabled."
+fi
+
 for name in COPILOT_OTEL_ENABLED COPILOT_OTEL_ENDPOINT COPILOT_MATERIALIZE_CONTENT COPILOT_MATERIALIZE_TRACE_LIMIT OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT OTEL_EXPORTER_OTLP_ENDPOINT OTEL_EXPORTER_OTLP_TRACES_ENDPOINT OTEL_EXPORTER_OTLP_METRICS_ENDPOINT OTEL_EXPORTER_OTLP_LOGS_ENDPOINT OTEL_TRACES_EXPORTER OTEL_METRICS_EXPORTER OTEL_LOGS_EXPORTER CLAUDE_CODE_ENABLE_TELEMETRY; do
   value="$(launchctl getenv "$name" 2>/dev/null || true)"
   if [[ -n "$value" ]]; then

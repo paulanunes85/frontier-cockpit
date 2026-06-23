@@ -61,6 +61,12 @@ Local materialization is also enabled for full-fidelity content records:
 - `COPILOT_MATERIALIZE_CONTENT=true`
 - `COPILOT_MATERIALIZE_TRACE_LIMIT=1000`
 
+Local DuckDB analytical files are also supported:
+
+- `frontier-insights.duckdb` stores derived developer rollups.
+- `frontier-otel-export.duckdb` stores local OTel export snapshots from Prometheus, Loki, Tempo, and the VS Code Agent Host SQLite span database when available.
+- DuckDB complements Tempo, Prometheus, Loki, and Grafana. It does not replace those backends.
+
 The integrated terminal user environment also receives OTel variables so terminal sessions can inherit the local endpoint.
 
 Terminal-launched apps get these Aspire defaults:
@@ -102,6 +108,13 @@ $HOME/frontier-cockpit/local-otel/uninstall-launchagents.sh --delete
 The LaunchAgents cover user environment setup, stack autostart, OTel coverage audit every hour, session materialization every five minutes, VS Code process memory sampling every minute, 24-hour workspace rollup refresh every hour, GitHub Enterprise ingestion every hour, organization status ingestion every hour, and audit stream renewal. They do not contain secrets. Runtime logs and state are ignored by git.
 
 The hourly jobs keep dashboard support data fresh. They cannot create events that have not happened, so rare GitHub Copilot signals can still appear as `not_observed_yet`, but the coverage and data-quality dashboards should refresh at least hourly while the local stack is running.
+
+The `daily-rollup.sh` job also updates DuckDB when available:
+
+- `frontier-local-insights.sh` writes derived workspace rollups to `local-otel/frontier-insights.duckdb`.
+- `export-otel-duckdb.sh` writes recent OTel export snapshots to `local-otel/frontier-otel-export.duckdb`, including Agent Host spans from the local SQLite exporter at `~/Library/Application Support/Code - Insiders/User/globalStorage/github.copilot-chat/agent-traces.db` when present.
+
+Both files are local runtime state and ignored by git.
 
 ## Workspace tags
 

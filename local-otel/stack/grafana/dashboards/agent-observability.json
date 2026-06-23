@@ -1,337 +1,337 @@
 {
-    "annotations": {
-        "list": []
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "title": "Real Workspace Usage",
+      "url": "/d/copilot-real-workspace-usage-local/github-copilot-real-workspace-usage-local",
+      "targetBlank": false
     },
-    "editable": true,
-    "fiscalYearStartMonth": 0,
-    "graphTooltip": 0,
-    "links": [
+    {
+      "title": "Context And Cost",
+      "url": "/d/copilot-context-cost-local/github-copilot-context-and-cost-local",
+      "targetBlank": false
+    },
+    {
+      "title": "Developer Coach",
+      "url": "/d/copilot-developer-coach-local/github-copilot-developer-coach-local",
+      "targetBlank": false
+    },
+    {
+      "title": "Data Quality",
+      "url": "/d/copilot-data-quality-local/github-copilot-data-quality-local",
+      "targetBlank": false
+    },
+    {
+      "title": "Aspire live traces",
+      "url": "http://localhost:18888",
+      "targetBlank": true
+    }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "title": "Start here",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "mode": "markdown",
+        "content": "# Frontier Developer Cockpit\n\nThis is the local home for GitHub Copilot and agentic development telemetry. Use it to confirm the local stack is producing data, then drill into real workspace sessions, context behavior, model labels, tool calls, data quality, and coaching views. Local telemetry is operational telemetry, not official billing or adoption reporting."
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Registered workspaces",
+      "description": "Friendly workspace registry emitted by register-workspace.sh. Registry rows are metadata, not usage volume.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 5
+      },
+      "id": 2,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
         {
-            "title": "Real Workspace Usage",
-            "url": "/d/copilot-real-workspace-usage-local/github-copilot-real-workspace-usage-local",
-            "targetBlank": false
-        },
-        {
-            "title": "Context And Cost",
-            "url": "/d/copilot-context-cost-local/github-copilot-context-and-cost-local",
-            "targetBlank": false
-        },
-        {
-            "title": "Developer Coach",
-            "url": "/d/copilot-developer-coach-local/github-copilot-developer-coach-local",
-            "targetBlank": false
-        },
-        {
-            "title": "Data Quality",
-            "url": "/d/copilot-data-quality-local/github-copilot-data-quality-local",
-            "targetBlank": false
-        },
-        {
-            "title": "Aspire live traces",
-            "url": "http://localhost:18888",
-            "targetBlank": true
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          },
+          "expr": "count(max_over_time(copilot_workspace_registry_ratio[$__range]))"
         }
-    ],
-    "panels": [
-        {
-            "type": "text",
-            "title": "Start here",
-            "gridPos": {
-                "h": 5,
-                "w": 24,
-                "x": 0,
-                "y": 0
-            },
-            "id": 1,
-            "options": {
-                "mode": "markdown",
-                "content": "# Frontier Developer Cockpit\n\nThis is the local home for GitHub Copilot and agentic development telemetry. Use it to confirm the local stack is producing data, then drill into real workspace sessions, context behavior, model labels, tool calls, data quality, and coaching views. Local telemetry is operational telemetry, not official billing or adoption reporting."
-            }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
         },
-        {
-            "type": "stat",
-            "title": "Registered workspaces",
-            "description": "Friendly workspace registry emitted by register-workspace.sh. Registry rows are metadata, not usage volume.",
-            "gridPos": {
-                "h": 6,
-                "w": 6,
-                "x": 0,
-                "y": 5
-            },
-            "id": 2,
-            "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-local"
-            },
-            "targets": [
-                {
-                    "refId": "A",
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "prometheus-local"
-                    },
-                    "expr": "count(copilot_workspace_registry_ratio)"
-                }
-            ],
-            "fieldConfig": {
-                "defaults": {
-                    "unit": "short"
-                },
-                "overrides": []
-            },
-            "options": {
-                "reduceOptions": {
-                    "calcs": [
-                        "lastNotNull"
-                    ]
-                },
-                "colorMode": "value",
-                "graphMode": "area"
-            }
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
         },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Real workspace sessions",
+      "description": "Materialized traces with repository attribution. These are operational telemetry sessions, not official usage metrics.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 5
+      },
+      "id": 3,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
         {
-            "type": "stat",
-            "title": "Real workspace sessions",
-            "description": "Materialized traces with repository attribution. These are operational telemetry sessions, not official usage metrics.",
-            "gridPos": {
-                "h": 6,
-                "w": 6,
-                "x": 6,
-                "y": 5
-            },
-            "id": 3,
-            "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-local"
-            },
-            "targets": [
-                {
-                    "refId": "A",
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "prometheus-local"
-                    },
-                    "expr": "count(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"})"
-                }
-            ],
-            "fieldConfig": {
-                "defaults": {
-                    "unit": "short"
-                },
-                "overrides": []
-            },
-            "options": {
-                "reduceOptions": {
-                    "calcs": [
-                        "lastNotNull"
-                    ]
-                },
-                "colorMode": "value",
-                "graphMode": "area"
-            }
-        },
-        {
-            "type": "gauge",
-            "title": "Peak context health",
-            "description": "Highest context-window utilization across materialized real workspace sessions.",
-            "gridPos": {
-                "h": 6,
-                "w": 6,
-                "x": 12,
-                "y": 5
-            },
-            "id": 4,
-            "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-local"
-            },
-            "targets": [
-                {
-                    "refId": "A",
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "prometheus-local"
-                    },
-                    "expr": "max(copilot_real_session_context_utilization_pct_ratio{usage_scope=\"workspace_real\"})"
-                }
-            ],
-            "fieldConfig": {
-                "defaults": {
-                    "unit": "percent",
-                    "min": 0,
-                    "max": 100,
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "green",
-                                "value": null
-                            },
-                            {
-                                "color": "orange",
-                                "value": 70
-                            },
-                            {
-                                "color": "red",
-                                "value": 90
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "options": {
-                "reduceOptions": {
-                    "calcs": [
-                        "lastNotNull"
-                    ]
-                },
-                "showThresholdLabels": false,
-                "showThresholdMarkers": true
-            }
-        },
-        {
-            "type": "stat",
-            "title": "Operational AIU",
-            "description": "Runtime-reported AIU from local telemetry. This is not official billing.",
-            "gridPos": {
-                "h": 6,
-                "w": 6,
-                "x": 18,
-                "y": 5
-            },
-            "id": 5,
-            "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-local"
-            },
-            "targets": [
-                {
-                    "refId": "A",
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "prometheus-local"
-                    },
-                    "expr": "sum(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\"}) / 1e9"
-                }
-            ],
-            "fieldConfig": {
-                "defaults": {
-                    "unit": "short",
-                    "decimals": 3
-                },
-                "overrides": []
-            },
-            "options": {
-                "reduceOptions": {
-                    "calcs": [
-                        "lastNotNull"
-                    ]
-                },
-                "colorMode": "value",
-                "graphMode": "area"
-            }
-        },
-        {
-            "type": "table",
-            "title": "Current workspace registry",
-            "description": "Use this to confirm the expected repository and branch are registered before presenting workspace-specific metrics.",
-            "gridPos": {
-                "h": 9,
-                "w": 12,
-                "x": 0,
-                "y": 11
-            },
-            "id": 6,
-            "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-local"
-            },
-            "targets": [
-                {
-                    "refId": "A",
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "prometheus-local"
-                    },
-                    "expr": "copilot_workspace_registry_ratio",
-                    "format": "table",
-                    "instant": true
-                }
-            ],
-            "options": {
-                "showHeader": true,
-                "cellHeight": "sm"
-            }
-        },
-        {
-            "type": "table",
-            "title": "Latest real workspace sessions",
-            "description": "Materialized session rows with trace, repo, branch, model labels, context, tool, and AIU dimensions. AIU is operational telemetry, not official billing.",
-            "gridPos": {
-                "h": 9,
-                "w": 12,
-                "x": 12,
-                "y": 11
-            },
-            "id": 7,
-            "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus-local"
-            },
-            "targets": [
-                {
-                    "refId": "A",
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "prometheus-local"
-                    },
-                    "expr": "topk(20, copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"})",
-                    "format": "table",
-                    "instant": true
-                }
-            ],
-            "options": {
-                "showHeader": true,
-                "cellHeight": "sm"
-            }
-        },
-        {
-            "type": "text",
-            "title": "Where to go next",
-            "gridPos": {
-                "h": 8,
-                "w": 24,
-                "x": 0,
-                "y": 20
-            },
-            "id": 8,
-            "options": {
-                "mode": "markdown",
-                "content": "## Drill-down path\n\n1. **Live trace detail:** open Aspire at `http://localhost:18888`.\n2. **Workspace attribution:** open Real Workspace Usage.\n3. **Context and AIU:** open Context and Cost.\n4. **Model labels and sessions:** open Sessions and Model Labels.\n5. **Data quality:** open Data Quality before presenting any metric.\n6. **Prompt improvement:** open Developer Coach.\n\nRaw prompts, tool arguments, and tool results stay local by default. Azure receives sanitized telemetry and rollups. AIU is operational telemetry, not official billing."
-            }
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          },
+          "expr": "count(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))"
         }
-    ],
-    "schemaVersion": 39,
-    "tags": [
-        "frontier-cockpit",
-        "frontier-developer-cockpit",
-        "github-copilot",
-        "home",
-        "local-cockpit",
-        "opentelemetry"
-    ],
-    "templating": {
-        "list": []
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
     },
-    "time": {
-        "from": "now-6h",
-        "to": "now"
+    {
+      "type": "gauge",
+      "title": "Peak context health",
+      "description": "Highest context-window utilization across materialized real workspace sessions.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 5
+      },
+      "id": 4,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          },
+          "expr": "max(max_over_time(copilot_real_session_context_utilization_pct_ratio{usage_scope=\"workspace_real\"}[$__range]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
     },
-    "timepicker": {},
-    "timezone": "browser",
-    "title": "Frontier Developer Cockpit Home (Local)",
-    "uid": "copilot-agent-local",
-    "version": 2,
-    "weekStart": ""
+    {
+      "type": "stat",
+      "title": "Operational AIU",
+      "description": "Runtime-reported AIU from local telemetry. This is not official billing.",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 5
+      },
+      "id": 5,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          },
+          "expr": "sum(max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\"}[$__range])) / 1e9"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 3
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Current workspace registry",
+      "description": "Use this to confirm the expected repository and branch are registered before presenting workspace-specific metrics.",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "id": 6,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          },
+          "expr": "max_over_time(copilot_workspace_registry_ratio[$__range])",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Latest real workspace sessions",
+      "description": "Materialized session rows with trace, repo, branch, model labels, context, tool, and AIU dimensions. AIU is operational telemetry, not official billing.",
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "id": 7,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-local"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-local"
+          },
+          "expr": "topk(20, max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "type": "text",
+      "title": "Where to go next",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 8,
+      "options": {
+        "mode": "markdown",
+        "content": "## Drill-down path\n\n1. **Live trace detail:** open Aspire at `http://localhost:18888`.\n2. **Workspace attribution:** open Real Workspace Usage.\n3. **Context and AIU:** open Context and Cost.\n4. **Model labels and sessions:** open Sessions and Model Labels.\n5. **Data quality:** open Data Quality before presenting any metric.\n6. **Prompt improvement:** open Developer Coach.\n\nRaw prompts, tool arguments, and tool results stay local by default. Azure receives sanitized telemetry and rollups. AIU is operational telemetry, not official billing."
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [
+    "frontier-cockpit",
+    "frontier-developer-cockpit",
+    "github-copilot",
+    "home",
+    "local-cockpit",
+    "opentelemetry"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Frontier Developer Cockpit Home (Local)",
+  "uid": "copilot-agent-local",
+  "version": 2,
+  "weekStart": ""
 }

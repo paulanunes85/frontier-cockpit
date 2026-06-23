@@ -50,7 +50,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max(copilot_real_session_context_utilization_pct_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"})",
+          "expr": "max(max_over_time(copilot_real_session_context_utilization_pct_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -110,7 +110,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(copilot_real_session_cache_read_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"})",
+          "expr": "sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range]))",
           "legendFormat": "warm (cache read)",
           "datasource": {
             "type": "prometheus",
@@ -119,7 +119,7 @@
         },
         {
           "refId": "B",
-          "expr": "sum(copilot_real_session_cache_creation_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"})",
+          "expr": "sum(max_over_time(copilot_real_session_cache_creation_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range]))",
           "legendFormat": "warming (cache create)",
           "datasource": {
             "type": "prometheus",
@@ -128,7 +128,7 @@
         },
         {
           "refId": "C",
-          "expr": "sum(copilot_real_session_cold_input_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"})",
+          "expr": "sum(max_over_time(copilot_real_session_cold_input_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range]))",
           "legendFormat": "cold (uncached)",
           "datasource": {
             "type": "prometheus",
@@ -170,7 +170,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}) / 1e9",
+          "expr": "sum(max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range])) / 1e9",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -224,7 +224,7 @@
       "targets": [
         {
           "refId": "WIN",
-          "expr": "copilot_real_session_peak_turn_input_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}",
+          "expr": "max_over_time(copilot_real_session_peak_turn_input_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range])",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -234,7 +234,7 @@
         },
         {
           "refId": "MAX",
-          "expr": "copilot_real_session_max_prompt_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}",
+          "expr": "max_over_time(copilot_real_session_max_prompt_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range])",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -244,7 +244,7 @@
         },
         {
           "refId": "UTL",
-          "expr": "copilot_real_session_context_utilization_pct_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}",
+          "expr": "max_over_time(copilot_real_session_context_utilization_pct_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range])",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -254,7 +254,7 @@
         },
         {
           "refId": "AIU",
-          "expr": "copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"} / 1e9",
+          "expr": "max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range]) / 1e9",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -264,7 +264,7 @@
         },
         {
           "refId": "WARM",
-          "expr": "copilot_real_session_cache_read_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}",
+          "expr": "max_over_time(copilot_real_session_cache_read_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range])",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -274,7 +274,7 @@
         },
         {
           "refId": "COLD",
-          "expr": "copilot_real_session_cold_input_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}",
+          "expr": "max_over_time(copilot_real_session_cold_input_tokens_ratio{usage_scope=\"workspace_real\", repo=~\"$repo\"}[$__range])",
           "format": "table",
           "instant": true,
           "datasource": {

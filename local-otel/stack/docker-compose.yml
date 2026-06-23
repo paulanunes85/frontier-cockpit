@@ -109,7 +109,7 @@ services:
       - observability
 
   grafana:
-    image: grafana/grafana-oss:11.4.0
+    image: grafana/grafana-oss:11.6.0
     container_name: copilot-otel-grafana
     environment:
       GF_SECURITY_ADMIN_USER: admin
@@ -122,6 +122,7 @@ services:
       GF_DATABASE_USER: grafana
       GF_DATABASE_PASSWORD: grafana
       GF_DATABASE_SSL_MODE: disable
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

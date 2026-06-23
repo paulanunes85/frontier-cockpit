@@ -12,6 +12,10 @@ local-otel/*.out
 local-otel/*.err
 local-otel/materialized-traces.json
 local-otel/frontier-insights.duckdb
+local-otel/frontier-otel-export.duckdb
+local-otel/agent-host-traces/
+local-otel/*agent-traces*.db
+local-otel/*agent-traces*.sqlite
 local-otel/workspaces/
 
 # Local Azure and GitHub state, secrets, and exports
