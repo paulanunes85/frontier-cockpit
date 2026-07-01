@@ -44,7 +44,7 @@ export function OverviewIcon(props: Readonly<IconProps>): ReactElement {
     );
 }
 
-// Credits: a coin token, for AI credits and premium-request budget.
+// Credits: a coin token, for AI Credits budget and model cost.
 export function CreditsIcon(props: Readonly<IconProps>): ReactElement {
     return (
         <IconBase {...props}>

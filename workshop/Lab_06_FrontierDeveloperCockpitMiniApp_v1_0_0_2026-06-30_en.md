@@ -18,7 +18,7 @@ In this lab each participant runs the local Frontier Developer Cockpit mini app 
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
-| 1.0.0 | 2026-06-30 | Frontier Cockpit Team | Initial mini app lab with per-participant identity, token efficiency, the Credits view with premium-request budget and included model routing, and a trilingual UI. |
+| 1.0.0 | 2026-06-30 | Frontier Cockpit Team | Initial mini app lab with per-participant identity, token efficiency, the Credits view with AI Credits budget and model cost mix, and a trilingual UI. |
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ In this lab each participant runs the local Frontier Developer Cockpit mini app 
 
 ## 1. Goal
 
-By the end of this lab you will have your own local cockpit at `http://localhost:3300` that shows your name and role, your real workspace sessions, your token and cache usage, your local AI credits, your included premium-request budget, and coaching for token efficiency and economy.
+By the end of this lab you will have your own local cockpit at `http://localhost:3300` that shows your name and role, your real workspace sessions, your token and cache usage, your local AI credits, your configured AI Credits budget, and coaching for token efficiency and economy.
 
 The user interface is available in English, Portuguese, and Spanish. Use the language switch in the sidebar to change it. English is the default.
 
@@ -105,8 +105,8 @@ Use the left navigation to open each view:
 
 | View | What it shows |
 | --- | --- |
-| Overview | Alerts, AI credits, input, output, cached and cold tokens, cache efficiency, context peak, token composition, a premium-request budget summary, history, top workspaces, stack health. |
-| Credits | Premium-request budget for your plan, included versus premium model mix, developer experience latency, outcome signals, and a best-practice playbook for the AI credits included with your license. |
+| Overview | Alerts, AI credits, input, output, cached and cold tokens, cache efficiency, context peak, token composition, an AI Credits budget summary, history, top workspaces, stack health. |
+| Credits | AI Credits budget for your plan, model cost mix, developer experience latency, outcome signals, and a best-practice playbook for efficient AI Credits usage. |
 | Sessions | Each session by trace, with model, mode, credits, tokens, cache efficiency, tool calls, and a copyable trace id for Aspire or Tempo. |
 | Workspaces | Every observed Git workspace, so you can compare projects. |
 | Coach | Token efficiency score, savings opportunities, dynamic recommendations, and the token efficiency playbook. |
@@ -132,39 +132,42 @@ Try to improve one signal:
 
 ## 8. Read The Credits And Budget View
 
-Open the Credits view. It focuses on the premium requests and AI credits that are included with your GitHub Copilot plan, and how to get the most from them.
+Open the Credits view. It focuses on local AI Credits consumption, model cost mix, and how to reduce unnecessary token and model usage.
 
-### 8.1 Premium-request budget
+### 8.1 AI Credits budget
 
-The budget panel estimates how many premium requests you have used this billing cycle against the monthly allowance included with your plan.
+The budget panel estimates local AI Credits observed this billing cycle against the configured monthly credit pool.
 
-- One user prompt equals one premium request, multiplied by the model multiplier. Agent tool calls and internal model calls do not add extra premium requests.
-- The allowance resets on the first day of each month.
-- Included base models bill at a zero multiplier, so routine work on them does not consume your allowance.
-- The estimate is local. It scales your user prompts by the call-weighted average model multiplier for the cycle. Official premium-request totals require GitHub billing exports or the Copilot usage metrics API.
+- GitHub Copilot usage-based billing is measured in AI Credits.
+- Cost depends on model choice and token consumption: input, output, and cached tokens.
+- Agentic features can consume more AI Credits because they may process more context and perform more model work.
+- Code completions and next edit suggestions are not billed in AI Credits for paid plans.
+- The local estimate uses OpenTelemetry AIU signals. Official totals require GitHub billing exports, the usage dashboard, or the Copilot usage metrics API.
 
 Read the utilization percentage and the projected month end. The warning and critical marks on the bar default to 75 percent and 90 percent, which follow the budget alert points recommended by GitHub. If you are pacing above these marks, the Coach view suggests how to slow the burn.
 
-Set your plan and allowance so the budget matches your license. Add these to `local-otel/workshop.env`, then run `local-otel/workshop-ready.sh` again:
+Set your plan, seat count, and AI Credits pool so the budget matches your environment. Add these to `local-otel/workshop.env`, then run `local-otel/workshop-ready.sh` again:
 
 ```bash
 FRONTIER_COPILOT_PLAN="business"
-FRONTIER_PREMIUM_REQUEST_ALLOWANCE="300"
+FRONTIER_COPILOT_SEATS="1"
+FRONTIER_AI_CREDITS_USE_PROMO="true"
+FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE="3000"
 ```
 
-The defaults follow the documented monthly premium-request allowances for paid plans, for example Business at 300 and Enterprise at 1000. Confirm the current values for your plan in the GitHub Copilot billing documentation, because they can change.
+At the time this lab was updated, GitHub Docs listed Business standard at 1,900 AI Credits per user per month and Enterprise standard at 3,900. Existing customers in the June-Sep 2026 promotional period receive higher monthly amounts. Confirm current values for your plan in GitHub Docs because they can change.
 
-### 8.2 Included versus premium models
+### 8.2 Model cost mix
 
-The model mix panel splits your model calls into included models, which bill at a zero multiplier, and premium models, which consume allowance. Use it to see where your premium allowance goes.
+The model cost mix panel estimates AI Credits by model label using local token usage and the local model price registry when available. Use it to see which models are consuming the most credits.
 
-To get more from the credits included in your license:
+To get more from your AI Credits pool:
 
-- Prefer an included base model for routine edits, explanations, and boilerplate.
-- Reserve premium models for complex reasoning and large refactors.
-- Batch related prompts into one session so you spend fewer premium requests.
-- Reuse warm context, because cache reads stretch each premium request further.
-- Avoid resending large prompts, because each resend is another premium request.
+- Use the lowest-cost model that can complete the task.
+- Reserve higher-cost frontier models for complex reasoning and large refactors.
+- Scope prompts and file context tightly to reduce input tokens.
+- Reuse warm context and avoid resending large prompts.
+- Monitor budget controls in GitHub for official spend and usage behavior.
 
 ### 8.3 Developer experience and outcomes
 
@@ -191,7 +194,7 @@ The local cockpit is phase one. It is full fidelity for the developer and stays 
 - [ ] `http://localhost:3300` shows your name and role.
 - [ ] At least one real workspace session appears.
 - [ ] Coach shows an efficiency score and recommendations.
-- [ ] Credits view shows your premium-request budget and model mix.
+- [ ] Credits view shows your AI Credits budget and model cost mix.
 - [ ] You explored all eight views.
 - [ ] You switched the interface language at least once.
 

@@ -84,48 +84,43 @@ const thresholds = {
   contextCritPct: numberFromEnv("THRESHOLD_CONTEXT_CRIT_PCT", 90),
   cacheEfficiencyWarn: numberFromEnv("THRESHOLD_CACHE_EFFICIENCY_WARN", 0.35),
   coldRatioWarn: numberFromEnv("THRESHOLD_COLD_RATIO_WARN", 0.45),
-  budgetWarnPct: numberFromEnv("THRESHOLD_BUDGET_WARN_PCT", 75),
-  budgetCritPct: numberFromEnv("THRESHOLD_BUDGET_CRIT_PCT", 90)
+  budgetWarnPct: numberFromEnv("THRESHOLD_AI_CREDITS_BUDGET_WARN_PCT", 75),
+  budgetCritPct: numberFromEnv("THRESHOLD_AI_CREDITS_BUDGET_CRIT_PCT", 90)
 };
 
 function lowerFromEnv(name: string, fallback: string): string {
   return stringFromEnv(name, fallback).toLowerCase();
 }
 
-// GitHub Copilot plan and the monthly premium-request allowance that comes
-// included with paid plans. These default values are the officially documented
-// monthly premium-request allowances for GitHub Copilot plans and can change,
-// so they are configurable through environment variables.
-// Source: GitHub Copilot billing docs, "Requests" and "Monthly usage" pages.
-const planAllowanceDefaults: Record<string, number> = {
-  free: 50,
-  pro: 300,
-  "pro+": 1500,
-  business: 300,
-  enterprise: 1000
+// GitHub Copilot usage-based billing is measured in GitHub AI Credits. These
+// defaults follow the current GitHub documentation and remain configurable
+// because plan allowances and promotional periods can change.
+// Sources: GitHub Copilot usage-based billing for individuals and for
+// organizations and enterprises.
+const standardAiCreditsByPlan: Record<string, number> = {
+  pro: 1500,
+  "pro+": 7000,
+  max: 20000,
+  business: 1900,
+  enterprise: 3900
+};
+
+const promotionalAiCreditsByPlan: Record<string, number> = {
+  business: 3000,
+  enterprise: 7000
 };
 
 const copilotPlan = lowerFromEnv("FRONTIER_COPILOT_PLAN", "business");
-const premiumRequestAllowance = numberFromEnv(
-  "FRONTIER_PREMIUM_REQUEST_ALLOWANCE",
-  planAllowanceDefaults[copilotPlan] ?? 300
+const copilotSeats = numberFromEnv("FRONTIER_COPILOT_SEATS", 1);
+const usePromotionalAllowance = lowerFromEnv("FRONTIER_AI_CREDITS_USE_PROMO", "true") === "true";
+const defaultAiCreditsPerSeat =
+  (usePromotionalAllowance ? promotionalAiCreditsByPlan[copilotPlan] : undefined) ??
+  standardAiCreditsByPlan[copilotPlan] ??
+  standardAiCreditsByPlan.business;
+const aiCreditsMonthlyAllowance = numberFromEnv(
+  "FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE",
+  defaultAiCreditsPerSeat * copilotSeats
 );
-
-// Included (base) models bill at a 0x premium-request multiplier on paid plans,
-// so routine work on them does not consume the premium-request allowance.
-// Comma-separated, matched case-insensitively as a substring of the model label.
-const includedModelPatterns = lowerFromEnv(
-  "FRONTIER_INCLUDED_MODELS",
-  "gpt-4.1,gpt-4o,gpt-5-mini,gpt-4o-mini,gpt-4.1-mini"
-)
-  .split(",")
-  .map((entry) => entry.trim())
-  .filter((entry) => entry.length > 0);
-
-function isIncludedModel(model: string): boolean {
-  const normalized = model.toLowerCase();
-  return includedModelPatterns.some((pattern) => normalized.includes(pattern));
-}
 
 // Participant identity makes the local cockpit a reusable workshop template.
 // Each participant sets these via environment variables (see workshop.env).
@@ -209,7 +204,12 @@ function repoFromUrl(url: URL): string | null {
 }
 
 function escapePrometheusLabel(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\n/g, "\\n");
+  const backslash = String.fromCodePoint(92);
+  const quote = String.fromCodePoint(34);
+  return value
+    .replaceAll(backslash, `${backslash}${backslash}`)
+    .replaceAll(quote, `${backslash}${quote}`)
+    .replaceAll("\n", `${backslash}n`);
 }
 
 function repoMatcher(repo: string | null): string {
@@ -359,34 +359,30 @@ async function tcpHealth(id: string, name: string, host: string, checkPort: numb
 async function registryHealth(): Promise<ServiceHealth> {
   const checkedAt = new Date().toISOString();
   try {
-    const [multipliers, prices] = await Promise.all([
-      queryPrometheus("count(copilot_model_premium_request_multiplier_ratio)"),
-      queryPrometheus("count(copilot_model_price_usd_per_million_ratio)")
-    ]);
-    const multiplierCount = multipliers.length > 0 ? numericValue(multipliers[0]) ?? 0 : 0;
+    const prices = await queryPrometheus("count(copilot_model_price_usd_per_million_ratio)");
     const priceCount = prices.length > 0 ? numericValue(prices[0]) ?? 0 : 0;
-    if (multiplierCount > 0 && priceCount > 0) {
+    if (priceCount > 0) {
       return {
         id: "copilot-otel-registry",
-        name: "Model and price registry sidecar",
+        name: "Model price registry sidecar",
         status: "ok",
-        detail: `${multiplierCount} multiplier series and ${priceCount} price series are live.`,
+        detail: `${priceCount} model price series are live for local AI Credits estimates.`,
         checkedAt
       };
     }
     return {
       id: "copilot-otel-registry",
-      name: "Model and price registry sidecar",
+      name: "Model price registry sidecar",
       status: "degraded",
-      detail: "Registry metrics are not live yet in Prometheus.",
+      detail: "Model price metrics are not live yet in Prometheus.",
       checkedAt
     };
   } catch (error) {
     return {
       id: "copilot-otel-registry",
-      name: "Model and price registry sidecar",
+      name: "Model price registry sidecar",
       status: "unavailable",
-      detail: error instanceof Error ? error.message : "Registry metrics could not be checked.",
+      detail: error instanceof Error ? error.message : "Model price registry metrics could not be checked.",
       checkedAt
     };
   }
@@ -850,8 +846,16 @@ function computeEconomy(input: {
 }
 
 function appLinks() {
-  const tempoExploreQuery = encodeURIComponent('{"datasource":"tempo-local","queries":[{"query":"{service.name=\\"copilot-chat\\"}"}],"range":{"from":"now-1h","to":"now"}}');
-  const lokiExploreQuery = encodeURIComponent('{"datasource":"loki-local","queries":[{"expr":"{service_name=\\"copilot-chat\\"}"}],"range":{"from":"now-1h","to":"now"}}');
+  const tempoExploreQuery = encodeURIComponent(JSON.stringify({
+    datasource: "tempo-local",
+    queries: [{ query: '{service.name="copilot-chat"}' }],
+    range: { from: "now-1h", to: "now" }
+  }));
+  const lokiExploreQuery = encodeURIComponent(JSON.stringify({
+    datasource: "loki-local",
+    queries: [{ expr: '{service_name="copilot-chat"}' }],
+    range: { from: "now-1h", to: "now" }
+  }));
   return [
     { label: "Grafana dashboards", url: publicGrafanaUrl },
     { label: "Aspire Dashboard live traces", url: publicAspireUrl },
@@ -863,18 +867,19 @@ function appLinks() {
   ];
 }
 
-interface BudgetInsight {
+interface AiCreditsBudgetInsight {
   plan: string;
-  premiumRequestAllowance: number;
-  premiumRequestsEstimate: number | null;
+  seats: number;
+  monthlyAllowanceCredits: number;
+  observedCredits: number | null;
   utilizationPct: number | null;
-  remaining: number | null;
+  remainingCredits: number | null;
   daysElapsed: number;
   daysInCycle: number;
   daysLeft: number;
-  projectedMonthEnd: number | null;
+  projectedMonthEndCredits: number | null;
   projectedUtilizationPct: number | null;
-  dailyRate: number | null;
+  dailyRateCredits: number | null;
   status: MetricStatus;
   alertLevel: "ok" | "warning" | "critical" | "over";
   message?: string;
@@ -883,19 +888,19 @@ interface BudgetInsight {
 interface ModelMixEntry {
   model: string;
   calls: number;
-  multiplier: number | null;
-  included: boolean;
-  premiumRequestsEstimate: number | null;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  totalTokens: number;
+  estimatedAiCredits: number | null;
+  share: number | null;
 }
 
 interface ModelMix {
   status: MetricStatus;
   entries: ModelMixEntry[];
-  includedCalls: number;
-  premiumCalls: number;
-  includedShare: number | null;
-  premiumShare: number | null;
-  premiumRequestsEstimate: number | null;
+  totalCalls: number;
+  totalEstimatedAiCredits: number | null;
   message?: string;
 }
 
@@ -912,9 +917,9 @@ interface OutcomeMetrics {
   contextCompactions: ScalarMetric;
 }
 
-// The billing cycle for GitHub Copilot premium requests resets on the first day
-// of each month, so month-to-date budget tracking uses the current day of the
-// month as the elapsed window. Source: GitHub Copilot billing docs.
+// AI Credits budgets are tracked per billing cycle. The local cockpit uses a
+// month-to-date approximation and clearly separates it from official GitHub
+// billing exports and Copilot usage APIs.
 function billingCycle(now = new Date()): { daysInCycle: number; daysElapsed: number; daysLeft: number } {
   const year = now.getUTCFullYear();
   const month = now.getUTCMonth();
@@ -924,7 +929,7 @@ function billingCycle(now = new Date()): { daysInCycle: number; daysElapsed: num
   return { daysInCycle, daysElapsed, daysLeft };
 }
 
-function budgetAlertLevel(utilizationPct: number | null): BudgetInsight["alertLevel"] {
+function budgetAlertLevel(utilizationPct: number | null): AiCreditsBudgetInsight["alertLevel"] {
   if (utilizationPct === null) {
     return "ok";
   }
@@ -940,136 +945,139 @@ function budgetAlertLevel(utilizationPct: number | null): BudgetInsight["alertLe
   return "ok";
 }
 
-// Estimated premium requests consumed month-to-date. GitHub Copilot bills one
-// premium request per user-initiated request, multiplied by the model
-// multiplier; agent tool calls and internal model calls do not add extra
-// premium requests. This estimate therefore uses user turns as the base unit
-// and scales them by the call-weighted average model multiplier for the cycle,
-// which is closer to per-user-request billing than counting raw model calls.
-// It is still a local estimate: official premium-request totals require GitHub
-// billing exports or the Copilot usage metrics API.
-// Source: GitHub Copilot billing docs (requests, monthly usage, model multipliers).
-async function budgetInsight(): Promise<BudgetInsight> {
+async function aiCreditsBudgetInsight(): Promise<AiCreditsBudgetInsight> {
   const cycle = billingCycle();
   const monthWindow = `${Math.max(1, cycle.daysElapsed)}d`;
-  const filter = `service_name="copilot-chat"`;
-  const weightedMultiplierQuery =
-    `sum(increase(gen_ai_client_operation_duration_count{${filter}}[${monthWindow}]) ` +
-    `* on (gen_ai_request_model) group_left() ` +
-    `max by (gen_ai_request_model) (copilot_model_premium_request_multiplier_ratio))`;
-  const totalCallsQuery = `sum(increase(gen_ai_client_operation_duration_count{${filter}}[${monthWindow}]))`;
-  const turnsQuery = `sum(increase(copilot_chat_agent_turn_count_count{${filter}}[${monthWindow}]))`;
-  const [weighted, totalCalls, turns] = await Promise.all([
-    scalarMetric(weightedMultiplierQuery),
-    scalarMetric(totalCallsQuery),
-    scalarMetric(turnsQuery)
-  ]);
-  const avgMultiplier =
-    weighted.value !== null && totalCalls.value !== null && totalCalls.value > 0
-      ? weighted.value / totalCalls.value
-      : null;
-  const userTurns = turns.value;
-  const premiumRequestsEstimate =
-    userTurns !== null && avgMultiplier !== null ? userTurns * avgMultiplier : null;
-  const status: MetricStatus = premiumRequestsEstimate === null ? "unavailable" : "ok";
+  const observed = await scalarMetric(`${realSessionSum("nano_aiu", monthWindow, "")} / 1e9`);
+  const observedCredits = observed.value;
+  const status: MetricStatus = observedCredits === null ? "unavailable" : "ok";
   const utilizationPct =
-    premiumRequestsEstimate !== null && premiumRequestAllowance > 0
-      ? (premiumRequestsEstimate / premiumRequestAllowance) * 100
+    observedCredits !== null && aiCreditsMonthlyAllowance > 0
+      ? (observedCredits / aiCreditsMonthlyAllowance) * 100
       : null;
-  const remaining =
-    premiumRequestsEstimate === null ? null : Math.max(0, premiumRequestAllowance - premiumRequestsEstimate);
+  const remainingCredits =
+    observedCredits === null ? null : Math.max(0, aiCreditsMonthlyAllowance - observedCredits);
   const dailyRate =
-    premiumRequestsEstimate !== null && cycle.daysElapsed > 0 ? premiumRequestsEstimate / cycle.daysElapsed : null;
+    observedCredits !== null && cycle.daysElapsed > 0 ? observedCredits / cycle.daysElapsed : null;
   // Only project month-end consumption once a few days of the cycle have
   // elapsed, so the projection is not dominated by noise at the start of a cycle.
   const canProject = cycle.daysElapsed >= 3;
   const projectedMonthEnd = canProject && dailyRate !== null ? dailyRate * cycle.daysInCycle : null;
   const projectedUtilizationPct =
-    projectedMonthEnd !== null && premiumRequestAllowance > 0
-      ? (projectedMonthEnd / premiumRequestAllowance) * 100
+    projectedMonthEnd !== null && aiCreditsMonthlyAllowance > 0
+      ? (projectedMonthEnd / aiCreditsMonthlyAllowance) * 100
       : null;
   return {
     plan: copilotPlan,
-    premiumRequestAllowance,
-    premiumRequestsEstimate,
+    seats: copilotSeats,
+    monthlyAllowanceCredits: aiCreditsMonthlyAllowance,
+    observedCredits,
     utilizationPct,
-    remaining,
+    remainingCredits,
     daysElapsed: cycle.daysElapsed,
     daysInCycle: cycle.daysInCycle,
     daysLeft: cycle.daysLeft,
-    projectedMonthEnd,
+    projectedMonthEndCredits: projectedMonthEnd,
     projectedUtilizationPct,
-    dailyRate,
+    dailyRateCredits: dailyRate,
     status,
     alertLevel: budgetAlertLevel(utilizationPct),
-    message: weighted.message
+    message: observed.message
   };
 }
 
-function budgetToAlert(budget: BudgetInsight): Alert | null {
+function budgetToAlert(budget: AiCreditsBudgetInsight): Alert | null {
   if (budget.utilizationPct === null || budget.alertLevel === "ok") {
     return null;
   }
   const severity: AlertSeverity = budget.alertLevel === "warning" ? "warning" : "critical";
   return {
-    id: "premium-budget",
+    id: "ai-credits-budget",
     severity,
     title:
       budget.alertLevel === "over"
-        ? "Premium-request budget estimate is exhausted"
-        : "Premium-request budget is filling up",
+        ? "AI Credits budget is exhausted"
+        : "AI Credits budget is filling up",
     detail:
-      `Estimated premium requests this cycle reached ${(budget.premiumRequestsEstimate ?? 0).toFixed(0)} ` +
-      `of the ${budget.premiumRequestAllowance.toLocaleString()} included with the ${budget.plan} plan ` +
+      `Local AI Credits observed this cycle reached ${(budget.observedCredits ?? 0).toFixed(0)} ` +
+      `of the configured ${budget.monthlyAllowanceCredits.toLocaleString()} AI Credits pool ` +
       `(${(budget.utilizationPct ?? 0).toFixed(0)}%). This is a local estimate, not official billing.`,
     value: budget.utilizationPct,
     threshold: budget.alertLevel === "warning" ? thresholds.budgetWarnPct : thresholds.budgetCritPct
   };
 }
 
-// Range-scoped model usage split into included (0x multiplier, no premium-request
-// cost) and premium models, so developers can see where premium allowance is
-// spent and route routine work to included models. Source: GitHub Copilot docs
-// on model multipliers and choosing the right model.
+function createModelMixEntry(model: string): ModelMixEntry {
+  return { model, calls: 0, inputTokens: 0, outputTokens: 0, cachedTokens: 0, totalTokens: 0, estimatedAiCredits: null, share: null };
+}
+
+function applyModelToken(entry: ModelMixEntry, tokenType: string, value: number): void {
+  entry.totalTokens += value;
+  const normalized = tokenType.toLowerCase();
+  if (normalized.includes("output")) {
+    entry.outputTokens += value;
+    return;
+  }
+  if (normalized.includes("cache")) {
+    entry.cachedTokens += value;
+    return;
+  }
+  entry.inputTokens += value;
+}
+
 async function modelMix(range: string): Promise<ModelMix> {
   const callsQuery =
     `sum by (gen_ai_request_model) (increase(gen_ai_client_operation_duration_count{service_name="copilot-chat"}[${range}]))`;
-  const multiplierQuery = `max by (gen_ai_request_model) (copilot_model_premium_request_multiplier_ratio)`;
-  const [calls, multipliers] = await Promise.all([seriesMetric(callsQuery), seriesMetric(multiplierQuery)]);
-  const multiplierByModel = new Map<string, number>();
-  for (const point of multipliers.points) {
+  const tokenQuery = `sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{service_name="copilot-chat"}[${range}]))`;
+  const aiCreditsQuery = `sum by (gen_ai_request_model) (((increase(gen_ai_client_token_usage_sum{service_name="copilot-chat"}[${range}]) / 1e6) * on (gen_ai_request_model, gen_ai_token_type) group_left() max by (gen_ai_request_model, gen_ai_token_type) (copilot_model_price_usd_per_million_ratio)) / 0.01)`;
+  const [calls, tokens, costs] = await Promise.all([
+    seriesMetric(callsQuery),
+    seriesMetric(tokenQuery),
+    seriesMetric(aiCreditsQuery)
+  ]);
+  const byModel = new Map<string, ModelMixEntry>();
+  const ensure = (model: string): ModelMixEntry => {
+    let entry = byModel.get(model);
+    if (!entry) {
+      entry = createModelMixEntry(model);
+      byModel.set(model, entry);
+    }
+    return entry;
+  };
+  for (const point of calls.points) {
     const model = point.labels.gen_ai_request_model;
     if (model) {
-      multiplierByModel.set(model, point.value);
+      ensure(model).calls = point.value;
     }
   }
-  const entries: ModelMixEntry[] = calls.points
-    .map((point) => {
-      const model = point.labels.gen_ai_request_model ?? "unknown";
-      const multiplier = multiplierByModel.has(model) ? multiplierByModel.get(model) ?? null : null;
-      const included = isIncludedModel(model) || multiplier === 0;
-      const premiumRequestsEstimate = multiplier === null ? null : point.value * multiplier;
-      return { model, calls: point.value, multiplier, included, premiumRequestsEstimate };
-    })
-    .filter((entry) => entry.calls > 0)
-    .sort((left, right) => right.calls - left.calls);
-  const includedCalls = entries.filter((entry) => entry.included).reduce((sum, entry) => sum + entry.calls, 0);
-  const premiumCalls = entries.filter((entry) => !entry.included).reduce((sum, entry) => sum + entry.calls, 0);
-  const totalCalls = includedCalls + premiumCalls;
-  const premiumRequestsEstimate = entries.reduce(
-    (sum, entry) => sum + (entry.premiumRequestsEstimate ?? 0),
-    0
-  );
+  for (const point of tokens.points) {
+    const model = point.labels.gen_ai_request_model;
+    if (!model) {
+      continue;
+    }
+    const entry = ensure(model);
+    applyModelToken(entry, point.labels.gen_ai_token_type ?? "", point.value);
+  }
+  for (const point of costs.points) {
+    const model = point.labels.gen_ai_request_model;
+    if (model) {
+      ensure(model).estimatedAiCredits = point.value;
+    }
+  }
+  const totalCalls = [...byModel.values()].reduce((sum, entry) => sum + entry.calls, 0);
+  const totalEstimatedAiCredits = [...byModel.values()].reduce((sum, entry) => sum + (entry.estimatedAiCredits ?? 0), 0);
+  const entries = [...byModel.values()]
+    .map((entry) => ({
+      ...entry,
+      share: totalEstimatedAiCredits > 0 && entry.estimatedAiCredits !== null ? entry.estimatedAiCredits / totalEstimatedAiCredits : null
+    }))
+    .filter((entry) => entry.calls > 0 || entry.totalTokens > 0 || (entry.estimatedAiCredits ?? 0) > 0)
+    .sort((left, right) => (right.estimatedAiCredits ?? 0) - (left.estimatedAiCredits ?? 0) || right.calls - left.calls);
   return {
     status: entries.length > 0 ? "ok" : "unavailable",
     entries,
-    includedCalls,
-    premiumCalls,
-    includedShare: totalCalls > 0 ? includedCalls / totalCalls : null,
-    premiumShare: totalCalls > 0 ? premiumCalls / totalCalls : null,
-    premiumRequestsEstimate: entries.some((entry) => entry.premiumRequestsEstimate !== null)
-      ? premiumRequestsEstimate
-      : null,
+    totalCalls,
+    totalEstimatedAiCredits: entries.some((entry) => entry.estimatedAiCredits !== null) ? totalEstimatedAiCredits : null,
     message: entries.length > 0 ? undefined : "No model-call telemetry is available for the selected range."
   };
 }
@@ -1178,7 +1186,7 @@ async function summary(url: URL) {
     scalarMetric(notObservedCoverageQuery),
     workspaceBreakdown(range),
     usageHistory(range, repoLabelMatcher),
-    budgetInsight(),
+    aiCreditsBudgetInsight(),
     modelMix(range),
     experienceMetrics(range),
     outcomeMetrics(range)
@@ -1453,7 +1461,7 @@ interface CoachContext {
   contextPeak: number | null;
   errors: number;
   nonWorkspace: number;
-  budget: BudgetInsight;
+  budget: AiCreditsBudgetInsight;
   mix: ModelMix;
   sessions: SessionRecord[];
 }
@@ -1519,19 +1527,19 @@ const coachRules: CoachRule[] = [
       ? {
         id: "budget-pacing",
         severity: budget.projectedUtilizationPct >= 100 ? "critical" : "warning",
-        title: "Pace your included premium requests",
-        insight: `At the current daily rate, estimated premium requests would reach about ${budget.projectedMonthEnd === null ? "?" : budget.projectedMonthEnd.toFixed(0)} by the end of the cycle, roughly ${budget.projectedUtilizationPct.toFixed(0)}% of the ${budget.premiumRequestAllowance} included with the ${budget.plan} plan. This is a local estimate, not official billing.`,
-        action: "Spread heavy agent work across the month, batch related prompts into one session, and use the included base model for routine edits to preserve premium allowance."
+        title: "Pace your AI Credits pool",
+        insight: `At the current daily rate, local AI Credits would reach about ${budget.projectedMonthEndCredits === null ? "?" : budget.projectedMonthEndCredits.toFixed(0)} by the end of the cycle, roughly ${budget.projectedUtilizationPct.toFixed(0)}% of the configured ${budget.monthlyAllowanceCredits} credit pool for the ${budget.plan} plan. This is a local estimate, not official billing.`,
+        action: "Reduce cold context, choose the lowest-cost model that can do the job, and avoid retrying large prompts before fixing the root cause."
       }
       : null,
   ({ mix }) =>
-    mix.premiumShare !== null && mix.premiumShare > 0.6 && mix.includedShare !== null && mix.includedShare < 0.4
+    mix.entries.length > 0 && (mix.entries[0].share ?? 0) > 0.6
       ? {
-        id: "model-routing",
+        id: "model-cost-concentration",
         severity: "info",
-        title: "Route routine work to included models",
-        insight: `${(mix.premiumShare * 100).toFixed(0)}% of model calls in this range used premium-multiplier models. Included base models bill at a 0x multiplier and do not consume your premium-request allowance.`,
-        action: "Use an included base model for routine edits, explanations, and boilerplate, and reserve premium models for complex reasoning and large refactors."
+        title: "Watch model cost concentration",
+        insight: `${mix.entries[0].model} accounts for ${((mix.entries[0].share ?? 0) * 100).toFixed(0)}% of estimated model AI Credits in this range. All billed model interactions consume AI Credits based on model and tokens.`,
+        action: "Use a less expensive capable model for routine work and reserve higher-cost models for tasks that genuinely need stronger reasoning."
       }
       : null,
   ({ tokens }) => {

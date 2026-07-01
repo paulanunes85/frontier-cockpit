@@ -21,7 +21,7 @@ This lab uses real telemetry to improve prompt shape, context discipline, model 
 - Understand AIU as an operational signal.
 - Detect prompt patterns that create waste.
 - Produce a better prompt and compare telemetry.
-- Track the premium requests included with your plan and use included AI credits well.
+- Track AI Credits consumption and use budget controls well.
 
 ## Step 1, Open Context Dashboard
 
@@ -100,16 +100,17 @@ Recommended routing:
 | Architecture/security/migration | More context, explicit discovery, stronger reasoning model |
 | Repeatable workflow | Skill, prompt file, or MCP-backed automation |
 
-## Step 6, Use Your Included AI Credits Well
+## Step 6, Use AI Credits Well
 
-Paid GitHub Copilot plans include a monthly allowance of premium requests. Business and Enterprise plans each include a pool that resets on the first day of the month. This step is about spending that allowance well.
+GitHub Copilot usage-based billing for organizations and enterprises is measured in GitHub AI Credits. The local cockpit helps you understand which prompt, context, cache, model, and token patterns consume more credits.
 
-### How premium requests are counted
+### How AI Credits are consumed
 
-- Each user-initiated request is one premium request, multiplied by the model multiplier for the model you chose.
-- Agent mode can make several internal model calls and tool calls for one prompt, but those do not add extra premium requests. The premium request is counted per user prompt, not per internal call.
-- Included base models bill at a zero multiplier, so routine work on them does not consume premium requests.
-- The monthly allowance resets on the first of each month.
+- AI Credits are based on the model used and the tokens consumed.
+- Token classes include input tokens, output tokens, and cached tokens.
+- Agentic features can consume more AI Credits because they may perform multiple model calls and process more context inside one task.
+- Code completions and next edit suggestions are not billed in AI Credits for paid plans.
+- Business and Enterprise AI Credits are pooled at the billing entity level, so heavy usage by one user can draw from the shared pool.
 
 ### Read your budget in the mini app
 
@@ -119,20 +120,20 @@ If you completed Lab 06, open the local mini app and read the Credits view:
 http://localhost:3300
 ```
 
-The budget panel estimates premium requests used this cycle against the allowance included with your plan, and the model mix panel shows how much of that allowance goes to premium models versus included models. The estimate is local and is not official billing.
+The budget panel shows local AI Credits observed this cycle against the configured credit pool, and the model cost mix panel estimates which model labels are consuming the most AI Credits. The estimate is local operational telemetry and is not official billing.
 
-### Practices that stretch included credits
+### Practices that reduce AI Credits consumption
 
 | Practice | Why it helps |
 | --- | --- |
-| Choose the right model | Reserve high-multiplier premium models for complex reasoning, and use an included base model for routine edits and explanations. |
-| Set a budget with alerts | Watch the 75 percent and 90 percent marks so there are no surprises before the cycle resets. |
-| Batch related prompts | One prompt is one premium request times the multiplier, so grouping related work into one session is efficient. |
-| Reuse warm context | Cache reads are cheaper than cold input and make each premium request go further. |
-| Avoid retrying large prompts | Each resend of a large prompt is another premium request. Fix the root cause, then retry once. |
-| Monitor usage regularly | Check the mini app, and for official totals use GitHub billing exports or the Copilot usage metrics API. |
+| Choose the right model | Use the lowest-cost model that can complete the task, and reserve more expensive models for work that needs stronger reasoning. |
+| Set budgets and spending limits | Use GitHub budget controls to monitor or stop additional AI Credits usage when limits are reached. |
+| Scope prompts tightly | Smaller prompts and fewer irrelevant files reduce input tokens and model work. |
+| Reuse warm context | Cache reuse reduces unnecessary processing compared with repeatedly sending cold context. |
+| Avoid retrying large prompts | Fix the root cause first, then retry with a smaller prompt to avoid repeating expensive token use. |
+| Monitor usage regularly | Check the mini app for local patterns and use GitHub billing exports, the usage dashboard, or the Copilot usage metrics API for official totals. |
 
-Official premium-request totals, AI Credits, and model multipliers are defined by GitHub and can change. Confirm current values in the GitHub Copilot billing documentation.
+Official AI Credits totals, model prices, and budget behavior are defined by GitHub and can change. Confirm current values in the GitHub Copilot billing documentation.
 
 ## Completion Criteria
 
@@ -141,12 +142,13 @@ Official premium-request totals, AI Credits, and model multipliers are defined b
 - [ ] Participant can identify at least one waste pattern.
 - [ ] Participant can rewrite a broad prompt into a scoped prompt.
 - [ ] Participant can explain why local AIU is not official billing.
-- [ ] Participant can explain how premium requests are counted and how to preserve included allowance.
+- [ ] Participant can explain how model choice, input tokens, output tokens, cached tokens, and context size affect AI Credits.
 
 ## References
 
 - [GitHub Copilot prompt engineering](https://docs.github.com/en/copilot/using-github-copilot/prompt-engineering-for-github-copilot)
-- [GitHub Copilot request-based billing and model multipliers](https://docs.github.com/en/copilot/reference/copilot-billing/request-based-billing-legacy/model-multipliers-for-annual-plans)
+- [GitHub Copilot usage-based billing for organizations and enterprises](https://docs.github.com/en/copilot/concepts/billing/usage-based-billing-for-organizations-and-enterprises)
+- [GitHub Copilot budget controls](https://docs.github.com/en/copilot/tutorials/budgets/getting-started-with-budget-controls)
 - [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai/tree/main/docs/gen-ai/)
 - [Developer Local Guide](../docs/FrontierCockpit_DeveloperLocalGuide_v1_0_0_2026-06-17_en.md)
 - [Lab 06, Frontier Developer Cockpit Mini App](Lab_06_FrontierDeveloperCockpitMiniApp_v1_0_0_2026-06-30_en.md)

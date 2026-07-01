@@ -1562,12 +1562,8 @@ ul {
   background: var(--rule);
 }
 
-.seg-mix-included {
+.seg-mix-cost {
   fill: var(--c-blue-500);
-}
-
-.seg-mix-premium {
-  fill: var(--c-yellow-500);
 }
 
 .mix-split-legend {
@@ -1587,12 +1583,8 @@ ul {
   vertical-align: baseline;
 }
 
-.dot-mix-included {
+.dot-mix-cost {
   background: var(--c-blue-500);
-}
-
-.dot-mix-premium {
-  background: var(--c-yellow-500);
 }
 
 @media (max-width: 720px) {

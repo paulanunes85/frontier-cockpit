@@ -112,16 +112,17 @@ export type BudgetAlertLevel = "ok" | "warning" | "critical" | "over";
 
 export interface BudgetInsight {
     plan: string;
-    premiumRequestAllowance: number;
-    premiumRequestsEstimate: number | null;
+    seats: number;
+    monthlyAllowanceCredits: number;
+    observedCredits: number | null;
     utilizationPct: number | null;
-    remaining: number | null;
+    remainingCredits: number | null;
     daysElapsed: number;
     daysInCycle: number;
     daysLeft: number;
-    projectedMonthEnd: number | null;
+    projectedMonthEndCredits: number | null;
     projectedUtilizationPct: number | null;
-    dailyRate: number | null;
+    dailyRateCredits: number | null;
     status: MetricStatus;
     alertLevel: BudgetAlertLevel;
     message?: string;
@@ -130,19 +131,19 @@ export interface BudgetInsight {
 export interface ModelMixEntry {
     model: string;
     calls: number;
-    multiplier: number | null;
-    included: boolean;
-    premiumRequestsEstimate: number | null;
+    inputTokens: number;
+    outputTokens: number;
+    cachedTokens: number;
+    totalTokens: number;
+    estimatedAiCredits: number | null;
+    share: number | null;
 }
 
 export interface ModelMix {
     status: MetricStatus;
     entries: ModelMixEntry[];
-    includedCalls: number;
-    premiumCalls: number;
-    includedShare: number | null;
-    premiumShare: number | null;
-    premiumRequestsEstimate: number | null;
+    totalCalls: number;
+    totalEstimatedAiCredits: number | null;
     message?: string;
 }
 

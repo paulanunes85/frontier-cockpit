@@ -217,11 +217,11 @@ function localizeAlerts(alerts: Alert[], t: TranslateFn): Alert[] {
           title: t("alert.errors.title"),
           detail: t("alert.errors.detail", { value: formatNumber(alert.value, 0) })
         };
-      case "premium-budget":
+      case "ai-credits-budget":
         return {
           ...alert,
-          title: t(`alert.premium-budget.${alert.severity}.title`),
-          detail: t("alert.premium-budget.detail", { value: formatNumber(alert.value, 0) })
+          title: t(`alert.ai-credits-budget.${alert.severity}.title`),
+          detail: t("alert.ai-credits-budget.detail", { value: formatNumber(alert.value, 0) })
         };
       default:
         return alert;
@@ -472,10 +472,10 @@ function BudgetPanel({ summary, compact }: Readonly<{ summary: SummaryResponse |
       <div className="budget-head">
         <div className={`budget-figure budget-${tone}`}>
           <span className="budget-figure-value">
-            {formatNumber(budget?.premiumRequestsEstimate ?? null, 0)}
+            {formatNumber(budget?.observedCredits ?? null, 0)}
           </span>
           <span className="budget-figure-unit">
-            {t("budget.ofAllowance", { allowance: formatNumber(budget?.premiumRequestAllowance ?? null, 0) })}
+            {t("budget.ofAllowance", { allowance: formatNumber(budget?.monthlyAllowanceCredits ?? null, 0) })}
           </span>
         </div>
         <div className="budget-facts">
@@ -485,7 +485,7 @@ function BudgetPanel({ summary, compact }: Readonly<{ summary: SummaryResponse |
           </div>
           <div>
             <span className="stat-label">{t("budget.remaining")}</span>
-            <span className="stat-value">{formatNumber(budget?.remaining ?? null, 0)}</span>
+            <span className="stat-value">{formatNumber(budget?.remainingCredits ?? null, 0)}</span>
           </div>
           <div>
             <span className="stat-label">{t("budget.daysLeft")}</span>
@@ -516,22 +516,22 @@ function ModelMixPanel({ summary }: Readonly<{ summary: SummaryResponse | null }
   const t = useT();
   const mix = summary?.modelMix;
   const entries = mix?.entries ?? [];
-  const totalPremiumWeight = entries.reduce((sum, entry) => sum + (entry.premiumRequestsEstimate ?? 0), 0);
   return (
     <Panel
       title={t("mix.title")}
       status={mix?.status}
       aside={<span className="muted">{t("mix.aside")}</span>}
     >
-      {mix && (mix.includedShare !== null || mix.premiumShare !== null) ? (
+      {mix && mix.totalEstimatedAiCredits !== null ? (
         <div className="mix-split">
           <svg className="mix-split-bar" viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label={t("mix.title")}>
-            <rect className="seg-mix-included" x="0" y="0" width={(mix.includedShare ?? 0) * 100} height="8" />
-            <rect className="seg-mix-premium" x={(mix.includedShare ?? 0) * 100} y="0" width={(mix.premiumShare ?? 0) * 100} height="8" />
+            {entries.map((entry, index) => {
+              const previous = entries.slice(0, index).reduce((sum, item) => sum + ((item.share ?? 0) * 100), 0);
+              return <rect key={entry.model} className="seg-mix-cost" x={previous} y="0" width={(entry.share ?? 0) * 100} height="8" />;
+            })}
           </svg>
           <div className="mix-split-legend">
-            <span><i className="dot-mix-included" /> {t("mix.included", { value: formatPercent(mix.includedShare) })}</span>
-            <span><i className="dot-mix-premium" /> {t("mix.premium", { value: formatPercent(mix.premiumShare) })}</span>
+            <span><i className="dot-mix-cost" /> {t("mix.total", { value: formatNumber(mix.totalEstimatedAiCredits, 1) })}</span>
           </div>
         </div>
       ) : null}
@@ -541,24 +541,24 @@ function ModelMixPanel({ summary }: Readonly<{ summary: SummaryResponse | null }
             <thead>
               <tr>
                 <th>{t("sessions.col.model")}</th>
-                <th>{t("mix.col.class")}</th>
-                <th className="numeric">{t("mix.col.multiplier")}</th>
+                <th className="numeric">{t("mix.col.input")}</th>
+                <th className="numeric">{t("mix.col.output")}</th>
+                <th className="numeric">{t("mix.col.cached")}</th>
                 <th className="numeric">{t("mix.col.calls")}</th>
-                <th className="numeric">{t("mix.col.estimate")}</th>
+                <th className="numeric">{t("mix.col.credits")}</th>
+                <th className="numeric">{t("mix.col.share")}</th>
               </tr>
             </thead>
             <tbody>
               {entries.map((entry) => (
                 <tr key={entry.model}>
                   <td><span className="model-tag">{entry.model}</span></td>
-                  <td>
-                    <span className={`pill ${entry.included ? "pill-good" : "pill-warn"}`}>
-                      {entry.included ? t("mix.classIncluded") : t("mix.classPremium")}
-                    </span>
-                  </td>
-                  <td className="numeric">{entry.multiplier === null ? "—" : `${formatNumber(entry.multiplier, 2)}x`}</td>
+                  <td className="numeric">{formatCompact(entry.inputTokens)}</td>
+                  <td className="numeric">{formatCompact(entry.outputTokens)}</td>
+                  <td className="numeric">{formatCompact(entry.cachedTokens)}</td>
                   <td className="numeric">{formatNumber(entry.calls, 0)}</td>
-                  <td className="numeric strong">{entry.premiumRequestsEstimate === null || totalPremiumWeight <= 0 ? "—" : formatPercent(entry.premiumRequestsEstimate / totalPremiumWeight)}</td>
+                  <td className="numeric strong">{entry.estimatedAiCredits === null ? "—" : formatNumber(entry.estimatedAiCredits, 2)}</td>
+                  <td className="numeric">{formatPercent(entry.share)}</td>
                 </tr>
               ))}
             </tbody>
