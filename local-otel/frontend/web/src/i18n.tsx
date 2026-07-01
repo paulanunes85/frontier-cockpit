@@ -126,7 +126,7 @@ const en: Dict = {
     "plans.promoWindow": "Jun 1 to Sep 1, 2026",
     "plans.creditsUnit": "AI Credits / user / month",
     "plans.feature": "Capability",
-    "plans.note": "Reference values from GitHub Docs, subject to change. Local telemetry is an operational estimate, not official billing. 1 AI Credit equals US$0.01.",
+    "plans.note": "Reference values from GitHub Docs, subject to change. The budget defaults to standard allowances; promotional allowances apply only when explicitly enabled for qualifying customers. Local telemetry is an operational estimate, not official billing. 1 AI Credit equals US$0.01.",
     "plans.row.price": "License price",
     "plans.row.standard": "Standard AI Credits (per user / month)",
     "plans.row.promo": "Promotional AI Credits (Jun 1 to Sep 1, 2026)",

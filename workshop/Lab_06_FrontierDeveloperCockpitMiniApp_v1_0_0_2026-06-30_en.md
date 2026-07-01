@@ -151,11 +151,11 @@ Set your plan, seat count, and AI Credits pool so the budget matches your enviro
 ```bash
 FRONTIER_COPILOT_PLAN="business"
 FRONTIER_COPILOT_SEATS="1"
-FRONTIER_AI_CREDITS_USE_PROMO="true"
-FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE="3000"
+FRONTIER_AI_CREDITS_USE_PROMO="false"
+FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE=""
 ```
 
-At the time this lab was updated, GitHub Docs listed Business standard at 1,900 AI Credits per user per month and Enterprise standard at 3,900. Existing customers in the June-Sep 2026 promotional period receive higher monthly amounts. Confirm current values for your plan in GitHub Docs because they can change.
+At the time this lab was updated, GitHub Docs listed Business standard at 1,900 AI Credits per user per month and Enterprise standard at 3,900. Leave `FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE` blank to let the cockpit calculate the standard shared pool from plan and seats, or set an explicit override when your billing source requires it. Existing customers in the June-Sep 2026 promotional period can set `FRONTIER_AI_CREDITS_USE_PROMO="true"` to model the temporary higher amounts. Confirm current values for your plan in GitHub Docs because they can change.
 
 ### 8.2 Model cost mix
 
@@ -203,4 +203,5 @@ The local cockpit is phase one. It is full fidelity for the developer and stays 
 - [Frontier Developer Cockpit Local OpenTelemetry Kit](../local-otel/README.md)
 - [Frontier Cockpit Local Links Guide](../docs/FrontierCockpit_LocalLinksGuide_v1_0_0_2026-06-19_en.md)
 - [GitHub Copilot documentation](https://docs.github.com/en/copilot)
+- [Usage-based billing for organizations and enterprises](https://docs.github.com/en/copilot/concepts/billing/usage-based-billing-for-organizations-and-enterprises)
 - [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions/blob/main/docs/gen-ai/)

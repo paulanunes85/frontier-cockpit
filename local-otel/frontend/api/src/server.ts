@@ -96,7 +96,8 @@ function lowerFromEnv(name: string, fallback: string): string {
 // defaults follow the current GitHub documentation and remain configurable
 // because plan allowances and promotional periods can change.
 // Sources: GitHub Copilot usage-based billing for individuals and for
-// organizations and enterprises.
+// organizations and enterprises. Standard allowances are the cockpit default;
+// promotional allowances must be enabled explicitly for qualifying customers.
 const standardAiCreditsByPlan: Record<string, number> = {
   pro: 1500,
   "pro+": 7000,
@@ -112,7 +113,7 @@ const promotionalAiCreditsByPlan: Record<string, number> = {
 
 const copilotPlan = lowerFromEnv("FRONTIER_COPILOT_PLAN", "business");
 const copilotSeats = numberFromEnv("FRONTIER_COPILOT_SEATS", 1);
-const usePromotionalAllowance = lowerFromEnv("FRONTIER_AI_CREDITS_USE_PROMO", "true") === "true";
+const usePromotionalAllowance = lowerFromEnv("FRONTIER_AI_CREDITS_USE_PROMO", "false") === "true";
 const defaultAiCreditsPerSeat =
   (usePromotionalAllowance ? promotionalAiCreditsByPlan[copilotPlan] : undefined) ??
   standardAiCreditsByPlan[copilotPlan] ??
