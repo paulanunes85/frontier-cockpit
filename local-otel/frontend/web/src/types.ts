@@ -83,15 +83,42 @@ export interface Alert {
     threshold: number | null;
 }
 
+export interface ParticipantIdentity {
+    name: string;
+    role: string;
+    email: string;
+    team: string;
+    customerName: string;
+    dashboardTitle: string;
+}
+
+export interface SavingsOpportunity {
+    id: string;
+    label: string;
+    estimateCredits: number;
+    detail: string;
+}
+
+export interface EconomySummary {
+    efficiencyScore: number | null;
+    aiCredits: number;
+    potentialSavingsCredits: number;
+    coldCostShare: number | null;
+    cacheEfficiency: number | null;
+    savingsOpportunities: SavingsOpportunity[];
+}
+
 export interface SummaryResponse {
     range: RangeOption;
     repo: string;
     refreshedAt: string;
+    participant: ParticipantIdentity;
     health: ServiceHealth[];
     repositories: string[];
     links: AppLink[];
     thresholds: Record<string, number>;
     alerts: Alert[];
+    economy: EconomySummary;
     metrics: {
         aiCredits: ScalarMetric;
         sessions: ScalarMetric;

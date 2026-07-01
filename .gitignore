@@ -10,6 +10,9 @@ local-otel/frontend/**/node_modules/
 local-otel/frontend/**/dist/
 local-otel/frontend/**/*.tsbuildinfo
 
+# Workshop participant identity (local only, never commit personal values)
+local-otel/workshop.env
+
 # Frontier Cockpit local runtime state
 local-otel/.venv/
 local-otel/**/*.log

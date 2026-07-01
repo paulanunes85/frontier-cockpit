@@ -438,11 +438,81 @@ function WorkspacesView({ summary }: { summary: SummaryResponse | null }) {
   );
 }
 
-function CoachView({ coach }: { coach: CoachResponse | null }) {
+const tokenPlaybook: { id: string; title: string; body: string }[] = [
+  { id: "warm", title: "Reuse warm context", body: "Stay in the same conversation while the context is still relevant. Cache reads are far cheaper than cold input." },
+  { id: "cold", title: "Reduce cold input", body: "Avoid reattaching or reopening large files you already shared. Cold tokens are the most expensive class." },
+  { id: "focus", title: "Keep context focused", body: "Split large tasks into smaller prompts so the context window stays lean and answers stay sharp." },
+  { id: "errors", title: "Avoid tool-error loops", body: "Fix the root cause of a failing tool call before retrying. Repeated failures burn credits with no result." },
+  { id: "model", title: "Use the right model", body: "Reserve frontier models for complex work. Lighter tasks can use a smaller model to save credits." },
+  { id: "validate", title: "Validate early", body: "Run tests or checks to catch issues before they turn into long, expensive agent loops." },
+  { id: "workspace", title: "Open a Git workspace", body: "Work inside a Git repository so usage is attributed to the right project and stays measurable." }
+];
+
+function efficiencyTone(score: number | null): string {
+  if (score === null) {
+    return "neutral";
+  }
+  if (score >= 70) {
+    return "good";
+  }
+  if (score >= 45) {
+    return "warn";
+  }
+  return "bad";
+}
+
+function CoachView({ coach, summary }: { coach: CoachResponse | null; summary: SummaryResponse | null }) {
   const cards = coach?.cards ?? [];
   const topSessions = coach?.topSessions ?? [];
+  const economy = summary?.economy;
+  const score = economy?.efficiencyScore ?? null;
+  const opportunities = economy?.savingsOpportunities ?? [];
   return (
     <>
+      <Panel title="Token efficiency" aside={<span className="muted">Local AIU estimate, not official billing</span>}>
+        <div className="efficiency-row">
+          <div className={`score-dial score-${efficiencyTone(score)}`}>
+            <span className="score-value">{score ?? "—"}</span>
+            <span className="score-max">/ 100</span>
+          </div>
+          <div className="efficiency-facts">
+            <div>
+              <span className="stat-label">AI credits in range</span>
+              <span className="stat-value">{formatNumber(economy?.aiCredits ?? null, 2)}</span>
+            </div>
+            <div>
+              <span className="stat-label">Cache efficiency</span>
+              <span className="stat-value">{formatPercent(economy?.cacheEfficiency ?? null)}</span>
+            </div>
+            <div>
+              <span className="stat-label">Cold cost share</span>
+              <span className="stat-value">{formatPercent(economy?.coldCostShare ?? null)}</span>
+            </div>
+            <div>
+              <span className="stat-label">Potential savings</span>
+              <span className="stat-value">{formatNumber(economy?.potentialSavingsCredits ?? null, 2)}</span>
+            </div>
+          </div>
+        </div>
+        <p className="muted">
+          The efficiency score rewards cache reuse and penalizes cold context, context pressure, and tool errors. Savings are local AIU estimates to guide behavior, not GitHub billing.
+        </p>
+      </Panel>
+      {opportunities.length > 0 ? (
+        <Panel title="Savings opportunities" aside={<span className="muted">Quantified local estimates</span>}>
+          <ul className="savings-list">
+            {opportunities.map((item) => (
+              <li key={item.id} className="savings-card">
+                <div className="savings-head">
+                  <h3>{item.label}</h3>
+                  <span className="savings-credits">~{formatNumber(item.estimateCredits, 2)} credits</span>
+                </div>
+                <p>{item.detail}</p>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : null}
       <Panel title="Coaching recommendations" aside={<span className="muted">{coach ? `Generated ${new Date(coach.generatedAt).toLocaleTimeString()}` : ""}</span>}>
         {cards.length > 0 ? (
           <ul className="coach-list">
@@ -460,6 +530,16 @@ function CoachView({ coach }: { coach: CoachResponse | null }) {
         ) : (
           <p className="muted">No recommendations are available yet.</p>
         )}
+      </Panel>
+      <Panel title="Token efficiency playbook" aside={<span className="muted">Best practices</span>}>
+        <ul className="playbook-grid">
+          {tokenPlaybook.map((item) => (
+            <li key={item.id} className="playbook-card">
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </li>
+          ))}
+        </ul>
       </Panel>
       {topSessions.length > 0 ? (
         <Panel title="Most expensive sessions" aside={<span className="muted">By AI credits</span>}>
@@ -675,6 +755,16 @@ export default function App() {
   const alertCount = summary?.alerts.length ?? 0;
   const activeDef = views.find((view) => view.id === activeView) ?? views[0];
 
+  const dashboardTitle = summary?.participant.dashboardTitle ?? "Frontier Developer Cockpit";
+  const participantName = summary?.participant.name ?? "Workshop Participant";
+  const participantRole = summary?.participant.role ?? "Developer";
+  const participantLine = participantRole ? `${participantName} | ${participantRole}` : participantName;
+  const customerName = summary?.participant.customerName ?? "";
+
+  useEffect(() => {
+    document.title = dashboardTitle;
+  }, [dashboardTitle]);
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -686,8 +776,8 @@ export default function App() {
             <i className="sq-yellow" />
           </span>
           <div className="brand__text">
-            <strong>Frontier Developer Cockpit</strong>
-            <span>Frontier Cockpit Team | Software Global Black Belt</span>
+            <strong>{dashboardTitle}</strong>
+            <span>{participantLine}</span>
           </div>
         </div>
         <nav className="nav">
@@ -716,7 +806,7 @@ export default function App() {
       <main className="content">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Frontier Cockpit Team | Software Global Black Belt</p>
+            <p className="eyebrow">{customerName ? `${participantLine} · ${customerName}` : participantLine}</p>
             <h1>{activeDef.label}</h1>
             <p className="topbar-blurb">{activeDef.blurb}. AI credits are local AIU telemetry, not official GitHub billing.</p>
           </div>
@@ -755,7 +845,7 @@ export default function App() {
           {activeView === "overview" ? <OverviewView summary={summary} /> : null}
           {activeView === "sessions" ? <SessionsView sessions={sessions} /> : null}
           {activeView === "workspaces" ? <WorkspacesView summary={summary} /> : null}
-          {activeView === "coach" ? <CoachView coach={coach} /> : null}
+          {activeView === "coach" ? <CoachView coach={coach} summary={summary} /> : null}
           {activeView === "history" ? <HistoryView summary={summary} /> : null}
           {activeView === "health" ? <HealthView summary={summary} /> : null}
           {activeView === "settings" ? <SettingsView summary={summary} /> : null}

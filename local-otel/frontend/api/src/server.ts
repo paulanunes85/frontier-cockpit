@@ -86,6 +86,35 @@ const thresholds = {
   coldRatioWarn: numberFromEnv("THRESHOLD_COLD_RATIO_WARN", 0.45)
 };
 
+// Participant identity makes the local cockpit a reusable workshop template.
+// Each participant sets these via environment variables (see workshop.env).
+// They only label the local dashboard chrome and are never sent to Azure and
+// are not official GitHub billing identity.
+interface ParticipantIdentity {
+  name: string;
+  role: string;
+  email: string;
+  team: string;
+  customerName: string;
+  dashboardTitle: string;
+}
+
+function stringFromEnv(name: string, fallback: string): string {
+  const raw = (process.env[name] ?? "").trim();
+  return raw.length > 0 ? raw : fallback;
+}
+
+function participantIdentity(): ParticipantIdentity {
+  return {
+    name: stringFromEnv("FRONTIER_PARTICIPANT_NAME", "Workshop Participant"),
+    role: stringFromEnv("FRONTIER_PARTICIPANT_ROLE", "Developer"),
+    email: stringFromEnv("FRONTIER_PARTICIPANT_EMAIL", ""),
+    team: stringFromEnv("FRONTIER_PARTICIPANT_TEAM", ""),
+    customerName: stringFromEnv("FRONTIER_CUSTOMER_NAME", ""),
+    dashboardTitle: stringFromEnv("FRONTIER_DASHBOARD_TITLE", "Frontier Developer Cockpit")
+  };
+}
+
 interface HistoryShape {
   stepSeconds: number;
   windowLiteral: string;
@@ -708,6 +737,77 @@ function computeAlerts(input: {
   ].filter((alert): alert is Alert => alert !== null);
 }
 
+interface SavingsOpportunity {
+  id: string;
+  label: string;
+  estimateCredits: number;
+  detail: string;
+}
+
+interface EconomySummary {
+  efficiencyScore: number | null;
+  aiCredits: number;
+  potentialSavingsCredits: number;
+  coldCostShare: number | null;
+  cacheEfficiency: number | null;
+  savingsOpportunities: SavingsOpportunity[];
+}
+
+// Local token-economy heuristics. All values are local AIU estimates for
+// coaching, not official GitHub billing. The efficiency score rewards cache
+// reuse and penalizes cold context, context pressure, and error loops.
+function computeEconomy(input: {
+  aiCredits: number;
+  sessions: number;
+  errors: number;
+  promptTotal: number;
+  cacheEfficiency: number | null;
+  coldRatio: number | null;
+  contextPeak: number | null;
+}): EconomySummary {
+  const { aiCredits, sessions, errors, promptTotal, cacheEfficiency, coldRatio, contextPeak } = input;
+
+  let efficiencyScore: number | null = null;
+  if (promptTotal > 0 || sessions > 0) {
+    const cacheComponent = (cacheEfficiency ?? 0) * 45;
+    const coldPenalty = (coldRatio ?? 0) * 30;
+    const contextPenalty = contextPeak == null ? 0 : Math.min(contextPeak / 100, 1) * 15;
+    const errorRate = sessions > 0 ? errors / sessions : 0;
+    const errorPenalty = Math.min(errorRate, 1) * 10;
+    const score = 55 + cacheComponent - coldPenalty - contextPenalty - errorPenalty;
+    efficiencyScore = Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  const coldSavings = aiCredits * (coldRatio ?? 0) * 0.5;
+  const errorRate = sessions > 0 ? errors / sessions : 0;
+  const errorSavings = aiCredits * Math.min(errorRate, 1) * 0.15;
+  const potentialSavingsCredits = coldSavings + errorSavings;
+
+  const savingsOpportunities: SavingsOpportunity[] = [
+    {
+      id: "cold-context",
+      label: "Reduce cold context",
+      estimateCredits: coldSavings,
+      detail: `${Math.round((coldRatio ?? 0) * 100)}% of prompt tokens were cold input. Reusing warm context lowers cost.`
+    },
+    {
+      id: "error-loops",
+      label: "Avoid tool-error loops",
+      estimateCredits: errorSavings,
+      detail: `${Math.round(errors)} error signal(s) in range. Fixing the root cause avoids wasted retries.`
+    }
+  ].filter((item) => item.estimateCredits > 0);
+
+  return {
+    efficiencyScore,
+    aiCredits,
+    potentialSavingsCredits,
+    coldCostShare: coldRatio,
+    cacheEfficiency,
+    savingsOpportunities
+  };
+}
+
 function appLinks() {
   const tempoExploreQuery = encodeURIComponent('{"datasource":"tempo-local","queries":[{"query":"{service.name=\\"copilot-chat\\"}"}],"range":{"from":"now-1h","to":"now"}}');
   const lokiExploreQuery = encodeURIComponent('{"datasource":"loki-local","queries":[{"expr":"{service_name=\\"copilot-chat\\"}"}],"range":{"from":"now-1h","to":"now"}}');
@@ -801,15 +901,27 @@ async function summary(url: URL) {
     errors: errors.value
   });
 
+  const economy = computeEconomy({
+    aiCredits: aiCredits.value ?? 0,
+    sessions: workspaceReal.value ?? 0,
+    errors: errors.value ?? 0,
+    promptTotal,
+    cacheEfficiency,
+    coldRatio,
+    contextPeak: contextPeak.value
+  });
+
   return {
     range,
     repo: repo ?? "all",
     refreshedAt: new Date().toISOString(),
+    participant: participantIdentity(),
     health,
     repositories: repoValues,
     links: appLinks(),
     thresholds,
     alerts,
+    economy,
     metrics: {
       aiCredits,
       sessions: workspaceReal,
@@ -1130,6 +1242,22 @@ async function coach(url: URL) {
   };
 }
 
+type RouteHandler = (url: URL, response: http.ServerResponse) => void | Promise<void>;
+
+const getRoutes: Record<string, RouteHandler> = {
+  "/health": (_url, response) => textResponse(response, 200, "ok\n"),
+  "/api/health": (_url, response) =>
+    jsonResponse(response, 200, { status: "ok", checkedAt: new Date().toISOString() }),
+  "/api/links": (_url, response) => jsonResponse(response, 200, { links: appLinks() }),
+  "/api/repositories": async (url, response) =>
+    jsonResponse(response, 200, { repositories: await repositories(rangeFromUrl(url)) }),
+  "/api/identity": (_url, response) => jsonResponse(response, 200, participantIdentity()),
+  "/api/summary": async (url, response) => jsonResponse(response, 200, await summary(url)),
+  "/api/sessions": async (url, response) =>
+    jsonResponse(response, 200, await sessionsBreakdown(rangeFromUrl(url), repoFromUrl(url))),
+  "/api/coach": async (url, response) => jsonResponse(response, 200, await coach(url))
+};
+
 const server = http.createServer((request, response) => {
   void (async () => {
     if (!request.url) {
@@ -1138,43 +1266,14 @@ const server = http.createServer((request, response) => {
     }
 
     const url = new URL(request.url, `http://${request.headers.host ?? "localhost"}`);
+    const handler = request.method === "GET" ? getRoutes[url.pathname] : undefined;
 
-    if (request.method === "GET" && url.pathname === "/health") {
-      textResponse(response, 200, "ok\n");
+    if (!handler) {
+      errorResponse(response, 404, "Not found");
       return;
     }
 
-    if (request.method === "GET" && url.pathname === "/api/health") {
-      jsonResponse(response, 200, { status: "ok", checkedAt: new Date().toISOString() });
-      return;
-    }
-
-    if (request.method === "GET" && url.pathname === "/api/links") {
-      jsonResponse(response, 200, { links: appLinks() });
-      return;
-    }
-
-    if (request.method === "GET" && url.pathname === "/api/repositories") {
-      jsonResponse(response, 200, { repositories: await repositories(rangeFromUrl(url)) });
-      return;
-    }
-
-    if (request.method === "GET" && url.pathname === "/api/summary") {
-      jsonResponse(response, 200, await summary(url));
-      return;
-    }
-
-    if (request.method === "GET" && url.pathname === "/api/sessions") {
-      jsonResponse(response, 200, await sessionsBreakdown(rangeFromUrl(url), repoFromUrl(url)));
-      return;
-    }
-
-    if (request.method === "GET" && url.pathname === "/api/coach") {
-      jsonResponse(response, 200, await coach(url));
-      return;
-    }
-
-    errorResponse(response, 404, "Not found");
+    await handler(url, response);
   })().catch((error) => {
     errorResponse(response, 500, error instanceof Error ? error.message : "Unexpected API error");
   });

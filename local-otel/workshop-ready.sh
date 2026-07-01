@@ -38,6 +38,31 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
+print_step "Resolve participant identity"
+# Precedence: shell env > local-otel/workshop.env > git config > generic default.
+# These values only label the local dashboard. They are not sent to Azure.
+if [ -f "$script_dir/workshop.env" ]; then
+  set -a
+  source "$script_dir/workshop.env"
+  set +a
+  print "identity_source=workshop.env"
+else
+  print "identity_source=git-config-or-default"
+fi
+
+export FRONTIER_PARTICIPANT_NAME="${FRONTIER_PARTICIPANT_NAME:-$(git config user.name 2>/dev/null || print 'Workshop Participant')}"
+export FRONTIER_PARTICIPANT_EMAIL="${FRONTIER_PARTICIPANT_EMAIL:-$(git config user.email 2>/dev/null || print '')}"
+export FRONTIER_PARTICIPANT_ROLE="${FRONTIER_PARTICIPANT_ROLE:-Developer}"
+export FRONTIER_PARTICIPANT_TEAM="${FRONTIER_PARTICIPANT_TEAM:-}"
+export FRONTIER_CUSTOMER_NAME="${FRONTIER_CUSTOMER_NAME:-}"
+export FRONTIER_DASHBOARD_TITLE="${FRONTIER_DASHBOARD_TITLE:-Frontier Developer Cockpit}"
+
+# These exported variables are inherited by start-full-stack.sh and docker
+# compose, which substitutes them into the frontier-dashboard-api service.
+# The tracked stack/.env (Aspire key) is left untouched.
+print "participant_name=${FRONTIER_PARTICIPANT_NAME}"
+print "participant_role=${FRONTIER_PARTICIPANT_ROLE}"
+
 print_step "Enable local OpenTelemetry environment"
 "$script_dir/enable-user-env.sh"
 
