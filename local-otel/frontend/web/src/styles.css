@@ -184,7 +184,16 @@ dd {
   flex: 0 0 auto;
   place-items: center;
   color: var(--c-blue-700);
-  font-size: 1rem;
+}
+
+.nav-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.nav-item.active .nav-icon {
+  color: var(--c-blue-500);
 }
 
 .nav-text {

@@ -26,6 +26,7 @@ import {
   type HistoryField
 } from "./ui";
 import { LangProvider, defaultLang, languages, useT, type Lang, type TranslateFn } from "./i18n";
+import { NavIcon } from "./icons";
 
 const rangeOptions: RangeOption[] = ["1h", "6h", "24h", "7d"];
 
@@ -34,27 +35,25 @@ type ViewId = "overview" | "credits" | "sessions" | "workspaces" | "coach" | "hi
 interface ViewDef {
   id: ViewId;
   label: string;
-  icon: string;
   blurb: string;
 }
 
-const viewMeta: { id: ViewId; icon: string }[] = [
-  { id: "overview", icon: "◎" },
-  { id: "credits", icon: "◈" },
-  { id: "sessions", icon: "≣" },
-  { id: "workspaces", icon: "▤" },
-  { id: "coach", icon: "✦" },
-  { id: "history", icon: "📈" },
-  { id: "health", icon: "♥" },
-  { id: "settings", icon: "⚙" }
+const viewOrder: ViewId[] = [
+  "overview",
+  "credits",
+  "sessions",
+  "workspaces",
+  "coach",
+  "history",
+  "health",
+  "settings"
 ];
 
 function buildViews(t: TranslateFn): ViewDef[] {
-  return viewMeta.map((view) => ({
-    id: view.id,
-    icon: view.icon,
-    label: t(`nav.${view.id}.label`),
-    blurb: t(`nav.${view.id}.blurb`)
+  return viewOrder.map((id) => ({
+    id,
+    label: t(`nav.${id}.label`),
+    blurb: t(`nav.${id}.blurb`)
   }));
 }
 
@@ -1195,7 +1194,7 @@ function AppShell({ lang, setLang }: Readonly<{ lang: Lang; setLang: (lang: Lang
               className={`nav-item${activeView === view.id ? " active" : ""}`}
               onClick={() => setActiveView(view.id)}
             >
-              <span className="nav-icon" aria-hidden>{view.icon}</span>
+              <span className="nav-icon" aria-hidden><NavIcon id={view.id} /></span>
               <span className="nav-text">
                 <span className="nav-label">{view.label}</span>
                 <span className="nav-blurb">{view.blurb}</span>
