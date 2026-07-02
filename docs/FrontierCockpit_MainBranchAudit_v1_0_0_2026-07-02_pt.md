@@ -3,7 +3,7 @@ title: "Frontier Cockpit Auditoria da Main e Propostas de Melhoria"
 description: "Auditoria completa da branch main como produto entregavel para cliente: achados, novas metricas, naming, opcoes de integracao Azure e roadmap."
 author: "Frontier Cockpit Team"
 date: "2026-07-02"
-version: "1.0.0"
+version: "1.1.0"
 status: "draft"
 tags: ["frontier-cockpit", "auditoria", "roadmap", "metricas", "azure"]
 ---
@@ -42,7 +42,7 @@ Os principais bloqueios para a `main` ser um modelo de entrega para cliente sao:
 | Pipeline Specky SDD com 18 hooks shell registrados como PreToolUse/PostToolUse | `.github/hooks/specky/`, 20+ prompts `specky-*`, 13 agentes | Remover; hooks disparariam automacao dentro do repo do cliente |
 | Cluster code-modernization (agentes, prompts, plugin) sem relacao com observabilidade | `.github/plugins/code-modernization-plugin/`, prompts `modernize-*` | Remover ou mover |
 | Skills de design e midia | `canvas-design`, `svg-professional`, `web-artifacts-builder`, `ms-demo-video-editor.skill` | Remover |
-| Dois bundles `.skill` binarios (ZIP) soltos e fora do inventario | `.github/skills/monthly-insights.skill`, `ms-demo-video-editor.skill` | Extrair `monthly-insights` como skill real (relevante ao produto) e remover o outro |
+| Dois bundles `.skill` binarios (ZIP) soltos e fora do inventario | `.github/skills/monthly-insights.skill`, `ms-demo-video-editor.skill` | Remover ambos da entrega. `monthly-insights` e skill interna de autoria e nao deve ser incorporada ao produto |
 | CODEOWNERS 100% placeholder | `.github/CODEOWNERS` (`@your-org` em 11 linhas) | Definir owners reais ou remover o arquivo |
 | Sem LICENSE na raiz | apenas `LICENSE` dentro de plugins | Adicionar licenca do produto |
 | Arquivos de erro commitados | `local-otel/github-enterprise/audit.err`, `copilot-metrics.err` | `git rm` |
@@ -67,7 +67,7 @@ Os principais bloqueios para a `main` ser um modelo de entrega para cliente sao:
 | --- | --- | --- |
 | Dois modelos de caminho contraditorios: README usa `local-otel/`, Labs 00 a 05 e guias usam `~/.copilot-otel/` | ex. `Lab_01`, `LocalLinksGuide`, `OperationsRunbook`, `AzureEnterpriseGuide` | Migrar todos os docs para o modelo `local-otel/` do cliente |
 | ParticipantChecklist mistura os dois modelos e pede dois bootstraps (`client.env` e `workshop.env`) | `ParticipantChecklist` linhas 45-65 | Unificar em um unico env e bootstrap |
-| Marca antiga "Control Tower" sobrevive no workshop | `Lab_05:15`, `DashboardUXGuide:65,154,243` | Renomear para Frontier Developer Cockpit |
+| Marca antiga "Control Tower" sobrevive no workshop e nos diagramas | `Lab_05`, `DashboardUXGuide`, `diagrams/*.svg`, `diagrams/*.drawio` | Resolvido nesta branch: renomeado para o padrao Frontier Cockpit Local / Hybrid e Azure Monitor |
 | README documenta branch `develop` que nao existe mais | `README.md:287-292` | Remover a linha da tabela |
 | Convencao de nome de arquivo com versao e data que ninguem atualiza | `ParticipantChecklist_v1_0_0_2026-06-18` com frontmatter `1.0.2` de `2026-07-02` | Tirar versao e data do nome do arquivo; manter apenas no frontmatter e num CHANGELOG |
 | `llms.txt` indexa 13 de 15 docs | faltam `DockerDesktopFrontendRequirements` e `PythonAspireLocalArchitecture` | Regenerar indice |
@@ -155,31 +155,65 @@ Recomendacao de apresentacao: organizar o cockpit em quatro paineis de persona: 
 
 ## 4. Naming e posicionamento
 
-Hoje coexistem tres marcas (`Frontier Cockpit`, `Frontier Developer Cockpit`, `Frontier FinOps Cockpit`) mais o resto legado "Control Tower". Isso dilui a marca e confunde proposta comercial.
+Antes desta auditoria coexistiam tres marcas (`Frontier Cockpit`, `Frontier Developer Cockpit`, `Frontier FinOps Cockpit`) mais o resto legado "Control Tower". Isso dilui a marca e confunde proposta comercial.
 
-Proposta: **uma marca, edicoes claras**.
+**Padrao oficial decidido em 2026-07-02**: uma marca, duas edicoes.
 
-| Nome | Papel | Substitui |
+| Nome oficial | Papel | Substitui |
 | --- | --- | --- |
 | **Frontier Cockpit** | Marca unica do produto e do repositorio | Frontier Cockpit (mantem) |
-| **Frontier Cockpit Local** (ou "Developer Edition") | Stack 100% local: privacidade total, zero dependencia de nuvem, foco no desenvolvedor | Frontier Developer Cockpit |
-| **Frontier Cockpit Hybrid** (ou "Enterprise Edition") | Local + encaminhamento sanitizado para Azure do cliente: FinOps, governanca, historico | Frontier FinOps Cockpit |
+| **Frontier Cockpit Local** (Developer Edition) | Stack 100% local: privacidade total, zero dependencia de nuvem, foco no desenvolvedor | Frontier Developer Cockpit |
+| **Frontier Cockpit Hybrid** (Enterprise Edition) | Local + encaminhamento sanitizado para Azure do cliente: FinOps, governanca, historico | Frontier FinOps Cockpit |
 
-Mensagem de posicionamento sugerida: "Frontier Cockpit: observabilidade de IA para engenharia, do desenvolvedor ao FinOps. Local por padrao, Azure por opcao." Os tres pilares de venda: (1) privacidade primeiro (dados brutos nunca saem da maquina), (2) custo sob controle (AI Credits, cache, what-if), (3) coaching acionavel (nao apenas graficos, mas recomendacoes).
+O termo "Control Tower" esta proibido no repositorio e ja foi removido do workshop e dos diagramas nesta branch.
 
-Acoes praticas: escolher a variante (Local/Hybrid ou Developer/Enterprise Edition), atualizar `FRONTIER_DASHBOARD_TITLE` default, titulos de frontmatter, dashboards Grafana e eliminar "Control Tower".
+Mensagem de posicionamento: "Frontier Cockpit: observabilidade de IA para engenharia, do desenvolvedor ao FinOps. Local por padrao, Azure por opcao." Os tres pilares de venda: (1) privacidade primeiro (dados brutos nunca saem da maquina), (2) custo sob controle (AI Credits, cache, what-if), (3) coaching acionavel (nao apenas graficos, mas recomendacoes).
+
+Execucao pendente do rebrand: atualizar as ocorrencias de `Frontier Developer Cockpit` e `Frontier FinOps Cockpit` em README, docs, labs, `FRONTIER_DASHBOARD_TITLE` default, strings de i18n do front e titulos dos dashboards Grafana para o padrao acima, e regenerar os SVGs a partir do drawio.
 
 ## 5. Como evoluir o produto (roadmap de diferenciacao)
 
 Ideias em ordem de esforco/retorno:
 
 1. **CLI unico `frontier`** (curto prazo): consolidar os ~10 entrypoints shell em um comando com subcomandos `up`, `down`, `status`, `doctor`, `register`, `export`, `hybrid`. Reduz a superficie de manutencao, resolve a duplicacao sh/ps1 (nucleo em Python) e melhora demais a primeira impressao do cliente.
-2. **Relatorio semanal automatico**: o bundle `monthly-insights.skill` ja existe como ZIP orfao; transformar em recurso do produto que gera um resumo (markdown/PDF) de creditos, cache, coach e tendencias a partir do export DuckDB. E o artefato que o sponsor executivo encaminha por email.
+2. **Relatorio semanal automatico**: construir como funcionalidade nativa do produto (por exemplo `frontier report --weekly`), gerando um resumo (markdown/PDF) de creditos, cache, coach e tendencias a partir do export DuckDB. E o artefato que o sponsor executivo encaminha por email. Nao reutilizar skills internas de autoria (`monthly-insights.skill` fica fora do produto e sai do repositorio na limpeza P0).
 3. **MCP server do cockpit**: expor `/api/summary`, `/api/sessions` e `/api/coach` como ferramentas MCP. O desenvolvedor pergunta ao proprio GitHub Copilot "quanto gastei hoje? por que meu cache esta frio?" e o coach vira conversacional. Diferencial forte de demo.
 4. **Extensao Docker Desktop ou devcontainer feature**: instalacao em um clique para o perfil menos tecnico; devcontainer/Codespaces para times que nao usam Docker Desktop.
 5. **Alertas proativos**: Prometheus rules + notificacao (desktop/webhook/Teams) para estouro de orcamento e queda de coleta, em vez de alertas apenas na tela.
 6. **Modo time (fase 2)**: agregacao anonima de varios cockpits locais no modo hibrido, com benchmarks de time e gamificacao opcional em workshops.
 7. **Badge de status na IDE**: item de status bar do VS Code com creditos restantes e estado do cache (consome a API local).
+
+### 5.1 CLI como interface enterprise
+
+Sim, CLI funciona para enterprise. E o formato padrao de ferramenta corporativa de engenharia (`az`, `gh`, `kubectl`, `docker`): scriptavel, automatizavel em CI, instalavel em silencio por gerenciadores corporativos (Intune, JAMF, winget, Homebrew, apt) e utilizavel em maquinas sem interface grafica e atras de proxy corporativo.
+
+O que torna o CLI `frontier` credivel para enterprise:
+
+- Binario unico assinado, com checksums, SBOM e releases versionadas (em vez de "requer Python 3 e bash").
+- Subcomandos estaveis com exit codes documentados: `up`, `down`, `status`, `doctor`, `register`, `report`, `hybrid`.
+- Configuracao por arquivo mais variaveis de ambiente (substitui a dupla `client.env`/`workshop.env`).
+- Operacao offline por padrao e sem telemetria propria sem opt-in.
+- `frontier doctor` cobrindo Docker, portas, VS Code settings e conectividade, substituindo os scripts `check-*` atuais.
+
+Importante: o CLI e o plano de controle, nao substitui o dashboard. O par CLI mais interface web e exatamente o modelo Azure CLI mais Azure Portal. O CLI tambem resolve a duplicacao atual entre `client-bootstrap.sh` e `client-bootstrap.ps1` (nucleo unico, wrappers finos por plataforma).
+
+### 5.2 Consolidacao de containers
+
+Hoje a stack sobe 10 containers. Da para reduzir muito sem perder funcionalidade, em etapas:
+
+| Etapa | Mudanca | Containers |
+| --- | --- | --- |
+| 0 | Stack atual | 10 |
+| 1 | Unir `frontier-dashboard-api` e `web` em um container (Node serve o SPA estatico, elimina o nginx) | 9 |
+| 2 | Remover Postgres: Grafana usa SQLite embutido por padrao (Postgres so se justifica em alta disponibilidade); tambem elimina a porta 5432 exposta | 8 |
+| 3 | Absorver o sidecar `registry` como tarefa agendada dentro da API | 7 |
+| 4 | Substituir Collector, Prometheus, Tempo, Loki e Grafana pela imagem oficial `grafana/otel-lgtm` (all-in-one da Grafana Labs para uso local) e deixar o Aspire como profile opcional | 2 |
+
+Ou seja: a meta realista de curto prazo e **2 containers** (`frontier-core` com o backend de observabilidade e `frontier-app` com o cockpit), mantendo upgrades e isolamento de falha saudaveis.
+
+Um unico container literal para a stack completa e possivel (supervisord ou s6-overlay), mas e anti-padrao: upgrades acoplados, sem isolamento de memoria e falha entre servicos, healthcheck unico e depuracao pior. Nao recomendado.
+
+A alternativa correta para "1 comando, 1 container" e uma edicao **Frontier Cockpit Local Lite**: um unico container com collector embutido, DuckDB como armazenamento e o mini app, sem Grafana, Prometheus, Tempo e Loki. Exige refatorar a API para ler do DuckDB em vez do Prometheus (esforco medio, o export DuckDB ja existe). O Lite vira o onboarding de um comando para o desenvolvedor, e a stack completa passa a ser o perfil avancado para workshops e power users.
 
 ## 6. Integracao com Azure em tres niveis
 
@@ -210,7 +244,7 @@ Essa trilha vira naturalmente proposta comercial: Local (gratuito/POC), Hybrid N
 1. Remover conteudo nao relacionado de `.github/` (RHDH, Specky hooks, code-modernization, skills de design, `.skill` ZIPs) para um repo interno.
 2. Endurecer defaults locais: senha do Grafana, sem anonimo, Postgres sem porta publicada, binds em `127.0.0.1`, `FRONTIER_ENABLE_CONTENT_CAPTURE=false` por padrao, pin da imagem Aspire, remover `.err` commitados.
 3. Corrigir governanca: CODEOWNERS real, LICENSE na raiz, contato em SECURITY.md.
-4. Consertar docs: migrar `~/.copilot-otel/` para `local-otel/`, remover branch `develop` do README, eliminar "Control Tower", unificar `client.env`/`workshop.env`.
+4. Consertar docs: migrar `~/.copilot-otel/` para `local-otel/`, remover branch `develop` do README, unificar `client.env`/`workshop.env` e concluir o rebrand para Frontier Cockpit Local / Hybrid ("Control Tower" ja foi eliminado nesta branch).
 
 **P1: qualidade de produto (2 a 4 semanas)**
 5. CI de produto: build/typecheck api e web, `docker compose config`, shellcheck, markdownlint + link check, gitleaks, ligar `validate-dashboards.sh`.
@@ -227,4 +261,5 @@ Essa trilha vira naturalmente proposta comercial: Local (gratuito/POC), Hybrid N
 
 | Version | Date | Description |
 | --- | --- | --- |
+| 1.1.0 | 2026-07-02 | Naming oficial decidido (Frontier Cockpit Local e Hybrid), Control Tower removido do repositorio, monthly-insights excluido do produto, novas secoes sobre CLI enterprise e consolidacao de containers. |
 | 1.0.0 | 2026-07-02 | Versao inicial da auditoria da main. |

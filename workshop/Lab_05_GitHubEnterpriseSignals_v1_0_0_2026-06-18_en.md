@@ -2,8 +2,8 @@
 title: "Lab 05, GitHub Enterprise Signals"
 description: "Hands-on lab for GitHub Enterprise audit log streaming, organization Copilot policy status, and Copilot metrics availability."
 author: "Frontier Cockpit Team"
-date: "2026-06-18"
-version: "1.0.0"
+date: "2026-07-02"
+version: "1.0.1"
 status: "approved"
 tags: ["github", "enterprise", "audit-log", "copilot", "workshop"]
 ---
@@ -12,7 +12,7 @@ tags: ["github", "enterprise", "audit-log", "copilot", "workshop"]
 
 # Lab 05, GitHub Enterprise Signals
 
-This lab adds GitHub Enterprise and organization API signals to the Control Tower.
+This lab adds GitHub Enterprise and organization API signals to Frontier Cockpit Hybrid.
 
 ## Goals
 

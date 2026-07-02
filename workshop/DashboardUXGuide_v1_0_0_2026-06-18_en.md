@@ -2,8 +2,8 @@
 title: "Dashboard UX Guide"
 description: "UX strategy for improving local and Azure Grafana dashboards for the Frontier Developer Cockpit."
 author: "Frontier Cockpit Team"
-date: "2026-06-18"
-version: "1.0.0"
+date: "2026-07-02"
+version: "1.0.1"
 status: "approved"
 tags: ["grafana", "dashboard", "ux", "github-copilot", "observability"]
 ---
@@ -62,9 +62,7 @@ Prometheus and Grafana are mandatory for the complete Frontier Developer Cockpit
 
 ### 3.1 Home Dashboard
 
-Create a local landing dashboard named **GitHub Copilot Control Tower Home**.
-
-Rename the final implementation dashboard to **Frontier Developer Cockpit Home**.
+Create a local landing dashboard named **Frontier Cockpit Local Home**.
 
 Sections:
 
@@ -151,7 +149,7 @@ Local Grafana folder:
 
 ```text
 GitHub Copilot
-  01 Control Tower Home
+  01 Frontier Cockpit Local Home
   02 Real Workspace Usage
   03 Context and Cost
   04 Sessions and Model Labels
@@ -240,8 +238,7 @@ Use labels or panels to clarify:
 
 ### 8.1 High Priority
 
-- Create local Control Tower Home dashboard.
-- Rename it to Frontier Developer Cockpit Home before delivery.
+- Create the local Frontier Cockpit Local Home dashboard.
 - Create Azure Enterprise Overview dashboard.
 - Add org policy dashboard to Azure Managed Grafana.
 - Add ingestion health dashboard.
