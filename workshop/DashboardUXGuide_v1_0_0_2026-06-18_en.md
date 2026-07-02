@@ -1,9 +1,9 @@
 ---
 title: "Dashboard UX Guide"
-description: "UX strategy for improving local and Azure Grafana dashboards for the Frontier Developer Cockpit."
+description: "UX strategy for improving Frontier Cockpit Local and Frontier Cockpit Hybrid Grafana dashboards."
 author: "Frontier Cockpit Team"
 date: "2026-07-02"
-version: "1.0.1"
+version: "1.1.0"
 status: "approved"
 tags: ["grafana", "dashboard", "ux", "github-copilot", "observability"]
 ---
@@ -18,6 +18,7 @@ This guide explains how to improve the Grafana dashboard experience so developer
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Rebrand to Frontier Cockpit Local, repository-relative paths, containerized jobs, privacy-first defaults, per-lab durations. |
 | 1.0.0 | 2026-06-18 | Frontier Cockpit Team | Initial UX guide for local and Azure dashboards. |
 
 ## Table of Contents
@@ -36,7 +37,7 @@ This guide explains how to improve the Grafana dashboard experience so developer
 
 The dashboards should be educational, operational, and explicit about data quality.
 
-Prometheus and Grafana are mandatory for the complete Frontier Developer Cockpit dashboard experience. Aspire is the live trace viewer, while Grafana is the primary friendly dashboard surface for cards, tables, drill-down links, thresholds, and coaching panels.
+Prometheus and Grafana are mandatory for the complete Frontier Cockpit Local dashboard experience. Aspire is the live trace viewer, while Grafana is the primary friendly dashboard surface for cards, tables, drill-down links, thresholds, and coaching panels.
 
 | Principle | Meaning |
 | --- | --- |
@@ -116,9 +117,9 @@ Create a first-page summary with:
 
 - total traces and metrics ingested;
 - daily workspace rollups;
-- org Copilot billing/settings availability;
+- org GitHub Copilot billing/settings availability;
 - enterprise audit log stream status;
-- Copilot metrics availability by org;
+- GitHub Copilot metrics availability by org;
 - ingestion health and latest timestamp.
 
 ### 4.2 Org Policy Dashboard
@@ -131,7 +132,7 @@ Use GitHub API data to show:
 - CLI policy;
 - platform chat policy;
 - public code suggestions policy;
-- Copilot metrics availability.
+- GitHub Copilot metrics availability.
 
 ### 4.3 Audit Log Dashboard
 
@@ -185,7 +186,7 @@ GitHub Copilot
 
 ### 6.1 Visualization Selection
 
-Grafana panels are the basic building blocks of the Frontier Developer Cockpit dashboard UX. Use the visualization type that matches the question, not the data source.
+Grafana panels are the basic building blocks of the Frontier Cockpit Local dashboard UX. Use the visualization type that matches the question, not the data source.
 
 | Question | Recommended Grafana visualization | Notes |
 | --- | --- | --- |
@@ -199,7 +200,7 @@ Grafana panels are the basic building blocks of the Frontier Developer Cockpit d
 
 ### 6.2 Card Requirements
 
-The first row of Frontier Developer Cockpit Home should be card-based. Each card must have:
+The first row of Frontier Cockpit Local Home should be card-based. Each card must have:
 
 - a human-readable title;
 - a short panel description explaining the source;
@@ -249,7 +250,7 @@ Use labels or panels to clarify:
 - Add drill-down variables for repo, branch, trace, session, and org.
 - Add dashboard annotations for workshop phases.
 - Add a panel that shows the latest GitHub API ingestion status.
-- Add a panel that explains why Copilot metrics may return 404.
+- Add a panel that explains why GitHub Copilot metrics may return 404.
 
 ### 8.3 Optional
 
