@@ -1,170 +1,233 @@
 ---
-title: "Frontier Cockpit"
-description: "Root package index for Frontier Cockpit, the GitHub Copilot-focused local developer and enterprise FinOps observability platform."
+title: "Frontier Developer Cockpit"
+description: "Client-ready local GitHub Copilot observability cockpit with OpenTelemetry, Aspire, Prometheus, Grafana, Tempo, Loki, and a local dashboard."
 author: "Frontier Cockpit Team"
-date: "2026-06-22"
-version: "1.0.1"
+date: "2026-07-02"
+version: "1.1.0"
 status: "approved"
-tags: ["frontier-cockpit", "github-copilot", "opentelemetry", "azure", "grafana", "aspire"]
+tags: ["frontier-developer-cockpit", "github-copilot", "opentelemetry", "docker", "grafana", "aspire"]
 ---
 
 <!-- markdownlint-disable MD025 -->
 
-# Frontier Cockpit
+# Frontier Developer Cockpit
 
-Frontier Cockpit is the umbrella platform for GitHub Copilot and agentic development observability. It has two coordinated experiences: **Frontier Developer Cockpit** for local developer learning and optimization, and **Frontier FinOps Cockpit** for centralized Azure cost, governance, adoption, and leadership views.
+Frontier Developer Cockpit is a local, client-run observability cockpit for GitHub Copilot Chat and agent activity. It configures VS Code or VS Code Insiders to send GitHub Copilot OpenTelemetry signals to a local Docker stack, then shows local traces, metrics, model labels, token behavior, AIU, AI Credits estimates, cache behavior, workspace attribution, and developer coaching.
 
-## Contents
+This repository is prepared for client installation. The committed defaults are generic, no customer or personal data is required, and local secret/configuration files are ignored by git.
 
-| Area | Path | Purpose |
-| --- | --- | --- |
-| Documentation | [docs/](docs/) | Strategy, playbook, implementation manual, guides, runbooks, taxonomy, and local links. |
-| Local OpenTelemetry kit | [local-otel/](local-otel/) | User-level local runtime, Docker stack, Azure forwarding, GitHub Enterprise ingestion, materialization, and demo scripts. |
-| Architecture diagrams | [diagrams/](diagrams/) | Editable draw.io source and SVG exports for C4, deployment, telemetry flow, and GitHub Enterprise flow. |
-| Hands-on workshop | [workshop/](workshop/) | Labs and checklist for participants to build their local cockpit and understand Azure consolidation. |
-| GitHub Copilot customization | [.github/](.github/) | Agents, prompts, skills, instructions, workflows, validation scripts, and repository policy. |
+## What You Get
 
-## Product Positioning
+| Component | Purpose |
+| --- | --- |
+| OpenTelemetry Collector | Local OTLP HTTP/gRPC ingest endpoint for GitHub Copilot and local tools. |
+| Aspire Dashboard | Live trace, span, log, metric, and GenAI inspection surface. |
+| Prometheus | Local metrics store for the dashboard and Grafana. |
+| Tempo | Local trace history backend. |
+| Loki | Local logs and content-capture metadata backend. |
+| Grafana OSS | Historical dashboards and local exploration. |
+| Frontier dashboard | Local mini app at `http://localhost:3300` for the client-facing cockpit. |
 
-Frontier Cockpit is an integrated observability offer for GitHub Copilot and agentic development. It is designed for two connected operating loops:
+Default endpoints:
 
-| Experience | Primary User | Purpose | Data Boundary |
-| --- | --- | --- | --- |
-| Frontier Developer Cockpit | Developers and team leads | Local learning, prompt improvement, context awareness, tool behavior, model labels, AIU signals, and VS Code process memory. | Full fidelity on the developer machine when content capture is approved. |
-| Frontier FinOps Cockpit | Platform engineering, FinOps, security, and leadership | Azure history, governance, rollups, GitHub Enterprise signals, organization policy status, adoption context, and Fleet Overview. | Sanitized telemetry, rollups, and official GitHub sources when available. |
-
-The local experience teaches developers how GitHub Copilot sessions behave. The Azure experience helps organizations govern and analyze aggregated signals without turning local operational telemetry into official billing. Official billing, AI Credits, and adoption claims require GitHub billing exports, usage metrics, or other cited sources.
-
-## Key Documents
-
-| Category | Document | Purpose |
-| --- | --- | --- |
-| Strategy | [Frontier Cockpit Strategy](docs/FrontierCockpit_Strategy_v1_0_0_2026-06-17_en.md) | Offer, architecture, value proposition, operating model, and roadmap. |
-| Strategy | [Frontier Cockpit Playbook](docs/FrontierCockpit_Playbook_v1_0_0_2026-06-17_en.md) | Main implementation map, operating rhythm, success criteria, and validation gates. |
-| Strategy | [Taxonomy And Platform Layers](docs/FrontierCockpit_TaxonomyAndPlatformLayers_v1_0_0_2026-06-18_en.md) | Final naming, L1 to L6 platform layers, GitHub Intelligence Layer, and Fleet Overview. |
-| Developer Operations | [Developer Local Guide](docs/FrontierCockpit_DeveloperLocalGuide_v1_0_0_2026-06-17_en.md) | Day-to-day local cockpit workflow, metrics interpretation, content capture, and prompt improvement. |
-| Developer Operations | [Local Links Guide](docs/FrontierCockpit_LocalLinksGuide_v1_0_0_2026-06-19_en.md) | Localhost links and explanations for Aspire, Grafana dashboards, Prometheus, Tempo, and Loki. |
-| Developer Operations | [Python And Aspire Local Architecture](docs/FrontierCockpit_PythonAspireLocalArchitecture_v1_0_0_2026-06-18_en.md) | Python-first local architecture with Aspire, DuckDB or SQLite, Prometheus, and Grafana. |
-| Enterprise FinOps | [Azure Enterprise Guide](docs/FrontierCockpit_AzureEnterpriseGuide_v1_0_0_2026-06-17_en.md) | Azure deployment, hybrid forwarding, Log Analytics, Azure Managed Grafana, and redaction strategy. |
-| Enterprise FinOps | [Data Consolidation Guide](docs/FrontierCockpit_DataConsolidationGuide_v1_0_0_2026-06-17_en.md) | Combining local OpenTelemetry rollups with GitHub APIs, billing exports, repository metadata, and governance signals. |
-| Enterprise FinOps | [Enterprise Readiness Checklist](docs/FrontierCockpit_EnterpriseReadinessChecklist_v1_0_0_2026-06-22_en.md) | Package readiness criteria for offer coherence, local runtime, Azure, GitHub Intelligence, dashboards, privacy, validation, and workshops. |
-| Enterprise FinOps | [Operations Runbook](docs/FrontierCockpit_OperationsRunbook_v1_0_0_2026-06-17_en.md) | Operations, validation, troubleshooting, security, retention, and teardown. |
-| Architecture | [Architecture Diagrams](docs/FrontierCockpit_ArchitectureDiagrams_v1_0_0_2026-06-18_en.md) | Draw.io source, exported SVGs, diagram index, and validation notes. |
-| Implementation | [End-to-End Implementation Manual](docs/FrontierCockpit_EndToEndImplementationManual_v1_0_0_2026-06-18_en.md) | Step-by-step record of implemented local, Azure, GitHub Enterprise, and dashboard work. |
-| Workshop | [Workshop Guide](docs/FrontierCockpit_WorkshopGuide_v1_0_0_2026-06-17_en.md) | Facilitator guidance for teaching the local and Azure cockpit flow. |
-| Workshop | [Workshop README](workshop/README.md) | Hands-on lab entry point and participant path. |
-| Tooling | [Firecrawl MCP Guide](docs/FrontierCockpit_FirecrawlMCPGuide_v1_0_0_2026-06-18_en.md) | Firecrawl MCP setup and research workflow support. |
-
-## Product Taxonomy
-
-```text
-Frontier Cockpit
-├── Frontier Developer Cockpit
-│   └── Local, private, developer learning and optimization
-├── Frontier FinOps Cockpit
-│   └── Azure, leadership, cost, ROI, governance and Fleet Overview
-└── Frontier Platform Layers
-    └── L1-L6 + GitHub Intelligence Layer
-```
-
-## Local Architecture Rule
-
-Frontier Developer Cockpit always includes **Prometheus and Grafana** for the complete local developer experience. Aspire is the live GenAI trace and resource viewer. DuckDB or SQLite may be used by Python services for lightweight local insight storage, but they do not replace Prometheus or Grafana.
+| Service | URL |
+| --- | --- |
+| Frontier dashboard | `http://localhost:3300` |
+| Grafana | `http://localhost:3000` |
+| Aspire Dashboard | `http://localhost:18888` |
+| Prometheus | `http://localhost:9090` |
+| Tempo | `http://localhost:3200` |
+| Loki | `http://localhost:3100` |
+| OTLP HTTP | `http://localhost:4318` |
+| OTLP gRPC | `http://localhost:4317` |
 
 ## Platform Support
 
-The local cockpit runs on Docker Desktop, so the runtime works the same on macOS, Linux, and Windows.
-
-| Platform | Support | Entry point |
+| Platform | Supported path | Entry point |
 | --- | --- | --- |
-| macOS | Full. Docker stack plus optional scheduled automation. | `local-otel/client-bootstrap.sh` |
-| Linux | Full. Docker stack. | `local-otel/client-bootstrap.sh` |
-| Windows | Full through Docker Desktop with the WSL2 backend. | `local-otel/client-bootstrap.ps1` |
+| macOS | Docker Desktop plus optional scheduled automation. | `bash local-otel/client-bootstrap.sh` |
+| Linux | Docker Desktop or Docker Engine with Compose. | `bash local-otel/client-bootstrap.sh` |
+| Windows | Docker Desktop with WSL2 backend, run from PowerShell. | `pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1` |
 
-Requirements on every platform: Docker Desktop, Git, and VS Code or VS Code Insiders with GitHub Copilot. The cross-platform bootstrap starts the Docker Compose stack, applies GitHub Copilot OpenTelemetry settings, registers the current Git workspace, and validates the endpoints.
+Scheduled automation under `local-otel/launchagents/` is macOS-only and optional. Linux users can schedule equivalent scripts with `cron` or systemd timers. Windows users can use Task Scheduler when scheduled refresh is needed. The Docker stack itself does not depend on scheduled automation.
 
-The scheduled automation under `local-otel/launchagents/` uses macOS `launchd` and is optional. On Linux or Windows, run the refresh scripts on demand or schedule them with `cron` or Task Scheduler. The Docker stack does not depend on the scheduled automation.
+## Prerequisites
 
-## Client Quick Start
+- Docker Desktop, or Docker Engine with Docker Compose on Linux.
+- Git.
+- VS Code or VS Code Insiders with GitHub Copilot enabled.
+- Python 3, used by the bootstrap and local validation scripts.
+- PowerShell 7 on Windows.
+
+## Quick Start
+
+1. Clone the repository.
+
+   ```bash
+   git clone https://github.com/your-org/frontier-cockpit.git
+   cd frontier-cockpit
+   ```
+
+2. Create the local client configuration. This file is ignored by git.
+
+   macOS or Linux:
+
+   ```bash
+   cp local-otel/client.env.example local-otel/client.env
+   ```
+
+   Windows PowerShell:
+
+   ```powershell
+   Copy-Item local-otel/client.env.example local-otel/client.env
+   ```
+
+3. Edit `local-otel/client.env` for the client environment.
+
+   | Setting | What to customize |
+   | --- | --- |
+   | `FRONTIER_PARTICIPANT_NAME` | Name shown in the local dashboard. |
+   | `FRONTIER_PARTICIPANT_ROLE` | Role shown in the local dashboard. |
+   | `FRONTIER_PARTICIPANT_TEAM` | Team label added to local resource attributes. |
+   | `FRONTIER_CUSTOMER_NAME` | Customer or organization label. |
+   | `FRONTIER_DASHBOARD_TITLE` | Dashboard title. |
+   | `FRONTIER_COPILOT_PLAN` | `business` or `enterprise` for local AI Credits planning. |
+   | `FRONTIER_COPILOT_SEATS` | Seat count used for local planning. |
+   | `FRONTIER_AI_CREDITS_USE_PROMO` | `true` only if the client wants to model a promotional credit pool. |
+   | `FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE` | Optional override for the monthly local credit pool. |
+   | `FRONTIER_VSCODE_CHANNELS` | `stable`, `insiders`, or `stable,insiders`. |
+   | `FRONTIER_ENABLE_CONTENT_CAPTURE` | `true` for trusted local workshops, `false` for stricter privacy. |
+
+4. Start the local cockpit. The bootstrap configures OpenTelemetry first, then starts Docker Compose.
+
+   macOS or Linux:
+
+   ```bash
+   bash local-otel/client-bootstrap.sh
+   ```
+
+   Windows PowerShell:
+
+   ```powershell
+   pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1
+   ```
+
+5. Restart VS Code or reload the VS Code window so GitHub Copilot picks up the OpenTelemetry settings.
+
+6. Open the local dashboard.
+
+   ```text
+   http://localhost:3300
+   ```
+
+## What The Bootstrap Configures
+
+The client bootstrap performs the setup needed before the Docker stack can show useful GitHub Copilot metrics:
+
+- reads `local-otel/client.env`;
+- exports local `OTEL_*` and `COPILOT_OTEL_*` variables;
+- updates VS Code user settings for GitHub Copilot OpenTelemetry;
+- enables OTLP/HTTP at `http://localhost:4318`;
+- optionally enables local content capture based on `FRONTIER_ENABLE_CONTENT_CAPTURE`;
+- starts the Docker Compose stack under `local-otel/stack/`;
+- registers the current Git workspace so telemetry can be attributed to the repository;
+- sends a synthetic validation span;
+- validates the local endpoints.
+
+The most important VS Code settings are:
+
+```json
+{
+  "github.copilot.chat.otel.enabled": true,
+  "github.copilot.chat.otel.exporterType": "otlp-http",
+  "github.copilot.chat.otel.otlpEndpoint": "http://localhost:4318",
+  "github.copilot.chat.otel.captureContent": true,
+  "github.copilot.chat.otel.maxAttributeSizeChars": 0,
+  "github.copilot.chat.otel.dbSpanExporter.enabled": true
+}
+```
+
+If `FRONTIER_ENABLE_CONTENT_CAPTURE=false`, the bootstrap sets content-capture values to `false` where supported.
+
+## Generate Real Telemetry
+
+After the stack is running and VS Code has been restarted:
+
+1. Open the client repository in VS Code or VS Code Insiders.
+2. Run one GitHub Copilot Chat or agent request in that Git repository.
+3. Wait a short moment for materialization, or rerun the bootstrap if needed.
+4. Refresh `http://localhost:3300`.
+
+Workspace-attributed telemetry is easiest to interpret when VS Code is opened at the root of a Git repository with a configured remote.
+
+## Validate The Local Cockpit
+
+Run the focused client validation:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-org/frontier-cockpit.git
-cd frontier-cockpit
-
-# 2. Create your local configuration from the template
-cp local-otel/client.env.example local-otel/client.env
-# Edit local-otel/client.env with the participant, plan, and seat values.
-
-# 3. Start the local cockpit (macOS or Linux)
-bash local-otel/client-bootstrap.sh
+local-otel/check-workshop-local.sh
 ```
 
-On Windows PowerShell, replace step 3 with:
-
-```powershell
-Copy-Item local-otel/client.env.example local-otel/client.env
-pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1
-```
-
-Then open the local mini app at `http://localhost:3300` and local Grafana at `http://localhost:3000`. Restart VS Code after the bootstrap so GitHub Copilot picks up the new settings. See [local-otel/README.md](local-otel/README.md) for full runtime detail and [workshop/README.md](workshop/README.md) for the hands-on labs.
-
-## How To Use This Package
-
-### Developer Path
-
-1. Read the [Developer Local Guide](docs/FrontierCockpit_DeveloperLocalGuide_v1_0_0_2026-06-17_en.md) to understand the local learning loop.
-2. Use [local-otel/README.md](local-otel/README.md) to start and validate the local runtime.
-3. Open the [Local Links Guide](docs/FrontierCockpit_LocalLinksGuide_v1_0_0_2026-06-19_en.md) for Aspire, Grafana, Prometheus, Tempo, Loki, and dashboard links.
-4. Use [workshop/README.md](workshop/README.md) when running the hands-on labs.
-
-### FinOps And Platform Path
-
-1. Start with the [Frontier Cockpit Strategy](docs/FrontierCockpit_Strategy_v1_0_0_2026-06-17_en.md) and [Frontier Cockpit Playbook](docs/FrontierCockpit_Playbook_v1_0_0_2026-06-17_en.md).
-2. Review [Taxonomy And Platform Layers](docs/FrontierCockpit_TaxonomyAndPlatformLayers_v1_0_0_2026-06-18_en.md) and [Architecture Diagrams](docs/FrontierCockpit_ArchitectureDiagrams_v1_0_0_2026-06-18_en.md).
-3. Use the [Azure Enterprise Guide](docs/FrontierCockpit_AzureEnterpriseGuide_v1_0_0_2026-06-17_en.md) for hybrid forwarding and enterprise dashboards.
-4. Use the [Data Consolidation Guide](docs/FrontierCockpit_DataConsolidationGuide_v1_0_0_2026-06-17_en.md) to plan official GitHub usage, billing, repository, and governance joins.
-5. Use the [Enterprise Readiness Checklist](docs/FrontierCockpit_EnterpriseReadinessChecklist_v1_0_0_2026-06-22_en.md) before customer or field delivery.
-6. Use the [Operations Runbook](docs/FrontierCockpit_OperationsRunbook_v1_0_0_2026-06-17_en.md) for validation, troubleshooting, security, retention, and teardown.
-
-## Common Commands
-
-Start the full local stack:
+After the client has generated at least one real GitHub Copilot Chat or agent session inside the repository, run strict data validation:
 
 ```bash
-local-otel/start-full-stack.sh
+local-otel/check-workshop-local.sh --strict-data
 ```
 
-Validate the local runtime:
+Expected result:
 
-```bash
-local-otel/check-otel-local.sh
-```
+- Docker is running.
+- The ten local containers are running.
+- Frontier dashboard, Grafana, Aspire, Prometheus, Tempo, and Loki respond.
+- The current Git workspace is registered.
+- Real workspace-attributed GitHub Copilot telemetry is present after strict mode.
+- Coach recommendations return cards after real telemetry exists.
 
-Prepare for demos:
+## Daily Use
 
-```bash
-local-otel/demo-ready.sh
-```
+| Task | Command or URL |
+| --- | --- |
+| Start or rebuild the client stack | `bash local-otel/client-bootstrap.sh` |
+| Start without rebuilding images | `bash local-otel/client-bootstrap.sh --no-build` |
+| Validate setup | `local-otel/check-workshop-local.sh` |
+| Validate real telemetry | `local-otel/check-workshop-local.sh --strict-data` |
+| Open local cockpit | `http://localhost:3300` |
+| Open Grafana | `http://localhost:3000` |
+| Open Aspire Dashboard | `http://localhost:18888` |
+| Stop local stack | `local-otel/stop-full-stack.sh` |
 
-Run repository validation gates:
+## Data Boundary
 
-```bash
-bash .github/scripts/audit-primitives.sh
-bash .github/scripts/audit-skills.sh
-bash .github/scripts/audit-external-content.sh
-bash .github/scripts/validate-deliverables.sh
-bash .github/scripts/generate-llms-txt.sh --check
-```
+- Local content capture can include prompts, file paths, source snippets, tool arguments, and tool results.
+- Keep `FRONTIER_ENABLE_CONTENT_CAPTURE=true` only for trusted local workshops or explicitly approved client use.
+- Use `FRONTIER_ENABLE_CONTENT_CAPTURE=false` for stricter privacy.
+- Local AIU and AI Credits estimates are operational telemetry, not official billing.
+- Official GitHub Copilot billing, AI Credits, and adoption totals require GitHub billing exports, the GitHub usage dashboard, or the Copilot usage metrics API.
+- Real local files such as `local-otel/client.env`, `local-otel/stack/.env`, runtime logs, DuckDB files, and Azure `.env` files are ignored by git.
 
-## Status
+## Troubleshooting
 
-The documentation package is current as of 2026-06-22 and reflects the implemented local stack, Azure enterprise resources, GitHub Enterprise audit log ingestion, organization policy status ingestion, audit log streaming to Azure Blob Storage, Firecrawl MCP configuration, deck deliverables, and dashboard naming.
+| Symptom | Check |
+| --- | --- |
+| Dashboard is empty | Restart VS Code, run a GitHub Copilot Chat or agent request in a Git repository, then refresh. |
+| No workspace attribution | Open VS Code at the Git repository root and rerun `local-otel/register-workspace.sh`. |
+| Docker containers are missing | Start Docker Desktop, then rerun `bash local-otel/client-bootstrap.sh`. |
+| VS Code settings did not change | Confirm `FRONTIER_VSCODE_CHANNELS` includes the installed channel. |
+| Privacy needs stricter defaults | Set `FRONTIER_ENABLE_CONTENT_CAPTURE=false` in `local-otel/client.env` and rerun the bootstrap. |
+
+## Repository Branches
+
+| Branch | Purpose |
+| --- | --- |
+| `main` | Client-ready branch. Use this branch for installation and customer delivery. |
+| `develop` | Development branch for future changes before promotion to `main`. |
 
 ## References
 
+- [Local OpenTelemetry kit](local-otel/README.md)
+- [Workshop guide](workshop/README.md)
+- [Local links guide](docs/FrontierCockpit_LocalLinksGuide_v1_0_0_2026-06-19_en.md)
+- [Operations runbook](docs/FrontierCockpit_OperationsRunbook_v1_0_0_2026-06-17_en.md)
 - [GitHub Copilot documentation](https://docs.github.com/en/copilot)
 - [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai/tree/main/docs/gen-ai/)
 - [Aspire Dashboard GenAI telemetry visualization](https://aspire.dev/dashboard/explore/#genai-telemetry-visualization)
-- [Azure Monitor documentation](https://learn.microsoft.com/azure/azure-monitor/)
-- [Azure Managed Grafana documentation](https://learn.microsoft.com/azure/managed-grafana/)
