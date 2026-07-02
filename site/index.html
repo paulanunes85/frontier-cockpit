@@ -804,6 +804,40 @@ pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1</pre>
     url.hash = '';
     return url.pathname + url.search;
   }
+  var accentMaps = {
+    pt: [
+      [/padrao/g, 'padrão'], [/\bja\b/g, 'já'], [/governanca/g, 'governança'], [/maquina/g, 'máquina'],
+      [/repositorio/g, 'repositório'], [/Edicoes/g, 'Edições'], [/Metricas/g, 'Métricas'], [/Comecar/g, 'Começar'],
+      [/tres/g, 'três'], [/nao/g, 'não'], [/adocao/g, 'adoção'], [/cobranca/g, 'cobrança'],
+      [/solicitacao/g, 'solicitação'], [/relatorio/g, 'relatório'], [/gestao/g, 'gestão'], [/orcamento/g, 'orçamento'],
+      [/visiveis/g, 'visíveis'], [/proprios/g, 'próprios'], [/padroes/g, 'padrões'], [/Lideres/g, 'Líderes'],
+      [/numeros/g, 'números'], [/conteudo/g, 'conteúdo'], [/redacao/g, 'redação'], [/Edicao/g, 'Edição'],
+      [/edicao/g, 'edição'], [/identica/g, 'idêntica'], [/hibrido/g, 'híbrido'], [/disponivel/g, 'disponível'],
+      [/metricas/g, 'métricas'], [/atribuicao/g, 'atribuição'], [/confianca/g, 'confiança'], [/sensacao/g, 'sensação'],
+      [/semanticas/g, 'semânticas'], [/ate/g, 'até'], [/pratica/g, 'prática'], [/agente dentro/g, 'agente dentro'],
+      [/\be um\b/g, 'é um'], [/\bE um\b/g, 'É um'], [/\be a resposta\b/g, 'é a resposta'], [/\besta\b/g, 'está']
+    ],
+    es: [
+      [/Por que/g, 'Por qué'], [/Como funciona/g, 'Cómo funciona'], [/senales/g, 'señales'], [/ingenieria/g, 'ingeniería'],
+      [/eleccion/g, 'elección'], [/Metricas/g, 'Métricas'], [/Facturacion/g, 'Facturación'], [/facturacion/g, 'facturación'],
+      [/tamano/g, 'tamaño'], [/adopcion/g, 'adopción'], [/gestion/g, 'gestión'], [/desafios/g, 'desafíos'],
+      [/frio/g, 'frío'], [/despues/g, 'después'], [/que cambiar/g, 'qué cambiar'], [/limite/g, 'límite'],
+      [/maquina/g, 'máquina'], [/organizacion/g, 'organización'], [/\bEdicion\b/g, 'Edición'], [/identica/g, 'idéntica'],
+      [/redaccion/g, 'redacción'], [/parametros/g, 'parámetros'], [/metricas/g, 'métricas'], [/sesion/g, 'sesión'],
+      [/numero/g, 'número'], [/composicion/g, 'composición'], [/tipica/g, 'típica'], [/compactacion/g, 'compactación'],
+      [/duracion/g, 'duración'], [/atribucion/g, 'atribución'], [/planificacion/g, 'planificación'], [/semanticas/g, 'semánticas'], [/cuanto/g, 'cuánto'],
+      [/version/g, 'versión'], [/investigacion/g, 'investigación'], [/Quien construyo/g, 'Quién construyó'], [/disenado/g, 'diseñado'],
+      [/ensenarse/g, 'enseñarse'], [/lideres/g, 'líderes'], [/telemetria/g, 'telemetría'], [/contrasenas/g, 'contraseñas'],
+      [/\besta\b/g, 'está']
+    ]
+  };
+  function formatLocalized(lang, value) {
+    var formatted = value;
+    (accentMaps[lang] || []).forEach(function (entry) {
+      formatted = formatted.replace(entry[0], entry[1]);
+    });
+    return formatted;
+  }
   function renderLanguageSwitcher(lang) {
     var switcher = document.getElementById('language-switcher');
     if (!switcher) { return; }
@@ -835,11 +869,11 @@ pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1</pre>
   function translatePage(lang) {
     var config = translations[lang];
     root.lang = lang;
-    document.title = config ? config.title : 'Frontier Cockpit, by Paula Silva';
+    document.title = config ? formatLocalized(lang, config.title) : 'Frontier Cockpit, by Paula Silva';
     var description = document.querySelector('meta[name="description"]');
     var ogDescription = document.querySelector('meta[property="og:description"]');
-    if (description) { description.setAttribute('content', config ? config.description : 'Frontier Cockpit turns the OpenTelemetry signals GitHub Copilot already emits into developer coaching, AI Credits cost control, and enterprise FinOps governance. Local by default, Azure by choice.'); }
-    if (ogDescription) { ogDescription.setAttribute('content', config ? config.description : 'GitHub Copilot observability, from the developer to FinOps. Local by default, Azure by choice.'); }
+    if (description) { description.setAttribute('content', config ? formatLocalized(lang, config.description) : 'Frontier Cockpit turns the OpenTelemetry signals GitHub Copilot already emits into developer coaching, AI Credits cost control, and enterprise FinOps governance. Local by default, Azure by choice.'); }
+    if (ogDescription) { ogDescription.setAttribute('content', config ? formatLocalized(lang, config.description) : 'GitHub Copilot observability, from the developer to FinOps. Local by default, Azure by choice.'); }
     var dictionary = config ? config.text : {};
     var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
@@ -855,7 +889,7 @@ pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1</pre>
       var original = node.__frontierOriginalText || node.nodeValue;
       node.__frontierOriginalText = original;
       var key = original.trim();
-      var translated = dictionary[key] || key;
+      var translated = formatLocalized(lang, dictionary[key] || key);
       node.nodeValue = original.replace(key, translated);
     });
     var themeButton = document.getElementById('theme-toggle');
