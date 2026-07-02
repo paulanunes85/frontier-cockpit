@@ -10,7 +10,7 @@ tags: ["frontier-cockpit", "github-copilot", "opentelemetry", "docker", "grafana
 
 <!-- markdownlint-disable MD025 -->
 
-![paulasilvatech](.github/assets/paulasilvatech-logo-96.png)
+![Frontier Cockpit](.github/assets/frontier-cockpit-logo.png)
 
 # Frontier Cockpit
 
