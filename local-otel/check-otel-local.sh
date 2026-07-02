@@ -51,18 +51,18 @@ if command -v docker >/dev/null 2>&1; then
     fi
 
     if [[ "$full_stack" -eq 1 ]]; then
-      for container_name in copilot-otel-tempo copilot-otel-loki copilot-otel-prometheus copilot-otel-grafana copilot-otel-postgres; do
+      for container_name in copilot-otel-tempo copilot-otel-loki copilot-otel-prometheus copilot-otel-grafana copilot-otel-jobs; do
         if docker ps --format '{{.Names}}' | grep -qx "$container_name"; then
           ok "$container_name container is running."
         else
           err "$container_name container is not running. Run $HOME/frontier-cockpit/local-otel/start-full-stack.sh"
         fi
       done
-      postgres_health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' copilot-otel-postgres 2>/dev/null || true)"
-      if [[ "$postgres_health" == "healthy" ]]; then
-        ok "PostgreSQL backing Grafana is healthy."
+      jobs_health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' copilot-otel-jobs 2>/dev/null || true)"
+      if [[ "$jobs_health" == "healthy" ]]; then
+        ok "Session materializer jobs container is healthy."
       else
-        err "PostgreSQL backing Grafana is not healthy (status: ${postgres_health:-unknown})."
+        err "Session materializer jobs container is not healthy (status: ${jobs_health:-unknown})."
       fi
     fi
   else

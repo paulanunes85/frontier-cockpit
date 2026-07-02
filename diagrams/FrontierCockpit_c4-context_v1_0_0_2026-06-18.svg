@@ -36,7 +36,7 @@
   <text x="432" y="249" text-anchor="middle" font-size="10" fill="#888780">Aspire Dashboard  (18888)</text>
   <text x="432" y="265" text-anchor="middle" font-size="10" fill="#888780">Tempo · Prometheus · Loki</text>
   <text x="432" y="281" text-anchor="middle" font-size="10" fill="#888780">Grafana OSS  (3000)</text>
-  <text x="432" y="297" text-anchor="middle" font-size="10" fill="#888780">PostgreSQL  (Grafana metadata)</text>
+  <text x="432" y="297" text-anchor="middle" font-size="10" fill="#888780">SQLite  (Grafana metadata)</text>
   <text x="432" y="313" text-anchor="middle" font-size="10" fill="#5F5E5A">Materializers · DuckDB insights</text>
   <text x="432" y="329" text-anchor="middle" font-size="10" fill="#5F5E5A">30-day local history</text>
   <text x="432" y="359" text-anchor="middle" font-size="10" fill="#0078D4" font-weight="600">developer machine · macOS</text>

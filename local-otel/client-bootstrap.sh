@@ -106,7 +106,7 @@ FRONTIER_COPILOT_SEATS="${FRONTIER_COPILOT_SEATS:-1}"
 FRONTIER_AI_CREDITS_USE_PROMO="${FRONTIER_AI_CREDITS_USE_PROMO:-false}"
 FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE="${FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE:-}"
 FRONTIER_VSCODE_CHANNELS="${FRONTIER_VSCODE_CHANNELS:-stable,insiders}"
-FRONTIER_ENABLE_CONTENT_CAPTURE="${FRONTIER_ENABLE_CONTENT_CAPTURE:-true}"
+FRONTIER_ENABLE_CONTENT_CAPTURE="${FRONTIER_ENABLE_CONTENT_CAPTURE:-false}"
 
 find_python() {
   if command -v python3 >/dev/null 2>&1; then
@@ -295,7 +295,7 @@ def strip_jsonc(text: str) -> str:
         i += 1
     return re.sub(r",\s*([}\]])", r"\1", "".join(output))
 
-capture = os.environ.get("FRONTIER_ENABLE_CONTENT_CAPTURE", "true").lower() == "true"
+capture = os.environ.get("FRONTIER_ENABLE_CONTENT_CAPTURE", "false").lower() == "true"
 settings_update = {
     "github.copilot.chat.otel.enabled": True,
     "github.copilot.chat.otel.exporterType": "otlp-http",
@@ -348,6 +348,19 @@ PY
   ok "Created local Aspire API key file."
 }
 
+ensure_grafana_admin() {
+  local admin_file="$stack_dir/grafana-admin.env"
+  if [[ -f "$admin_file" ]]; then
+    return 0
+  fi
+  umask 077
+  "$python_cmd" - <<'PY' > "$admin_file"
+import secrets
+print(f"GF_SECURITY_ADMIN_PASSWORD={secrets.token_urlsafe(24)}")
+PY
+  ok "Created local Grafana admin credentials. Username admin, password stored in $admin_file."
+}
+
 start_stack() {
   if docker ps --format '{{.Names}}' | grep -qx 'aspire-dashboard'; then
     local standalone_owns_otlp
@@ -366,7 +379,7 @@ start_stack() {
   export FRONTIER_PARTICIPANT_NAME FRONTIER_PARTICIPANT_ROLE FRONTIER_PARTICIPANT_EMAIL
   export FRONTIER_PARTICIPANT_TEAM FRONTIER_CUSTOMER_NAME FRONTIER_DASHBOARD_TITLE
   export FRONTIER_COPILOT_PLAN FRONTIER_COPILOT_SEATS FRONTIER_AI_CREDITS_USE_PROMO
-  export FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE
+  export FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE FRONTIER_ENABLE_CONTENT_CAPTURE
 
   (cd "$stack_dir" && docker compose -f docker-compose.yml up -d ${build_flag})
   ok "Docker Compose stack is starting."
@@ -549,6 +562,7 @@ fi
 info "Start Docker Compose stack"
 ensure_docker
 ensure_aspire_key
+ensure_grafana_admin
 start_stack
 
 info "Emit local validation telemetry"

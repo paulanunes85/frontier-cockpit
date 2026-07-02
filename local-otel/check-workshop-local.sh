@@ -68,8 +68,8 @@ expected_containers=(
   aspire-dashboard
   copilot-otel-collector
   copilot-otel-grafana
+  copilot-otel-jobs
   copilot-otel-loki
-  copilot-otel-postgres
   copilot-otel-prometheus
   copilot-otel-registry
   copilot-otel-tempo

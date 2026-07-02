@@ -47,6 +47,16 @@ print(f"ASPIRE_DASHBOARD_API_KEY={secrets.token_urlsafe(32)}")
 PY
 fi
 
+grafana_admin_file="$stack_dir/grafana-admin.env"
+if [[ ! -f "$grafana_admin_file" ]]; then
+  umask 077
+  python3 - <<'PY' > "$grafana_admin_file"
+import secrets
+print(f"GF_SECURITY_ADMIN_PASSWORD={secrets.token_urlsafe(24)}")
+PY
+  print "Created Grafana admin credentials (user admin, password in $grafana_admin_file)."
+fi
+
 set -a
 source "$aspire_key_file"
 set +a
@@ -74,7 +84,7 @@ print ""
 print "Endpoints:"
 print "  OTLP ingest (Collector):  http://localhost:4318  (HTTP)   http://localhost:4317  (gRPC)"
 print "  Aspire Dashboard (live):  http://localhost:18888"
-print "  Grafana (history):        http://localhost:3000  (anonymous viewer; admin/admin to edit)"
+print "  Grafana (history):        http://localhost:3000  (user admin, password in stack/grafana-admin.env)"
 print "  Prometheus:               http://localhost:9090"
 print "  Tempo:                    http://localhost:3200"
 print "  Loki:                     http://localhost:3100"

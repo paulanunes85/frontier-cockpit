@@ -66,7 +66,7 @@ function Set-OtelEnv {
     Default-Env "FRONTIER_AI_CREDITS_USE_PROMO" "false"
     Default-Env "FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE" ""
     Default-Env "FRONTIER_VSCODE_CHANNELS" "stable,insiders"
-    Default-Env "FRONTIER_ENABLE_CONTENT_CAPTURE" "true"
+    Default-Env "FRONTIER_ENABLE_CONTENT_CAPTURE" "false"
 
     $capture = $env:FRONTIER_ENABLE_CONTENT_CAPTURE
     $customer = ($env:FRONTIER_CUSTOMER_NAME -replace ',', ' ')
@@ -161,6 +161,15 @@ function Ensure-AspireKey {
     $token = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
     Set-Content -Encoding ASCII -Path $keyFile -Value "ASPIRE_DASHBOARD_API_KEY=$token"
     Write-Pass "Created local Aspire API key file."
+}
+
+function Ensure-GrafanaAdmin {
+    $adminFile = Join-Path $StackDir "grafana-admin.env"
+    if (Test-Path $adminFile) { return }
+    $bytes = [System.Security.Cryptography.RandomNumberGenerator]::GetBytes(24)
+    $token = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+    Set-Content -Encoding ASCII -Path $adminFile -Value "GF_SECURITY_ADMIN_PASSWORD=$token"
+    Write-Pass "Created local Grafana admin credentials. Username admin, password stored in $adminFile."
 }
 
 function Ensure-Docker {
@@ -322,6 +331,7 @@ Apply-VSCodeSettings
 Write-Step "Start Docker Compose stack"
 Ensure-Docker
 Ensure-AspireKey
+Ensure-GrafanaAdmin
 Start-Stack
 
 Write-Step "Emit local validation telemetry"
