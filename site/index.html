@@ -822,9 +822,52 @@
       /* about */
       .about-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-        gap: 56px;
+        grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.35fr);
+        gap: 72px;
         align-items: start;
+      }
+
+      .about-portrait {
+        width: min(100%, 280px);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        padding: 16px;
+        background: #FFFFFF;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.08);
+      }
+
+      .about-portrait img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .about-content {
+        max-width: 740px;
+      }
+
+      .about-content .section__header {
+        margin-bottom: 26px;
+      }
+
+      .about-statement {
+        border-left: 3px solid var(--c-blue-500);
+        padding-left: 24px;
+        margin: 0 0 28px;
+      }
+
+      .about-statement p {
+        font-size: 22px;
+        line-height: 1.45;
+        color: var(--ink-2);
+        margin: 0;
+      }
+
+      .about-statement strong {
+        color: var(--ink);
+        font-weight: 600;
       }
 
       .about-body p {
@@ -835,62 +878,71 @@
         max-width: var(--measure);
       }
 
-      .about-meta {
-        background: var(--bg-alt);
-        border: 1px solid var(--rule);
-        border-radius: 10px;
-        padding: 28px;
+      .about-connect {
+        margin-top: 44px;
       }
 
-      .about-meta__name {
-        font-size: 20px;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-      }
-
-      .about-meta__role {
+      .about-connect__label {
         font-family: var(--font-mono);
         font-size: 11px;
         letter-spacing: 0.16em;
         text-transform: uppercase;
         color: var(--ink-3);
-        margin-top: 6px;
-        margin-bottom: 20px;
+        margin-bottom: 14px;
       }
 
-      .about-meta__list {
+      .about-connect__grid {
         list-style: none;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border: 1px solid var(--rule);
+      }
+
+      .about-connect__item {
+        min-height: 70px;
+      }
+
+      .about-connect__item+.about-connect__item {
+        border-left: 1px solid var(--rule);
+      }
+
+      .about-connect__item>a,
+      .about-connect__item>span {
         display: flex;
-        flex-direction: column;
+        align-items: center;
         gap: 14px;
-      }
-
-      .about-meta__item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .about-meta__label {
-        font-family: var(--font-mono);
-        font-size: 10px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: var(--ink-3);
-      }
-
-      .about-meta__value {
-        font-size: 14.5px;
+        width: 100%;
+        height: 100%;
+        padding: 16px 18px;
         color: var(--ink);
-      }
-
-      .about-meta__value a {
-        color: var(--c-blue-700);
         text-decoration: none;
       }
 
-      .about-meta__value a:hover {
-        text-decoration: underline;
+      .about-connect__icon {
+        font-family: var(--font-mono);
+        font-size: 15px;
+        color: var(--ink-3);
+        min-width: 22px;
+      }
+
+      .about-connect__title {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+
+      .about-connect__meta {
+        display: block;
+        margin-top: 3px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--ink-3);
+        letter-spacing: 0.04em;
+      }
+
+      .about-connect__item a:hover {
+        background: var(--bg-alt);
       }
 
       /* footer */
@@ -1063,6 +1115,10 @@
           gap: 32px;
         }
 
+        .about-portrait {
+          margin: 0 auto;
+        }
+
         .footer__grid {
           grid-template-columns: 1fr;
           gap: 32px;
@@ -1088,6 +1144,15 @@
 
         .section {
           padding: 56px 0;
+        }
+
+        .about-connect__grid {
+          grid-template-columns: 1fr;
+        }
+
+        .about-connect__item+.about-connect__item {
+          border-left: 0;
+          border-top: 1px solid var(--rule);
         }
 
         .brand__sub {
@@ -1466,42 +1531,61 @@ pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1</pre>
       <!-- about -->
       <section class="section section--alt" id="about">
         <div class="container">
-          <div class="section__header">
-            <div class="section__label">About</div>
-            <h2 class="section__title">Who built this, and why.</h2>
-          </div>
           <div class="about-grid">
-            <div class="about-body">
-              <p>I am Paula Silva, Software Global Black Belt. My work sits between platform engineering, AI
-                infrastructure, and the practical reality of helping teams adopt GitHub Copilot and agentic development
-                at enterprise scale.</p>
-              <p>Across those engagements the same question kept coming up: what is our AI actually costing, is it
-                making developers better, and how do we govern it without reading everyone's prompts. Frontier Cockpit
-                is the answer I wanted to hand teams, local and private by default, with an optional path to governed
-                Azure history when the organization is ready.</p>
-              <p>It is a client-run package, designed to be installed, taught, and adapted. The goal is not just a
-                dashboard, it is helping developers and leaders learn from their own AI usage.</p>
+            <div class="about-portrait">
+              <img src="assets/paula-about.jpg" alt="Paula Silva portrait">
             </div>
-            <aside class="about-meta">
-              <div class="about-meta__name">Paula Silva</div>
-              <div class="about-meta__role">Software Global Black Belt</div>
-              <ul class="about-meta__list">
-                <li class="about-meta__item">
-                  <span class="about-meta__label">Contact</span>
-                  <span class="about-meta__value"><a
-                      href="https://www.linkedin.com/in/paulanunes/">linkedin.com/in/paulanunes</a></span>
-                </li>
-                <li class="about-meta__item">
-                  <span class="about-meta__label">Product repository</span>
-                  <span class="about-meta__value"><a
-                      href="https://github.com/paulasilvatech/frontier-cockpit">github.com/paulasilvatech/frontier-cockpit</a></span>
-                </li>
-                <li class="about-meta__item">
-                  <span class="about-meta__label">Editions</span>
-                  <span class="about-meta__value">Frontier Cockpit Local and Hybrid</span>
-                </li>
-              </ul>
-            </aside>
+            <div class="about-content">
+              <div class="section__header">
+                <div class="section__label">About</div>
+                <h2 class="section__title">Who built this, and why.</h2>
+              </div>
+              <div class="about-statement">
+                <p>I am Paula Silva, Software Global Black Belt. My work sits between platform engineering, AI
+                  infrastructure, and the practical reality of helping teams adopt GitHub Copilot and agentic
+                  development at enterprise scale.</p>
+              </div>
+              <div class="about-body">
+                <p>Across those engagements the same question kept coming up: what is our AI actually costing, is it
+                  making developers better, and how do we govern it without reading everyone's prompts. Frontier Cockpit
+                  is the answer I wanted to hand teams, local and private by default, with an optional path to governed
+                  Azure history when the organization is ready.</p>
+                <p>It is a client-run package, designed to be installed, taught, and adapted. The goal is not just a
+                  dashboard, it is helping developers and leaders learn from their own AI usage.</p>
+              </div>
+              <div class="about-connect">
+                <div class="about-connect__label">Connect</div>
+                <ul class="about-connect__grid">
+                  <li class="about-connect__item">
+                    <a href="https://www.linkedin.com/in/paulanunes/">
+                      <span class="about-connect__icon" aria-hidden="true">in</span>
+                      <span>
+                        <span class="about-connect__title">LinkedIn</span>
+                        <span class="about-connect__meta">/paulanunes</span>
+                      </span>
+                    </a>
+                  </li>
+                  <li class="about-connect__item">
+                    <a href="https://github.com/paulasilvatech/frontier-cockpit">
+                      <span class="about-connect__icon" aria-hidden="true">gh</span>
+                      <span>
+                        <span class="about-connect__title">Product repository</span>
+                        <span class="about-connect__meta">frontier-cockpit</span>
+                      </span>
+                    </a>
+                  </li>
+                  <li class="about-connect__item">
+                    <span>
+                      <span class="about-connect__icon" aria-hidden="true">fc</span>
+                      <span>
+                        <span class="about-connect__title">Editions</span>
+                        <span class="about-connect__meta">Local + Hybrid</span>
+                      </span>
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1663,9 +1747,11 @@ pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1</pre>
               'Who built this, and why.': 'Quem construiu isto, e por que.',
               'I am Paula Silva, Software Global Black Belt. My work sits between platform engineering, AI infrastructure, and the practical reality of helping teams adopt GitHub Copilot and agentic development at enterprise scale.': 'Eu sou Paula Silva, Software Global Black Belt. Meu trabalho fica entre engenharia de plataforma, infraestrutura de IA e a realidade pratica de ajudar equipes a adotarem GitHub Copilot e desenvolvimento agentico em escala enterprise.',
               "Across those engagements the same question kept coming up: what is our AI actually costing, is it making developers better, and how do we govern it without reading everyone's prompts. Frontier Cockpit is the answer I wanted to hand teams, local and private by default, with an optional path to governed Azure history when the organization is ready.": 'Nesses engajamentos, a mesma pergunta sempre aparecia: quanto nossa IA esta custando de verdade, ela esta tornando desenvolvedores melhores, e como governamos isso sem ler os prompts de todo mundo. Frontier Cockpit e a resposta que eu queria entregar as equipes, local e privado por padrao, com um caminho opcional para historico governado no Azure quando a organizacao estiver pronta.',
-              'It is a client-run package, designed to be installed, taught, and adapted. The goal is not just a dashboard, it is helping developers and leaders learn from their own AI usage.': 'E um pacote executado pelo cliente, desenhado para ser instalado, ensinado e adaptado. O objetivo nao e apenas um dashboard, e ajudar desenvolvedores e lideres a aprenderem com seu proprio uso de IA.',
+              'It is a client-run package, designed to be installed, taught, and adapted. The goal is not just a dashboard, it is helping developers and leaders learn from their own AI usage.': 'É um pacote executado pelo cliente, desenhado para ser instalado, ensinado e adaptado. O objetivo não é apenas um dashboard, é ajudar desenvolvedores e líderes a aprenderem com seu próprio uso de IA.',
               'Contact': 'Contato',
+              'Connect': 'Conectar',
               'Product repository': 'Repositorio do produto',
+              'Local + Hybrid': 'Local + Hybrid',
               'Frontier Cockpit Local and Hybrid': 'Frontier Cockpit Local e Hybrid',
               'Product': 'Produto',
               'Repository': 'Repositorio',
@@ -1779,7 +1865,9 @@ pwsh -ExecutionPolicy Bypass -File local-otel/client-bootstrap.ps1</pre>
               "Across those engagements the same question kept coming up: what is our AI actually costing, is it making developers better, and how do we govern it without reading everyone's prompts. Frontier Cockpit is the answer I wanted to hand teams, local and private by default, with an optional path to governed Azure history when the organization is ready.": 'En esos proyectos, la misma pregunta aparecia una y otra vez: cuanto cuesta realmente nuestra IA, esta haciendo mejores a los desarrolladores y como la gobernamos sin leer los prompts de todos. Frontier Cockpit es la respuesta que queria entregar a los equipos, local y privada por defecto, con una ruta opcional hacia historial gobernado en Azure cuando la organizacion este lista.',
               'It is a client-run package, designed to be installed, taught, and adapted. The goal is not just a dashboard, it is helping developers and leaders learn from their own AI usage.': 'Es un paquete ejecutado por el cliente, disenado para instalarse, ensenarse y adaptarse. El objetivo no es solo un dashboard, es ayudar a desarrolladores y lideres a aprender de su propio uso de IA.',
               'Contact': 'Contacto',
+              'Connect': 'Conectar',
               'Product repository': 'Repositorio del producto',
+              'Local + Hybrid': 'Local + Hybrid',
               'Frontier Cockpit Local and Hybrid': 'Frontier Cockpit Local e Hybrid',
               'Product': 'Producto',
               'Repository': 'Repositorio',
