@@ -10,6 +10,8 @@ tags: ["frontier-cockpit", "github-copilot", "opentelemetry", "docker", "grafana
 
 <!-- markdownlint-disable MD025 -->
 
+![paulasilvatech](.github/assets/paulasilvatech-logo-96.png)
+
 # Frontier Cockpit
 
 Frontier Cockpit is a client-run observability product for GitHub Copilot Chat and agent activity, delivered in two editions:
