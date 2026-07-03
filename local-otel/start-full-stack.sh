@@ -2,16 +2,24 @@
 set -euo pipefail
 
 # Start the full local observability stack: OTel Collector + Aspire + Tempo + Prometheus +
-# Loki + Grafana + Postgres. Pass --hybrid to also forward telemetry to the Azure cloud
-# Collector (requires local-otel/azure/.env with AZURE_OTLP_ENDPOINT and AZURE_OTLP_TOKEN).
+# Loki + Grafana + registry/jobs sidecars + the Frontier Cockpit Local mini app.
+# Pass --hybrid to also forward telemetry to the Azure cloud Collector (requires
+# local-otel/azure/.env with AZURE_OTLP_ENDPOINT and AZURE_OTLP_TOKEN).
+# Pass --update after a git pull to upgrade in place: it stops the stack and removes
+# orphaned containers from older layouts, rebuilds the locally built images (dashboard
+# API, web app, registry, jobs) against the new source, pulls newer pinned tags, and
+# starts everything again. Named volumes are never touched, so Prometheus history,
+# Grafana settings, and the permanent DuckDB analytics survive the upgrade.
 
 script_dir="${0:A:h}"
 stack_dir="$script_dir/stack"
 hybrid=0
+update=0
 
 for arg in "$@"; do
   case "$arg" in
     --hybrid) hybrid=1 ;;
+    --update) update=1 ;;
     *) print -u2 "Unknown argument: $arg"; exit 2 ;;
   esac
 done
@@ -61,6 +69,7 @@ set -a
 source "$aspire_key_file"
 set +a
 
+compose_files=(-f docker-compose.yml)
 if [[ "$hybrid" -eq 1 ]]; then
   env_file="$script_dir/azure/.env"
   if [[ -f "$env_file" ]]; then
@@ -73,12 +82,22 @@ if [[ "$hybrid" -eq 1 ]]; then
     print -u2 "Provision the Azure side first ($script_dir/azure/deploy.sh) and write $script_dir/azure/.env."
     exit 1
   fi
+  compose_files+=(-f docker-compose.azure.yaml)
+fi
+
+if [[ "$update" -eq 1 ]]; then
+  print "Updating the local stack: stopping containers and removing orphans (named volumes are preserved)."
+  docker compose "${compose_files[@]}" down --remove-orphans
+  print "Rebuilding locally built images against the current source and pulling newer base images."
+  docker compose "${compose_files[@]}" build --pull
+fi
+
+if [[ "$hybrid" -eq 1 ]]; then
   print "Starting full stack in hybrid mode (local backends + Azure forwarding)."
-  docker compose -f docker-compose.yml -f docker-compose.azure.yaml up -d
 else
   print "Starting full local stack (offline, no Azure forwarding)."
-  docker compose -f docker-compose.yml up -d
 fi
+docker compose "${compose_files[@]}" up -d
 
 print ""
 print "Endpoints:"
@@ -89,4 +108,7 @@ print "  Prometheus:               http://localhost:9090"
 print "  Tempo:                    http://localhost:3200"
 print "  Loki:                     http://localhost:3100"
 print ""
+if [[ "$update" -eq 1 ]]; then
+  print "Update complete. Hard-refresh the dashboard at http://localhost:3300 (Cmd/Ctrl+Shift+R) so the browser drops the cached app."
+fi
 print "Reload VS Code or VS Code Insiders, run a GitHub Copilot Chat agent request, then check Aspire and Grafana."

@@ -20,6 +20,7 @@ The repository can be cloned anywhere. All scripts resolve their own location, s
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.6.1 | 2026-07-03 | Frontier Cockpit Team | Added the in-place upgrade flag to the stack orchestrators (`start-full-stack.sh --update` / `start-full-stack.ps1 -Update`): stop with orphan cleanup, rebuild of the locally built images with `build --pull`, and restart in one command, preserving all named volumes; documented the upgrade flow. |
 | 1.6.0 | 2026-07-03 | Frontier Cockpit Team | Cache Explorer parity in the Inspector (token-weighted cache hit, healthy request pairs, avoidable recomputed tokens, and cache-break cause classification: model switch, system-prompt change, tool-catalog change, prefix drift), per-workspace context-window peak, context-management coaching (deliberate `/compact`, session scoping, #-mentions), the Context management playbook in the Coach view, and the VS Code OTel settings checklist. |
 | 1.5.0 | 2026-07-03 | Frontier Cockpit Team | Completed the local persistence layer: the jobs container now runs the DuckDB analytics rollups (analytics volume), the dashboard serves long-term history beyond the 30-day Prometheus retention from the rollup snapshot, the budget panel projects the credit run-out date, and the API gained a node:test suite wired into CI. |
 | 1.4.0 | 2026-07-03 | Frontier Cockpit Team, @jkjunior | Added Podman container runtime support (runtime and compose-tool auto-detection in the bash bootstrap, fully qualified image references) and Fish shell support for the persistent OTel environment. Contributed by @jkjunior with maintainer corrections to keep the maintained `grafana/grafana:12.4.3` image and Loki 3.3.4. |
@@ -299,6 +300,22 @@ pwsh -ExecutionPolicy Bypass -File local-otel/start-full-stack.ps1
 
 On first start the script generates the Grafana admin password into `local-otel/stack/grafana-admin.env` and the Aspire API key into `local-otel/stack/aspire-api-key.env`. Both files are gitignored. Stop the stack with `local-otel/stop-full-stack.sh` (macOS/Linux) or `local-otel/stop-full-stack.ps1` (Windows); add `--reset` / `-Reset` to also delete the local history volumes.
 
+### Upgrade an existing local stack
+
+After a `git pull` (or pulling a new release into a fork), upgrade the running stack in place with one command:
+
+```bash
+local-otel/start-full-stack.sh --update
+```
+
+Windows PowerShell:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File local-otel/start-full-stack.ps1 -Update
+```
+
+The update flag runs `docker compose down --remove-orphans` (which also cleans up containers left over from older stack layouts, such as the retired standalone Postgres), rebuilds the four locally built images (dashboard API, web app, registry, jobs) against the new source with `build --pull`, and starts the stack again. It composes with `--hybrid` / `-Hybrid`. Named volumes are never touched, so the 30-day Prometheus/Tempo/Loki history, Grafana settings, and the permanent DuckDB analytics all survive the upgrade. Afterwards, hard-refresh the dashboard at `http://localhost:3300` (Cmd/Ctrl+Shift+R) so the browser drops the cached app, and reload the VS Code window.
+
 Frontier Cockpit Hybrid, local history plus Azure forwarding:
 
 ```bash
@@ -529,6 +546,12 @@ Restart the stack:
 ```bash
 local-otel/stop-full-stack.sh
 local-otel/start-full-stack.sh
+```
+
+Upgrade the stack in place after a `git pull` (rebuild + orphan cleanup, volumes preserved):
+
+```bash
+local-otel/start-full-stack.sh --update
 ```
 
 Register the current Git workspace:

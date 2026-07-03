@@ -1,5 +1,6 @@
 param(
-    [switch]$Hybrid
+    [switch]$Hybrid,
+    [switch]$Update
 )
 
 # Windows equivalent of start-full-stack.sh. Starts the full local
@@ -7,6 +8,12 @@ param(
 # Grafana + registry/jobs sidecars + the Frontier Cockpit Local mini app.
 # Pass -Hybrid to also forward telemetry to the Azure cloud Collector
 # (requires local-otel/azure/.env with AZURE_OTLP_ENDPOINT and AZURE_OTLP_TOKEN).
+# Pass -Update after a git pull to upgrade in place: it stops the stack and
+# removes orphaned containers from older layouts, rebuilds the locally built
+# images (dashboard API, web app, registry, jobs) against the new source,
+# pulls newer pinned tags, and starts everything again. Named volumes are
+# never touched, so Prometheus history, Grafana settings, and the permanent
+# DuckDB analytics survive the upgrade.
 
 $ErrorActionPreference = "Stop"
 
@@ -65,20 +72,32 @@ function Import-EnvFile([string]$Path) {
 
 Import-EnvFile $AspireKeyFile
 
+$ComposeFiles = @("-f", "docker-compose.yml")
+if ($Hybrid) {
+    Import-EnvFile (Join-Path $ScriptDir "azure/.env")
+    if ([string]::IsNullOrWhiteSpace($env:AZURE_OTLP_ENDPOINT) -or [string]::IsNullOrWhiteSpace($env:AZURE_OTLP_TOKEN)) {
+        Fail "Hybrid mode needs AZURE_OTLP_ENDPOINT and AZURE_OTLP_TOKEN. Provision the Azure side first ($ScriptDir/azure/deploy.sh) and write $ScriptDir/azure/.env."
+    }
+    $ComposeFiles += @("-f", "docker-compose.azure.yaml")
+}
+
 Push-Location $StackDir
 try {
+    if ($Update) {
+        Write-Host "Updating the local stack: stopping containers and removing orphans (named volumes are preserved)."
+        docker compose @ComposeFiles down --remove-orphans
+        if ($LASTEXITCODE -ne 0) { Fail "docker compose down failed." }
+        Write-Host "Rebuilding locally built images against the current source and pulling newer base images."
+        docker compose @ComposeFiles build --pull
+        if ($LASTEXITCODE -ne 0) { Fail "docker compose build failed." }
+    }
     if ($Hybrid) {
-        Import-EnvFile (Join-Path $ScriptDir "azure/.env")
-        if ([string]::IsNullOrWhiteSpace($env:AZURE_OTLP_ENDPOINT) -or [string]::IsNullOrWhiteSpace($env:AZURE_OTLP_TOKEN)) {
-            Fail "Hybrid mode needs AZURE_OTLP_ENDPOINT and AZURE_OTLP_TOKEN. Provision the Azure side first ($ScriptDir/azure/deploy.sh) and write $ScriptDir/azure/.env."
-        }
         Write-Host "Starting full stack in hybrid mode (local backends + Azure forwarding)."
-        docker compose -f docker-compose.yml -f docker-compose.azure.yaml up -d
     }
     else {
         Write-Host "Starting full local stack (offline, no Azure forwarding)."
-        docker compose -f docker-compose.yml up -d
     }
+    docker compose @ComposeFiles up -d
     if ($LASTEXITCODE -ne 0) { Fail "docker compose failed." }
 }
 finally {
@@ -94,4 +113,7 @@ Write-Host "  Prometheus:               http://localhost:9090"
 Write-Host "  Tempo:                    http://localhost:3200"
 Write-Host "  Loki:                     http://localhost:3100"
 Write-Host ""
+if ($Update) {
+    Write-Host "Update complete. Hard-refresh the dashboard at http://localhost:3300 (Ctrl+Shift+R) so the browser drops the cached app."
+}
 Write-Host "Reload VS Code or VS Code Insiders, run a GitHub Copilot Chat agent request, then check Aspire and Grafana."
