@@ -20,6 +20,7 @@ The repository can be cloned anywhere. All scripts resolve their own location, s
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.7.1 | 2026-07-03 | Frontier Cockpit Team | Documented the fork upgrade path ("Keep a fork in sync with upstream"): git upstream sync plus `start-full-stack.sh --update`, with the guarantees that telemetry volumes, gitignored local identity/secrets, and per-developer wizard preferences all survive the update. |
 | 1.7.0 | 2026-07-03 | Frontier Cockpit Team | Inspector parity with the VS Code Agent Debug Logs: session details header (workspace, branch, location/mode, agent, created, last activity, status), full summary tiles (model turns, tool calls, input/output/cached/total tokens, errors, Copilot usage AIC), an **agent flow chart** with user-message/response previews (content capture) and per-node tool/hook/model steps, a per-agent action table, and trace-scoped deep links (Aspire, Grafana Tempo, Loki). Overview rebuilt as a super dashboard (highlights, top recommendations, best practices) and stack health now lives only in the Health view. |
 | 1.6.1 | 2026-07-03 | Frontier Cockpit Team | Added the in-place upgrade flag to the stack orchestrators (`start-full-stack.sh --update` / `start-full-stack.ps1 -Update`): rebuild of the locally built images with `build --pull` first (a failed build leaves the running stack untouched), then stop with orphan cleanup and restart, in one command, preserving all named volumes; documented the upgrade flow. |
 | 1.6.0 | 2026-07-03 | Frontier Cockpit Team | Cache Explorer parity in the Inspector (token-weighted cache hit, healthy request pairs, avoidable recomputed tokens, and cache-break cause classification: model switch, system-prompt change, tool-catalog change, prefix drift), per-workspace context-window peak, context-management coaching (deliberate `/compact`, session scoping, #-mentions), the Context management playbook in the Coach view, and the VS Code OTel settings checklist. |
@@ -316,6 +317,35 @@ pwsh -ExecutionPolicy Bypass -File local-otel/start-full-stack.ps1 -Update
 ```
 
 The update flag first rebuilds the four locally built images (dashboard API, web app, registry, jobs) against the new source with `build --pull` — so a failed build (offline, registry rate limit) leaves the running stack untouched — then runs `docker compose down --remove-orphans` (which also cleans up containers left over from older stack layouts, such as the retired standalone Postgres) and starts the stack again. It composes with `--hybrid` / `-Hybrid`. Named volumes are never touched, so the 30-day Prometheus/Tempo/Loki history, Grafana settings, and the permanent DuckDB analytics all survive the upgrade. Afterwards, hard-refresh the dashboard at `http://localhost:3300` (Cmd/Ctrl+Shift+R) so the browser drops the cached app, and reload the VS Code window.
+
+### Keep a fork in sync with upstream
+
+Forks pick up every improvement without re-implementing anything — the upgrade is a normal Git sync plus the in-place stack update, and no history or local configuration is lost.
+
+One-time setup in the fork's clone:
+
+```bash
+git remote add upstream https://github.com/paulasilvatech/frontier-cockpit.git
+```
+
+Each time you want the latest features:
+
+```bash
+git fetch upstream
+git checkout main
+git merge upstream/main        # fast-forwards when the fork has no local commits
+git push origin main
+local-otel/start-full-stack.sh --update
+```
+
+(The **Sync fork** button on the fork's GitHub page does the same fetch+merge; Windows runs `start-full-stack.ps1 -Update` for the last step.)
+
+What survives the sync, by design:
+
+- **Telemetry history**: the 30-day Prometheus/Tempo/Loki history, Grafana settings, and the permanent DuckDB analytics live in named Docker volumes — Git never sees them, and `--update` never deletes them.
+- **Local identity and secrets**: `client.env`, `workshop.env`, `stack/aspire-api-key.env`, `stack/grafana-admin.env`, and `azure/.env` are gitignored, so a merge can never conflict with or overwrite them.
+- **Per-developer setup**: each developer's wizard preferences (name, role, plan, repo host) live in the browser's local storage, untouched by upgrades.
+- **Fork customizations**: because tuning lives in environment variables (thresholds, coach weights, plan overrides) rather than code edits, most forks merge with zero conflicts. Only files the fork actually modified can conflict, and Git resolves those the normal way.
 
 Frontier Cockpit Hybrid, local history plus Azure forwarding:
 
