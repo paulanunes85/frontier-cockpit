@@ -8,12 +8,13 @@ param(
 # Grafana + registry/jobs sidecars + the Frontier Cockpit Local mini app.
 # Pass -Hybrid to also forward telemetry to the Azure cloud Collector
 # (requires local-otel/azure/.env with AZURE_OTLP_ENDPOINT and AZURE_OTLP_TOKEN).
-# Pass -Update after a git pull to upgrade in place: it stops the stack and
-# removes orphaned containers from older layouts, rebuilds the locally built
-# images (dashboard API, web app, registry, jobs) against the new source,
-# pulls newer pinned tags, and starts everything again. Named volumes are
-# never touched, so Prometheus history, Grafana settings, and the permanent
-# DuckDB analytics survive the upgrade.
+# Pass -Update after a git pull to upgrade in place: it first rebuilds the
+# locally built images (dashboard API, web app, registry, jobs) against the
+# new source and pulls newer pinned tags — so a failed build leaves the
+# running stack untouched — then stops the stack, removes orphaned containers
+# from older layouts, and starts everything again. Named volumes are never
+# touched, so Prometheus history, Grafana settings, and the permanent DuckDB
+# analytics survive the upgrade.
 
 $ErrorActionPreference = "Stop"
 
@@ -84,12 +85,14 @@ if ($Hybrid) {
 Push-Location $StackDir
 try {
     if ($Update) {
-        Write-Host "Updating the local stack: stopping containers and removing orphans (named volumes are preserved)."
-        docker compose @ComposeFiles down --remove-orphans
-        if ($LASTEXITCODE -ne 0) { Fail "docker compose down failed." }
-        Write-Host "Rebuilding locally built images against the current source and pulling newer base images."
+        # Build before stopping anything: if the rebuild fails (offline,
+        # registry rate limit), the currently running stack stays up untouched.
+        Write-Host "Updating the local stack: rebuilding locally built images against the current source and pulling newer base images."
         docker compose @ComposeFiles build --pull
         if ($LASTEXITCODE -ne 0) { Fail "docker compose build failed." }
+        Write-Host "Stopping containers and removing orphans (named volumes are preserved)."
+        docker compose @ComposeFiles down --remove-orphans
+        if ($LASTEXITCODE -ne 0) { Fail "docker compose down failed." }
     }
     if ($Hybrid) {
         Write-Host "Starting full stack in hybrid mode (local backends + Azure forwarding)."
