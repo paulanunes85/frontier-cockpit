@@ -20,6 +20,8 @@ The repository can be cloned anywhere. All scripts resolve their own location, s
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.2.1 | 2026-07-03 | Frontier Cockpit Team | Migrated Grafana to the maintained `grafana/grafana` Docker Hub repository (Docker Hub stops updating `grafana/grafana-oss` from 12.4.0) pinned at 12.4.3, updated Loki to 3.3.4, and added native PowerShell orchestration scripts for Windows. |
+| 1.2.0 | 2026-07-03 | Frontier Cockpit Team | Added the Planner view (workspace forecast, overage justification, Auto vs frontier model strategy), the full per-plan AI Credits registry with promo-window awareness, configurable coaching and planner weights, the in-Docker OTel coverage audit, and CI verification that pinned images resolve. |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Documented the 10-container stack with the jobs container, Grafana embedded SQLite, generated Grafana admin credentials, privacy-first content capture defaults, repository-relative paths, and removal of the legacy Aspire-only helper scripts. |
 | 1.0.5 | 2026-07-02 | Frontier Cockpit Team | Added cross-platform client bootstrap scripts for macOS, Linux, and Windows. |
 | 1.0.4 | 2026-06-30 | Frontier Cockpit Team | Added the local workshop-ready flow, the workshop validation gate, and the Frontier Cockpit Local mini app entry point. |
@@ -46,11 +48,11 @@ The full local stack runs 10 containers. Every published port binds to `127.0.0.
 | `aspire-dashboard` | `mcr.microsoft.com/dotnet/aspire-dashboard:13.4` | Live trace, log, and metric viewer with the GenAI visualizer | `http://localhost:18888` |
 | `copilot-otel-collector` | `otel/opentelemetry-collector-contrib:0.155.0` | OTLP ingest and fan-out | `http://localhost:4317` (gRPC), `http://localhost:4318` (HTTP), `http://localhost:9464` (collector metrics) |
 | `copilot-otel-tempo` | `grafana/tempo:2.6.1` | Local trace history, 30 days | `http://localhost:3200` |
-| `copilot-otel-loki` | `grafana/loki:3.3.2` | Local log history, 30 days | `http://localhost:3100` |
+| `copilot-otel-loki` | `grafana/loki:3.3.4` | Local log history, 30 days | `http://localhost:3100` |
 | `copilot-otel-prometheus` | `prom/prometheus:v3.1.0` | Local metric history, 30 days | `http://localhost:9090` |
 | `copilot-otel-registry` | local build | Model and price registry sidecar, re-seeds every 5 minutes | internal only |
 | `copilot-otel-jobs` | local build | Runs `materialize-copilot-sessions.sh` every 5 minutes and `daily-rollup.sh` daily inside Docker, cross-platform | internal only |
-| `copilot-otel-grafana` | `grafana/grafana-oss:11.6.16` | Historical dashboards with embedded SQLite metadata storage | `http://localhost:3000` |
+| `copilot-otel-grafana` | `grafana/grafana:12.4.3` | Historical dashboards with embedded SQLite metadata storage | `http://localhost:3000` |
 | `frontier-dashboard-api` | local build | Mini app API over Prometheus, Tempo, Loki, and Grafana | internal only |
 | `frontier-dashboard-web` | local build | Frontier Cockpit Local mini app | `http://localhost:3300` |
 
@@ -111,6 +113,7 @@ The `copilot-otel-jobs` container replaces the earlier host-side schedulers for 
 
 - `materialize-copilot-sessions.sh` every 5 minutes
 - `daily-rollup.sh` daily
+- `audit-coverage.sh` every hour (Prometheus, Tempo, and Loki coverage only; the VS Code settings rows are skipped inside Docker because the container cannot see host settings)
 
 The `copilot-otel-registry` sidecar re-seeds model prices and multipliers every 5 minutes so registry metrics do not expire from the collector.
 
@@ -226,6 +229,14 @@ Access controls:
 
 Docker Desktop (or a compatible Docker engine on Linux) must be running.
 
+Prerequisites by platform:
+
+- macOS: zsh and python3 ship with the OS; nothing extra is needed.
+- Linux: the orchestration scripts (`start-full-stack.sh`, `stop-full-stack.sh`, `check-workshop-local.sh`, `workshop-ready.sh`) use zsh, which most distributions do not install by default. Install it first (`sudo apt install zsh` on Debian/Ubuntu, `sudo dnf install zsh` on Fedora) along with `python3`.
+- Windows: use PowerShell 7+ (`pwsh`). Every orchestration script has a native PowerShell equivalent — `client-bootstrap.ps1`, `start-full-stack.ps1`, `stop-full-stack.ps1`, `check-workshop-local.ps1`, and `workshop-ready.ps1` — so WSL is not required. Host-only zsh helpers (VS Code memory sampling) are macOS/Linux extras; `workshop-ready.ps1` runs the materializer and coverage audit inside the jobs container instead.
+
+Do not run `docker compose up` directly from `local-otel/stack` before the first bootstrap: the compose file expects the gitignored `aspire-api-key.env` and `grafana-admin.env` files, which `start-full-stack.sh`, `client-bootstrap.sh`, and `client-bootstrap.ps1` generate on first run.
+
 Cross-platform client setup, recommended for customer machines:
 
 macOS or Linux:
@@ -252,6 +263,12 @@ Workshop-ready local setup, run from the participant Git repository:
 local-otel/workshop-ready.sh
 ```
 
+Windows PowerShell:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File local-otel/workshop-ready.ps1
+```
+
 This command is local-only. It does not enable hybrid mode or forward data to Azure. It enables the local OpenTelemetry environment, starts the full Docker stack, registers the current Git workspace, sends a synthetic validation span, materializes recent GitHub Copilot sessions, refreshes support metrics, and runs the workshop validation gate.
 
 Open the local mini app after setup:
@@ -268,7 +285,13 @@ Full local stack, live view plus local history:
 local-otel/start-full-stack.sh
 ```
 
-On first start the script generates the Grafana admin password into `local-otel/stack/grafana-admin.env` and the Aspire API key into `local-otel/stack/aspire-api-key.env`. Both files are gitignored.
+Windows PowerShell:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File local-otel/start-full-stack.ps1
+```
+
+On first start the script generates the Grafana admin password into `local-otel/stack/grafana-admin.env` and the Aspire API key into `local-otel/stack/aspire-api-key.env`. Both files are gitignored. Stop the stack with `local-otel/stop-full-stack.sh` (macOS/Linux) or `local-otel/stop-full-stack.ps1` (Windows); add `--reset` / `-Reset` to also delete the local history volumes.
 
 Frontier Cockpit Hybrid, local history plus Azure forwarding:
 
@@ -317,7 +340,13 @@ Use the workshop validation gate:
 local-otel/check-workshop-local.sh
 ```
 
-After the participant has generated one real GitHub Copilot Chat or agent session in the repository, use strict data mode:
+Windows PowerShell:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File local-otel/check-workshop-local.ps1
+```
+
+After the participant has generated one real GitHub Copilot Chat or agent session in the repository, use strict data mode (`--strict-data` on macOS/Linux, `-StrictData` on Windows):
 
 ```bash
 local-otel/check-workshop-local.sh --strict-data
