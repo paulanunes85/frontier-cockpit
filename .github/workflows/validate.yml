@@ -77,6 +77,38 @@ jobs:
           done < <(git ls-files '*.sh' '*.zsh')
           exit "$fail"
 
+      - name: Parse and lint PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          $files = git ls-files '*.ps1'
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              Write-Host "FAIL $file"
+              $errors | ForEach-Object { Write-Host "  $($_.Extent.StartLineNumber): $($_.Message)" }
+            }
+            else {
+              Write-Host "ok: $file (parse)"
+            }
+          }
+          if (Get-Module -ListAvailable PSScriptAnalyzer) {
+            foreach ($file in $files) {
+              $findings = Invoke-ScriptAnalyzer -Path $file -Severity Error
+              if ($findings) {
+                $failed = $true
+                $findings | ForEach-Object { Write-Host "FAIL $($file): $($_.RuleName) line $($_.Line): $($_.Message)" }
+              }
+              else {
+                Write-Host "ok: $file (analyzer)"
+              }
+            }
+          }
+          if ($failed) { exit 1 }
+
   dashboard-app:
     name: Dashboard API and web build
     runs-on: ubuntu-latest
@@ -128,6 +160,28 @@ jobs:
       - name: Build jobs and registry sidecar images
         working-directory: local-otel/stack
         run: docker compose -f docker-compose.yml build jobs registry
+
+      # `docker compose config` never resolves remote tags, so a pinned image
+      # that does not exist on the registry (like grafana-oss:11.6.16 once was)
+      # only fails on the user's machine. Resolve every pinned tag here.
+      - name: Verify pinned images exist on their registries
+        working-directory: local-otel/stack
+        run: |
+          images=$(docker compose -f docker-compose.yml config --images | sort -u)
+          status=0
+          for image in $images; do
+            case "$image" in
+              *:*) ;; # pinned remote image, verify below
+              *) continue ;; # locally built service images carry no remote tag
+            esac
+            if docker buildx imagetools inspect "$image" > /dev/null 2>&1; then
+              echo "ok: $image"
+            else
+              echo "MISSING: $image does not resolve on its registry" >&2
+              status=1
+            fi
+          done
+          exit $status
 
   secrets:
     name: Secret scanning
