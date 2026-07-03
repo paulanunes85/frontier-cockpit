@@ -3,7 +3,7 @@ title: "Frontier Cockpit AI Credits and Planner Guide"
 description: "Step-by-step guide to GitHub Copilot AI Credits, per-plan allowances, token-efficiency best practices, and the workspace Planner with overage and frontier-model justification."
 author: "Frontier Cockpit Team"
 date: "2026-07-03"
-version: "1.0.0"
+version: "1.1.0"
 status: "approved"
 language: "en"
 tags: ["github-copilot", "ai-credits", "planner", "token-efficiency", "local"]
@@ -21,6 +21,7 @@ This guide is for the individual developer using the local dashboard at `http://
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.1.0 | 2026-07-03 | Frontier Cockpit Team | Added section 9: the Inspector view (per-session debug log and cache explorer) and importing VS Code Agent Debug Logs exports. |
 | 1.0.0 | 2026-07-03 | Frontier Cockpit Team | Initial trilingual guide for AI Credits, token efficiency, and the Planner view. |
 
 ## Table of Contents
@@ -33,6 +34,7 @@ This guide is for the individual developer using the local dashboard at `http://
 - [6. Step By Step: Justify Overage Or Frontier Models](#6-step-by-step-justify-overage-or-frontier-models)
 - [7. Every Configurable Value](#7-every-configurable-value)
 - [8. Honesty Rules](#8-honesty-rules)
+- [9. Step By Step: Inspect A Session (Debug Log And Cache Explorer)](#9-step-by-step-inspect-a-session-debug-log-and-cache-explorer)
 
 ## 1. How GitHub Copilot Billing Works Now
 
@@ -182,3 +184,28 @@ This dashboard is for the local developer scenario only. It follows three rules 
 1. **Local telemetry is never presented as official billing.** Every credit figure is an operational estimate from OpenTelemetry AIU signals; official totals come from the GitHub usage dashboard, billing exports, or the Copilot usage metrics API.
 2. **Reference plan data is labeled with its source and stays configurable**, because GitHub allowances, promotions, and prices change.
 3. **The planner never invents precision.** Projections extrapolate the observed burn rate; the justification draft carries the numbers, the method, and the disclaimer together.
+
+## 9. Step By Step: Inspect A Session (Debug Log And Cache Explorer)
+
+The **Inspector** view gives you, per workspace, the same signals as the VS Code Agent Debug Log panel and its Cache Explorer — built from your local trace store, with raw content never leaving the machine.
+
+1. Open `http://localhost:3300` → **Inspector**.
+2. Pick a session in the selector (sessions are labeled by workspace, model, and credits) or arrive from the Sessions view with a trace id.
+3. Read the **summary tiles** (like the VS Code Summary view): total duration, LLM requests, agent turns, tool calls, tokens in/out, cache hit rate, cache breaks, and errors.
+4. Read the **Cache explorer** table: one row per LLM request with its cache hit rate (cache reads over cache reads plus writes). A red row marks where the prompt-cache prefix broke — either the hit rate dropped sharply or the model switched mid-session (the documented cache breakers). Everything after a break was re-billed as fresh input.
+5. Read the **Event log**: the chronological span timeline (LLM requests, agent turns, tool calls, hooks) with offsets, durations, per-event tokens, and errors. For full attribute payloads, open the trace id in Aspire or Grafana Tempo Explore.
+6. Apply the **keep-the-cache-warm practices** shown in the view: lock in model/tools before starting, keep instruction files stable, add volatile context late, and start fresh after a break.
+
+To analyze a session exported from VS Code (Agent Debug Logs panel → Export icon → OTLP JSON), import it from inside the project repository so it is attributed to the workspace:
+
+```bash
+local-otel/import-agent-debug-session.sh exported-session.json
+```
+
+Windows PowerShell:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File local-otel/import-agent-debug-session.ps1 -Path exported-session.json
+```
+
+The imported session is inspectable by trace id immediately and appears in the session lists after the next materializer pass (up to 5 minutes).

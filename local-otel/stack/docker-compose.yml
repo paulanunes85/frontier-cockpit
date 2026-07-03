@@ -26,7 +26,7 @@ services:
       - observability
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.155.0
+    image: docker.io/otel/opentelemetry-collector-contrib:0.155.0
     container_name: copilot-otel-collector
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     env_file:
@@ -46,7 +46,7 @@ services:
       - observability
 
   tempo:
-    image: grafana/tempo:2.6.1
+    image: docker.io/grafana/tempo:2.6.1
     container_name: copilot-otel-tempo
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
@@ -65,7 +65,7 @@ services:
       - observability
 
   loki:
-    image: grafana/loki:3.3.4
+    image: docker.io/grafana/loki:3.3.4
     container_name: copilot-otel-loki
     command: ["-config.file=/etc/loki/local-config.yaml"]
     volumes:
@@ -84,7 +84,7 @@ services:
       - observability
 
   prometheus:
-    image: prom/prometheus:v3.1.0
+    image: docker.io/prom/prometheus:v3.1.0
     container_name: copilot-otel-prometheus
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -169,7 +169,7 @@ services:
     # Use grafana/grafana, not grafana/grafana-oss: Docker Hub marks the -oss
     # repository as no longer updated starting with Grafana 12.4.0. Both carry
     # the same Grafana OSS images; this is the maintained one.
-    image: grafana/grafana:12.4.3
+    image: docker.io/grafana/grafana:12.4.3
     container_name: copilot-otel-grafana
     env_file:
       - ./grafana-admin.env

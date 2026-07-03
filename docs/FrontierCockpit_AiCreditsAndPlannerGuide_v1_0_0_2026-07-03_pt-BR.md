@@ -3,7 +3,7 @@ title: "Guia de AI Credits e Planner do Frontier Cockpit"
 description: "Guia passo a passo sobre GitHub Copilot AI Credits, allowances por plano, melhores práticas de eficiência de tokens e o Planner de workspace com justificativa de overage e de modelos frontier."
 author: "Frontier Cockpit Team"
 date: "2026-07-03"
-version: "1.0.0"
+version: "1.1.0"
 status: "approved"
 language: "pt-BR"
 tags: ["github-copilot", "ai-credits", "planner", "token-efficiency", "local"]
@@ -21,6 +21,7 @@ Este guia é para a pessoa desenvolvedora que usa o dashboard local em `http://l
 
 | Versão | Data | Autor | Alterações |
 | --- | --- | --- | --- |
+| 1.1.0 | 2026-07-03 | Frontier Cockpit Team | Adicionada a seção 9: a view Inspector (log de debug e explorador de cache por sessão) e a importação de exports do Agent Debug Logs do VS Code. |
 | 1.0.0 | 2026-07-03 | Frontier Cockpit Team | Guia trilíngue inicial de AI Credits, eficiência de tokens e a view Planner. |
 
 ## Sumário
@@ -33,6 +34,7 @@ Este guia é para a pessoa desenvolvedora que usa o dashboard local em `http://l
 - [6. Passo a Passo: Justifique Overage ou Modelos Frontier](#6-passo-a-passo-justifique-overage-ou-modelos-frontier)
 - [7. Todos os Valores Configuráveis](#7-todos-os-valores-configuráveis)
 - [8. Regras de Honestidade](#8-regras-de-honestidade)
+- [9. Passo a Passo: Inspecione uma Sessão (Log de Debug e Explorador de Cache)](#9-passo-a-passo-inspecione-uma-sessão-log-de-debug-e-explorador-de-cache)
 
 ## 1. Como Funciona o Billing do GitHub Copilot Hoje
 
@@ -182,3 +184,28 @@ Este dashboard é apenas para o cenário do desenvolvedor local. Ele segue três
 1. **Telemetria local nunca é apresentada como billing oficial.** Todo número de créditos é uma estimativa operacional a partir de sinais AIU do OpenTelemetry; os totais oficiais vêm do dashboard de uso do GitHub, dos exports de billing ou da API de métricas de uso do Copilot.
 2. **Os dados de referência dos planos são rotulados com a fonte e continuam configuráveis**, porque allowances, promoções e preços do GitHub mudam.
 3. **O planner nunca inventa precisão.** As projeções extrapolam a taxa de consumo observada; o rascunho de justificativa carrega junto os números, o método e a ressalva.
+
+## 9. Passo a Passo: Inspecione uma Sessão (Log de Debug e Explorador de Cache)
+
+A view **Inspector** dá, por workspace, os mesmos sinais do painel Agent Debug Log do VS Code e do seu Cache Explorer — construídos do armazenamento local de traces, com o conteúdo bruto nunca saindo da máquina.
+
+1. Abra `http://localhost:3300` → **Inspector**.
+2. Escolha uma sessão no seletor (as sessões são rotuladas por workspace, modelo e créditos) ou chegue pela view Sessions com um trace id.
+3. Leia os **tiles de resumo** (como a Summary view do VS Code): duração total, requests LLM, turnos de agente, tool calls, tokens entrada/saída, taxa de acerto de cache, quebras de cache e erros.
+4. Leia a tabela do **Explorador de cache**: uma linha por request LLM com sua taxa de acerto (leituras de cache sobre leituras mais escritas). Uma linha vermelha marca onde o prefixo do cache de prompt quebrou — a taxa caiu bruscamente ou o modelo trocou no meio da sessão (as causas documentadas). Tudo depois de uma quebra foi refaturado como entrada nova.
+5. Leia o **Log de eventos**: a linha do tempo cronológica de spans (requests LLM, turnos de agente, tool calls, hooks) com offsets, durações, tokens por evento e erros. Para os payloads completos de atributos, abra o trace id no Aspire ou no Grafana Tempo Explore.
+6. Aplique as **práticas de manter o cache aquecido** mostradas na view: trave modelo/ferramentas antes de começar, mantenha os arquivos de instruções estáveis, adicione contexto volátil por último e comece do zero após uma pausa.
+
+Para analisar uma sessão exportada do VS Code (painel Agent Debug Logs → ícone Export → OTLP JSON), importe de dentro do repositório do projeto para atribuí-la ao workspace:
+
+```bash
+local-otel/import-agent-debug-session.sh sessao-exportada.json
+```
+
+Windows PowerShell:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File local-otel/import-agent-debug-session.ps1 -Path sessao-exportada.json
+```
+
+A sessão importada fica inspecionável pelo trace id imediatamente e aparece nas listas de sessões após a próxima passada do materializador (até 5 minutos).

@@ -20,6 +20,7 @@ The repository can be cloned anywhere. All scripts resolve their own location, s
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.4.0 | 2026-07-03 | Frontier Cockpit Team, @jkjunior | Added Podman container runtime support (runtime and compose-tool auto-detection in the bash bootstrap, fully qualified image references) and Fish shell support for the persistent OTel environment. Contributed by @jkjunior with maintainer corrections to keep the maintained `grafana/grafana:12.4.3` image and Loki 3.3.4. |
 | 1.3.0 | 2026-07-03 | Frontier Cockpit Team | Added the Inspector view (per-session agent debug log with event timeline, cache explorer with cache-break detection, and summary stats) and the import scripts for VS Code Agent Debug Logs OTLP session exports with workspace attribution. |
 | 1.2.1 | 2026-07-03 | Frontier Cockpit Team | Migrated Grafana to the maintained `grafana/grafana` Docker Hub repository (Docker Hub stops updating `grafana/grafana-oss` from 12.4.0) pinned at 12.4.3, updated Loki to 3.3.4, and added native PowerShell orchestration scripts for Windows. |
 | 1.2.0 | 2026-07-03 | Frontier Cockpit Team | Added the Planner view (workspace forecast, overage justification, Auto vs frontier model strategy), the full per-plan AI Credits registry with promo-window awareness, configurable coaching and planner weights, the in-Docker OTel coverage audit, and CI verification that pinned images resolve. |
@@ -235,6 +236,8 @@ Prerequisites by platform:
 - macOS: zsh and python3 ship with the OS; nothing extra is needed.
 - Linux: the orchestration scripts (`start-full-stack.sh`, `stop-full-stack.sh`, `check-workshop-local.sh`, `workshop-ready.sh`) use zsh, which most distributions do not install by default. Install it first (`sudo apt install zsh` on Debian/Ubuntu, `sudo dnf install zsh` on Fedora) along with `python3`.
 - Windows: use PowerShell 7+ (`pwsh`). Every orchestration script has a native PowerShell equivalent — `client-bootstrap.ps1`, `start-full-stack.ps1`, `stop-full-stack.ps1`, `check-workshop-local.ps1`, and `workshop-ready.ps1` — so WSL is not required. Host-only zsh helpers (VS Code memory sampling) are macOS/Linux extras; `workshop-ready.ps1` runs the materializer and coverage audit inside the jobs container instead.
+- Container runtime: Docker Desktop or Docker Engine is the default. `client-bootstrap.sh` also supports **Podman** — it auto-detects the runtime and the compose tool (native `docker compose` v2 preferred; `podman-compose` or `podman compose` on Podman), and every image reference is fully qualified (`docker.io/...`, `mcr.microsoft.com/...`) so Podman resolves names without prompting. The zsh/PowerShell orchestration scripts still expect the Docker CLI.
+- Shells: the bash bootstrap persists the OTel environment for bash and zsh (`~/.frontier-cockpit/otel.env`) and for **Fish** (`~/.frontier-cockpit/otel.fish`, sourced from `~/.config/fish/config.fish`).
 
 Do not run `docker compose up` directly from `local-otel/stack` before the first bootstrap: the compose file expects the gitignored `aspire-api-key.env` and `grafana-admin.env` files, which `start-full-stack.sh`, `client-bootstrap.sh`, and `client-bootstrap.ps1` generate on first run.
 
