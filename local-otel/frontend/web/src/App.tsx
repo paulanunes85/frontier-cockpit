@@ -511,6 +511,20 @@ function BudgetPanel({ summary, compact }: Readonly<{ summary: SummaryResponse |
   const barWidth = utilization === null ? 0 : Math.min(100, utilization);
   const projectedWidth = projected === null ? 0 : Math.min(100, projected);
   const planLabel = budget?.plan ? budget.plan.charAt(0).toUpperCase() + budget.plan.slice(1) : "—";
+  // Percentages read as percentages only while they stay in human range; past
+  // 10x the pool a multiplier is the honest, readable form (945% vs 97.6x).
+  const pctText = (pct: number | null): string => {
+    if (pct === null) {
+      return "—";
+    }
+    return pct < 1000 ? `${formatNumber(pct, 0)}%` : `${formatNumber(pct / 100, 1)}×`;
+  };
+  const exhaustionText = budget?.projectedExhaustionDate
+    ? t("budget.exhaustionValue", {
+      date: new Date(budget.projectedExhaustionDate).toLocaleDateString(),
+      days: formatNumber(Math.max(0, budget.daysToExhaustion ?? 0), 0)
+    })
+    : t("budget.exhaustionNone");
 
   return (
     <Panel
@@ -530,7 +544,14 @@ function BudgetPanel({ summary, compact }: Readonly<{ summary: SummaryResponse |
         <div className="budget-facts">
           <div>
             <span className="stat-label">{t("budget.utilization")}</span>
-            <span className="stat-value">{utilization === null ? "—" : `${formatNumber(utilization, 0)}%`}</span>
+            <span className="stat-value">
+              {pctText(utilization)}
+              {budget && budget.alertLevel !== "ok" ? (
+                <span className={`pill budget-level-pill ${budget.alertLevel === "warning" ? "pill-warn" : "pill-bad"}`}>
+                  {t(`budget.level.${budget.alertLevel}`)}
+                </span>
+              ) : null}
+            </span>
           </div>
           <div>
             <span className="stat-label">{t("budget.remaining")}</span>
@@ -542,15 +563,11 @@ function BudgetPanel({ summary, compact }: Readonly<{ summary: SummaryResponse |
           </div>
           <div>
             <span className="stat-label">{t("budget.projected")}</span>
-            <span className="stat-value">{projected === null ? "—" : `${formatNumber(projected, 0)}%`}</span>
+            <span className="stat-value">{pctText(projected)}</span>
           </div>
           <div>
             <span className="stat-label">{t("budget.exhaustion")}</span>
-            <span className="stat-value">
-              {budget?.projectedExhaustionDate
-                ? t("budget.exhaustionValue", { date: budget.projectedExhaustionDate, days: formatNumber(budget.daysToExhaustion, 0) })
-                : t("budget.exhaustionNone")}
-            </span>
+            <span className="stat-value">{exhaustionText}</span>
           </div>
         </div>
       </div>
@@ -818,12 +835,14 @@ function PlanCard({
 
 function PlanComparisonPanel({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
   const t = useT();
+  const [showAll, setShowAll] = useState(false);
   const billing = summary?.billing;
   const catalog = billing?.planCatalog ?? [];
   const currentPlan = billing?.configuredPlan ?? summary?.budget?.plan ?? null;
   const promoActive = billing?.promoWindow.active ?? false;
   const business = catalog.find((plan) => plan.id === "business");
   const enterprise = catalog.find((plan) => plan.id === "enterprise");
+  const yourPlan = catalog.find((plan) => plan.id === currentPlan) ?? null;
   const maxCredits = Math.max(
     1,
     ...catalog.map((plan) => Math.max(plan.includedCredits ?? 0, promoActive ? plan.promoCredits ?? 0 : 0))
@@ -832,37 +851,85 @@ function PlanComparisonPanel({ summary }: Readonly<{ summary: SummaryResponse | 
   if (catalog.length === 0) {
     return null;
   }
+  // Once a license is configured, the panel is about YOUR plan: one card and
+  // one facts column. The full catalog stays one click away for upgrade or
+  // overage discussions, but never competes with the configured license.
+  const focused = yourPlan !== null && !showAll;
   return (
-    <Panel title={t("plans.title")} aside={<span className="muted">{t("plans.aside")}</span>}>
-      <div className="plans-grid">
-        {catalog.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} current={currentPlan === plan.id} promoActive={promoActive} maxCredits={maxCredits} t={t} />
-        ))}
-      </div>
-      <div className="table-wrap">
-        <table className="plan-table">
-          <thead>
-            <tr>
-              <th>{t("plans.feature")}</th>
-              <th>{t("plans.business")}</th>
-              <th>{t("plans.enterprise")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.label}</td>
-                <td>
-                  <PlanCell kind={row.kind} value={row.biz} t={t} />
-                </td>
-                <td>
-                  <PlanCell kind={row.kind} value={row.ent} t={t} />
-                </td>
-              </tr>
+    <Panel
+      title={focused ? t("plans.titleMine") : t("plans.title")}
+      aside={
+        <div className="link-row">
+          <span className="muted">{t("plans.aside")}</span>
+          {yourPlan ? (
+            <button type="button" className="plan-toggle" onClick={() => setShowAll((value) => !value)}>
+              {focused ? t("plans.showAll") : t("plans.showMine")}
+            </button>
+          ) : null}
+        </div>
+      }
+    >
+      {focused && yourPlan ? (
+        <>
+          <div className="plans-grid plans-grid-single">
+            <PlanCard plan={yourPlan} current promoActive={promoActive} maxCredits={maxCredits} t={t} />
+          </div>
+          {yourPlan.id === "business" || yourPlan.id === "enterprise" ? (
+            <div className="table-wrap">
+              <table className="plan-table">
+                <thead>
+                  <tr>
+                    <th>{t("plans.feature")}</th>
+                    <th>{t(`plans.${yourPlan.id}`)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.label}</td>
+                      <td>
+                        <PlanCell kind={row.kind} value={yourPlan.id === "business" ? row.biz : row.ent} t={t} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <>
+          <div className="plans-grid">
+            {catalog.map((plan) => (
+              <PlanCard key={plan.id} plan={plan} current={currentPlan === plan.id} promoActive={promoActive} maxCredits={maxCredits} t={t} />
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+          <div className="table-wrap">
+            <table className="plan-table">
+              <thead>
+                <tr>
+                  <th>{t("plans.feature")}</th>
+                  <th>{t("plans.business")}</th>
+                  <th>{t("plans.enterprise")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.label}</td>
+                    <td>
+                      <PlanCell kind={row.kind} value={row.biz} t={t} />
+                    </td>
+                    <td>
+                      <PlanCell kind={row.kind} value={row.ent} t={t} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
       <p className="plan-note muted">{t("plans.note")}</p>
       {!promoActive && billing ? <p className="plan-note muted">{t("plans.promoEnded", { end: billing.promoWindow.end })}</p> : null}
     </Panel>

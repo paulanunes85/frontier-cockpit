@@ -1543,10 +1543,27 @@ ul {
 
 .budget-facts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px 24px;
   flex: 1;
   min-inline-size: 280px;
+}
+
+/* Each fact is a stat tile: label above value, never inline. */
+.budget-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.budget-facts .stat-value {
+  overflow-wrap: anywhere;
+}
+
+.budget-level-pill {
+  margin-left: 10px;
+  vertical-align: middle;
 }
 
 .budget-bar {
@@ -2176,4 +2193,26 @@ ul {
 
 .highlight-card .stat-value {
     overflow-wrap: anywhere;
+}
+
+/* Plans: focused single-plan view + compare toggle */
+.plans-grid-single {
+    grid-template-columns: minmax(0, 560px);
+}
+
+.plan-toggle {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.plan-toggle:hover {
+    border-color: var(--accent, #2f6fed);
+    color: var(--accent, #2f6fed);
 }
