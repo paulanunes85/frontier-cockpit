@@ -1560,6 +1560,339 @@ async function sessionsBreakdown(
   }
 }
 
+// Inspector: a per-session event log built from the raw Tempo trace, mirroring
+// what the VS Code Agent Debug Log panel shows (LLM requests, tool calls,
+// hooks, errors, token usage) but grouped by workspace in the local cockpit.
+// Sessions exported from VS Code as OTLP JSON and imported with
+// import-agent-debug-session.sh/.ps1 land in the same trace store and are
+// inspectable the same way.
+
+type InspectorEventType = "llm_request" | "agent_turn" | "tool_call" | "hook" | "other";
+
+interface InspectorEvent {
+  spanId: string;
+  parentSpanId: string;
+  type: InspectorEventType;
+  name: string;
+  operation: string;
+  model: string;
+  tool: string;
+  agent: string;
+  serviceName: string;
+  startMs: number;
+  durationMs: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cacheReadTokens: number | null;
+  cacheCreationTokens: number | null;
+  error: string | null;
+}
+
+interface InspectorSummary {
+  traceId: string;
+  spanCount: number;
+  llmRequests: number;
+  agentTurns: number;
+  toolCalls: number;
+  hooks: number;
+  errors: number;
+  totalDurationMs: number | null;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  cacheEfficiency: number | null;
+  cacheBreaks: number;
+  modelSwitches: number;
+  models: string[];
+  tools: string[];
+  services: string[];
+}
+
+// Cache timeline: one entry per LLM request, mirroring the VS Code Cache
+// Explorer idea. The hit rate is cache_read / (cache_read + cache_creation)
+// for that request; a sharp drop against the previous request or a model
+// switch marks where the prompt-cache prefix broke.
+interface InspectorCacheTurn {
+  seq: number;
+  startMs: number;
+  model: string;
+  inputTokens: number | null;
+  cacheReadTokens: number | null;
+  cacheCreationTokens: number | null;
+  hitRate: number | null;
+  modelSwitched: boolean;
+  cacheBreak: boolean;
+}
+
+interface InspectorResponse {
+  status: MetricStatus;
+  message?: string;
+  summary: InspectorSummary | null;
+  events: InspectorEvent[];
+  cacheTimeline: InspectorCacheTurn[];
+}
+
+interface TempoAttribute {
+  key: string;
+  value?: { stringValue?: string; intValue?: string | number; doubleValue?: number; boolValue?: boolean };
+}
+
+function attributeText(value: TempoAttribute["value"]): string {
+  if (!value) {
+    return "";
+  }
+  if (value.stringValue !== undefined) {
+    return value.stringValue;
+  }
+  if (value.intValue !== undefined) {
+    return String(value.intValue);
+  }
+  if (value.doubleValue !== undefined) {
+    return String(value.doubleValue);
+  }
+  if (value.boolValue !== undefined) {
+    return String(value.boolValue);
+  }
+  return "";
+}
+
+function attributeNumber(value: TempoAttribute["value"]): number | null {
+  const text = attributeText(value);
+  if (!text) {
+    return null;
+  }
+  const parsed = Number.parseFloat(text);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function classifyInspectorEvent(operation: string, name: string): InspectorEventType {
+  const key = `${operation} ${name}`.toLowerCase();
+  if (key.includes("execute_tool") || key.includes("tool")) {
+    return "tool_call";
+  }
+  if (key.includes("execute_hook") || key.includes("hook")) {
+    return "hook";
+  }
+  if (key.includes("invoke_agent")) {
+    return "agent_turn";
+  }
+  if (key.includes("chat") || key.includes("generate") || key.includes("completion")) {
+    return "llm_request";
+  }
+  return "other";
+}
+
+function traceIdFromUrl(url: URL): string | null {
+  const raw = (url.searchParams.get("traceId") ?? "").trim().toLowerCase();
+  return /^[0-9a-f]{16,32}$/.test(raw) ? raw : null;
+}
+
+async function inspectorTrace(url: URL): Promise<InspectorResponse> {
+  const traceId = traceIdFromUrl(url);
+  if (!traceId) {
+    return {
+      status: "unavailable",
+      message: "Provide a valid traceId query parameter (hex trace id from the Sessions view).",
+      summary: null,
+      events: [],
+      cacheTimeline: []
+    };
+  }
+  let payload: unknown;
+  try {
+    const response = await fetchWithTimeout(`${tempoUrl}/api/traces/${traceId}`, {}, 8000);
+    if (response.status === 404) {
+      return {
+        status: "unavailable",
+        message: "Trace was not found in Tempo. It may have expired past local retention or not been ingested yet.",
+        summary: null,
+        events: [],
+        cacheTimeline: []
+      };
+    }
+    if (!response.ok) {
+      throw new Error(`Tempo returned HTTP ${response.status}`);
+    }
+    payload = await response.json();
+  } catch (error) {
+    return {
+      status: "unavailable",
+      message: error instanceof Error ? error.message : "Tempo trace lookup failed",
+      summary: null,
+      events: [],
+      cacheTimeline: []
+    };
+  }
+
+  const events: InspectorEvent[] = [];
+  const batches = (payload as { batches?: unknown[] }).batches ?? [];
+  for (const batch of batches as {
+    resource?: { attributes?: TempoAttribute[] };
+    scopeSpans?: { spans?: Record<string, unknown>[] }[];
+    instrumentationLibrarySpans?: { spans?: Record<string, unknown>[] }[];
+  }[]) {
+    const resourceAttrs = new Map<string, string>();
+    for (const attr of batch.resource?.attributes ?? []) {
+      resourceAttrs.set(attr.key, attributeText(attr.value));
+    }
+    const serviceName = resourceAttrs.get("service.name") ?? "unknown";
+    const scopeGroups = batch.scopeSpans ?? batch.instrumentationLibrarySpans ?? [];
+    for (const group of scopeGroups) {
+      for (const span of group.spans ?? []) {
+        const spanAttrs = new Map<string, TempoAttribute["value"]>();
+        for (const attr of (span.attributes as TempoAttribute[] | undefined) ?? []) {
+          spanAttrs.set(attr.key, attr.value);
+        }
+        const text = (key: string) => attributeText(spanAttrs.get(key));
+        const num = (key: string) => attributeNumber(spanAttrs.get(key));
+        const startNano = Number.parseFloat(String(span.startTimeUnixNano ?? "0"));
+        const endNano = Number.parseFloat(String(span.endTimeUnixNano ?? "0"));
+        const operation = text("gen_ai.operation.name");
+        const name = String(span.name ?? "span");
+        const status = span.status as { code?: string | number; message?: string } | undefined;
+        const statusError = status && (status.code === 2 || status.code === "STATUS_CODE_ERROR");
+        const errorType = text("error.type");
+        events.push({
+          spanId: String(span.spanId ?? ""),
+          parentSpanId: String(span.parentSpanId ?? ""),
+          type: classifyInspectorEvent(operation, name),
+          name,
+          operation,
+          model: text("gen_ai.request.model") || text("gen_ai.response.model"),
+          tool: text("gen_ai.tool.name"),
+          agent: text("gen_ai.agent.name"),
+          serviceName,
+          startMs: Number.isFinite(startNano) ? startNano / 1e6 : 0,
+          durationMs: Number.isFinite(endNano - startNano) ? Math.max(0, (endNano - startNano) / 1e6) : 0,
+          inputTokens: num("gen_ai.usage.input_tokens"),
+          outputTokens: num("gen_ai.usage.output_tokens"),
+          cacheReadTokens: num("gen_ai.usage.cache_read.input_tokens"),
+          cacheCreationTokens: num("gen_ai.usage.cache_creation.input_tokens"),
+          error: errorType || (statusError ? status?.message || "error" : null)
+        });
+      }
+    }
+  }
+
+  if (events.length === 0) {
+    return {
+      status: "unavailable",
+      message: "The trace contains no spans.",
+      summary: null,
+      events: [],
+      cacheTimeline: []
+    };
+  }
+
+  events.sort((a, b) => a.startMs - b.startMs);
+  const firstStart = events[0].startMs;
+  let lastEnd = firstStart;
+  const models = new Set<string>();
+  const tools = new Set<string>();
+  const services = new Set<string>();
+  const summary: InspectorSummary = {
+    traceId,
+    spanCount: events.length,
+    llmRequests: 0,
+    agentTurns: 0,
+    toolCalls: 0,
+    hooks: 0,
+    errors: 0,
+    totalDurationMs: null,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    cacheEfficiency: null,
+    cacheBreaks: 0,
+    modelSwitches: 0,
+    models: [],
+    tools: [],
+    services: []
+  };
+  for (const event of events) {
+    lastEnd = Math.max(lastEnd, event.startMs + event.durationMs);
+    if (event.type === "llm_request") {
+      summary.llmRequests += 1;
+    } else if (event.type === "agent_turn") {
+      summary.agentTurns += 1;
+    } else if (event.type === "tool_call") {
+      summary.toolCalls += 1;
+    } else if (event.type === "hook") {
+      summary.hooks += 1;
+    }
+    if (event.error) {
+      summary.errors += 1;
+    }
+    summary.inputTokens += event.inputTokens ?? 0;
+    summary.outputTokens += event.outputTokens ?? 0;
+    summary.cacheReadTokens += event.cacheReadTokens ?? 0;
+    summary.cacheCreationTokens += event.cacheCreationTokens ?? 0;
+    if (event.model) {
+      models.add(event.model);
+    }
+    if (event.tool) {
+      tools.add(event.tool);
+    }
+    services.add(event.serviceName);
+    // Relative timeline: the UI shows offsets from the session start.
+    event.startMs = Math.round((event.startMs - firstStart) * 10) / 10;
+    event.durationMs = Math.round(event.durationMs * 10) / 10;
+  }
+  summary.totalDurationMs = Math.round((lastEnd - firstStart) * 10) / 10;
+  const promptTotal = summary.cacheReadTokens + summary.cacheCreationTokens;
+  summary.cacheEfficiency = promptTotal > 0 ? summary.cacheReadTokens / promptTotal : null;
+  summary.models = [...models].sort((a, b) => a.localeCompare(b));
+  summary.tools = [...tools].sort((a, b) => a.localeCompare(b));
+  summary.services = [...services].sort((a, b) => a.localeCompare(b));
+
+  // Cache timeline over the LLM requests, in chronological order. A turn is
+  // flagged as a cache break when its hit rate falls sharply below the
+  // previous turn's, or when the model changed (a documented cache breaker).
+  const cacheTimeline: InspectorCacheTurn[] = [];
+  let previousHit: number | null = null;
+  let previousModel = "";
+  for (const event of events) {
+    if (event.type !== "llm_request") {
+      continue;
+    }
+    const read = event.cacheReadTokens ?? 0;
+    const created = event.cacheCreationTokens ?? 0;
+    const denominator = read + created;
+    const hitRate = denominator > 0 ? read / denominator : null;
+    const modelSwitched = previousModel !== "" && event.model !== "" && event.model !== previousModel;
+    const cacheBreak =
+      modelSwitched ||
+      (hitRate !== null && previousHit !== null && previousHit - hitRate >= 0.3);
+    cacheTimeline.push({
+      seq: cacheTimeline.length + 1,
+      startMs: event.startMs,
+      model: event.model,
+      inputTokens: event.inputTokens,
+      cacheReadTokens: event.cacheReadTokens,
+      cacheCreationTokens: event.cacheCreationTokens,
+      hitRate: hitRate === null ? null : Math.round(hitRate * 1000) / 1000,
+      modelSwitched,
+      cacheBreak
+    });
+    if (cacheBreak) {
+      summary.cacheBreaks += 1;
+    }
+    if (modelSwitched) {
+      summary.modelSwitches += 1;
+    }
+    if (hitRate !== null) {
+      previousHit = hitRate;
+    }
+    if (event.model) {
+      previousModel = event.model;
+    }
+  }
+
+  return { status: "ok", summary, events: events.slice(0, 500), cacheTimeline };
+}
+
 type ModelTier = "frontier" | "standard" | "unknown";
 
 interface ModelPrice {
@@ -2122,7 +2455,8 @@ const getRoutes: Record<string, RouteHandler> = {
     jsonResponse(response, 200, await sessionsBreakdown(rangeFromUrl(url), repoFromUrl(url))),
   "/api/coach": async (url, response) => jsonResponse(response, 200, await coach(url)),
   "/api/plans": (_url, response) => jsonResponse(response, 200, billingFacts()),
-  "/api/planner": async (url, response) => jsonResponse(response, 200, await planner(url))
+  "/api/planner": async (url, response) => jsonResponse(response, 200, await planner(url)),
+  "/api/inspector": async (url, response) => jsonResponse(response, 200, await inspectorTrace(url))
 };
 
 const server = http.createServer((request, response) => {

@@ -208,6 +208,68 @@ export interface PlannerInsight {
     justificationMarkdown: string;
 }
 
+export type InspectorEventType = "llm_request" | "agent_turn" | "tool_call" | "hook" | "other";
+
+export interface InspectorEvent {
+    spanId: string;
+    parentSpanId: string;
+    type: InspectorEventType;
+    name: string;
+    operation: string;
+    model: string;
+    tool: string;
+    agent: string;
+    serviceName: string;
+    startMs: number;
+    durationMs: number;
+    inputTokens: number | null;
+    outputTokens: number | null;
+    cacheReadTokens: number | null;
+    cacheCreationTokens: number | null;
+    error: string | null;
+}
+
+export interface InspectorCacheTurn {
+    seq: number;
+    startMs: number;
+    model: string;
+    inputTokens: number | null;
+    cacheReadTokens: number | null;
+    cacheCreationTokens: number | null;
+    hitRate: number | null;
+    modelSwitched: boolean;
+    cacheBreak: boolean;
+}
+
+export interface InspectorSummary {
+    traceId: string;
+    spanCount: number;
+    llmRequests: number;
+    agentTurns: number;
+    toolCalls: number;
+    hooks: number;
+    errors: number;
+    totalDurationMs: number | null;
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens: number;
+    cacheCreationTokens: number;
+    cacheEfficiency: number | null;
+    cacheBreaks: number;
+    modelSwitches: number;
+    models: string[];
+    tools: string[];
+    services: string[];
+}
+
+export interface InspectorResponse {
+    status: MetricStatus;
+    message?: string;
+    summary: InspectorSummary | null;
+    events: InspectorEvent[];
+    cacheTimeline: InspectorCacheTurn[];
+}
+
 export interface BudgetInsight {
     plan: string;
     seats: number;

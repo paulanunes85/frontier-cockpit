@@ -20,6 +20,7 @@ The repository can be cloned anywhere. All scripts resolve their own location, s
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.3.0 | 2026-07-03 | Frontier Cockpit Team | Added the Inspector view (per-session agent debug log with event timeline, cache explorer with cache-break detection, and summary stats) and the import scripts for VS Code Agent Debug Logs OTLP session exports with workspace attribution. |
 | 1.2.1 | 2026-07-03 | Frontier Cockpit Team | Migrated Grafana to the maintained `grafana/grafana` Docker Hub repository (Docker Hub stops updating `grafana/grafana-oss` from 12.4.0) pinned at 12.4.3, updated Loki to 3.3.4, and added native PowerShell orchestration scripts for Windows. |
 | 1.2.0 | 2026-07-03 | Frontier Cockpit Team | Added the Planner view (workspace forecast, overage justification, Auto vs frontier model strategy), the full per-plan AI Credits registry with promo-window awareness, configurable coaching and planner weights, the in-Docker OTel coverage audit, and CI verification that pinned images resolve. |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Documented the 10-container stack with the jobs container, Grafana embedded SQLite, generated Grafana admin credentials, privacy-first content capture defaults, repository-relative paths, and removal of the legacy Aspire-only helper scripts. |
@@ -389,6 +390,24 @@ In Aspire Dashboard:
 6. Open another workspace or repository and repeat. The same user-level configuration applies, while repository attributes identify the active project when available.
 
 Aspire is the best local live viewer for trace trees, span attributes, and the GenAI conversation visualizer. Grafana is the best local historical dashboard for trends, workspace filtering, context window usage, AIU, and VS Code process memory.
+
+## Inspect a session (agent debug log)
+
+The mini app's **Inspector** view turns any observed session into a chronological event log — the same signals the VS Code Agent Debug Log panel shows (LLM requests, agent turns, tool calls, hooks, token usage, errors) plus a per-request **cache explorer** that flags where the prompt-cache prefix broke (sharp hit-rate drops and model switches). Pick a session in the view or paste a trace id from the Sessions view. Data comes from local Tempo only; raw content never leaves the machine.
+
+Sessions exported from the VS Code **Agent Debug Logs** panel (Export icon, OTLP JSON format) can be imported into the same stack, attributed to the current Git workspace:
+
+```bash
+local-otel/import-agent-debug-session.sh exported-session.json
+```
+
+Windows PowerShell:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File local-otel/import-agent-debug-session.ps1 -Path exported-session.json
+```
+
+Run the import from inside the project repository so the session is grouped under that workspace. Imported sessions appear in the mini app after the next materializer pass (up to 5 minutes) and are inspectable by trace id immediately.
 
 ## Coverage audit
 

@@ -131,6 +131,17 @@ export function PlannerIcon(props: Readonly<IconProps>): ReactElement {
     );
 }
 
+// Inspector: a magnifier over a pulse, for per-session debug inspection.
+export function InspectorIcon(props: Readonly<IconProps>): ReactElement {
+    return (
+        <IconBase {...props}>
+            <circle cx="10.5" cy="10.5" r="6.75" />
+            <path d="M15.5 15.5 20 20" />
+            <path d="M7.5 10.5h1.6l1-2 1.6 4 1-2h1.8" />
+        </IconBase>
+    );
+}
+
 // Check: an affirmative mark, for capabilities a plan includes.
 export function CheckIcon(props: Readonly<IconProps>): ReactElement {
     return (
@@ -156,6 +167,7 @@ export const navIcons: Record<string, (props: Readonly<IconProps>) => ReactEleme
     workspaces: WorkspacesIcon,
     coach: CoachIcon,
     planner: PlannerIcon,
+    inspector: InspectorIcon,
     history: HistoryIcon,
     health: HealthIcon,
     settings: SettingsIcon

@@ -94,6 +94,7 @@ $endpoints = @(
     @{ Url = "http://localhost:3300/api/sessions?range=24h&repo=all"; Name = "Dashboard sessions API" },
     @{ Url = "http://localhost:3300/api/coach?range=24h&repo=all"; Name = "Dashboard coach API" },
     @{ Url = "http://localhost:3300/api/planner?lookback=7d&weeks=4&repo=all"; Name = "Dashboard planner API" },
+    @{ Url = "http://localhost:3300/api/inspector"; Name = "Dashboard inspector API" },
     @{ Url = "http://localhost:3000/api/health"; Name = "Grafana" },
     @{ Url = "http://localhost:18888"; Name = "Aspire Dashboard" },
     @{ Url = "http://localhost:9090/-/ready"; Name = "Prometheus" },

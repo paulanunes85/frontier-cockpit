@@ -5,6 +5,7 @@ import type {
   CoachResponse,
   CopilotPlanFacts,
   HistoryPoint,
+  InspectorResponse,
   PlannerInsight,
   RangeOption,
   SessionRecord,
@@ -32,7 +33,7 @@ import { CheckIcon, DashIcon, NavIcon } from "./icons";
 
 const rangeOptions: RangeOption[] = ["1h", "6h", "24h", "7d"];
 
-type ViewId = "overview" | "credits" | "planner" | "sessions" | "workspaces" | "coach" | "history" | "health" | "settings";
+type ViewId = "overview" | "credits" | "planner" | "inspector" | "sessions" | "workspaces" | "coach" | "history" | "health" | "settings";
 
 interface ViewDef {
   id: ViewId;
@@ -44,6 +45,7 @@ const viewOrder: ViewId[] = [
   "overview",
   "credits",
   "planner",
+  "inspector",
   "sessions",
   "workspaces",
   "coach",
@@ -1056,6 +1058,226 @@ function PlannerView({ summary, repo }: Readonly<{ summary: SummaryResponse | nu
   );
 }
 
+function useInspectorData(traceId: string) {
+  const [inspector, setInspector] = useState<InspectorResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!traceId) {
+      setInspector(null);
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    fetch(`/api/inspector?traceId=${encodeURIComponent(traceId)}`, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = (await response.json()) as InspectorResponse;
+        if (!cancelled) {
+          setInspector(payload);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInspector(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [traceId]);
+
+  return { inspector, isLoading };
+}
+
+function eventTypeTone(type: string): string {
+  if (type === "llm_request") {
+    return "pill-good";
+  }
+  if (type === "tool_call") {
+    return "pill-warn";
+  }
+  return "pill-good";
+}
+
+function formatMs(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "—";
+  }
+  if (value >= 60000) {
+    return `${formatNumber(value / 60000, 1)} min`;
+  }
+  if (value >= 1000) {
+    return `${formatNumber(value / 1000, 1)} s`;
+  }
+  return `${formatNumber(value, 0)} ms`;
+}
+
+function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | null }>) {
+  const t = useT();
+  const items = sessions?.items ?? [];
+  const [traceId, setTraceId] = useState("");
+  const effectiveTraceId = traceId || (items.length > 0 ? items[0].traceId : "");
+  const { inspector, isLoading } = useInspectorData(effectiveTraceId);
+  const summary = inspector?.summary ?? null;
+  const events = inspector?.events ?? [];
+  const cacheTimeline = inspector?.cacheTimeline ?? [];
+
+  const practices = [
+    { id: "lock", title: t("inspector.practice.lock.title"), body: t("inspector.practice.lock.body") },
+    { id: "stable", title: t("inspector.practice.stable.title"), body: t("inspector.practice.stable.body") },
+    { id: "late", title: t("inspector.practice.late.title"), body: t("inspector.practice.late.body") },
+    { id: "fresh", title: t("inspector.practice.fresh.title"), body: t("inspector.practice.fresh.body") }
+  ];
+
+  return (
+    <>
+      <Panel
+        title={t("inspector.title")}
+        status={inspector?.status}
+        aside={
+          <select value={effectiveTraceId} onChange={(event) => setTraceId(event.target.value)}>
+            {items.length === 0 ? <option value="">{t("inspector.noSessions")}</option> : null}
+            {items.map((session) => (
+              <option key={session.traceId} value={session.traceId}>
+                {session.repoShort} · {session.model} · {formatNumber(session.aiCredits, 2)} cr · {session.traceId.slice(0, 8)}…
+              </option>
+            ))}
+          </select>
+        }
+      >
+        <p className="muted">{t("inspector.blurb")}</p>
+        {isLoading && !inspector ? <p className="muted">{t("state.loading")}</p> : null}
+        {inspector && inspector.status === "unavailable" ? <p className="muted">{inspector.message}</p> : null}
+        {summary ? (
+          <div className="composition-stats">
+            <div>
+              <span className="stat-label">{t("inspector.duration")}</span>
+              <span className="stat-value">{formatMs(summary.totalDurationMs)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.llmRequests")}</span>
+              <span className="stat-value">{formatNumber(summary.llmRequests, 0)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.toolCalls")}</span>
+              <span className="stat-value">{formatNumber(summary.toolCalls, 0)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.tokensInOut")}</span>
+              <span className="stat-value">{formatCompact(summary.inputTokens)} / {formatCompact(summary.outputTokens)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.cacheHit")}</span>
+              <span className="stat-value">{formatPercent(summary.cacheEfficiency)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.cacheBreaks")}</span>
+              <span className="stat-value">{formatNumber(summary.cacheBreaks, 0)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.errors")}</span>
+              <span className="stat-value">{formatNumber(summary.errors, 0)}</span>
+            </div>
+          </div>
+        ) : null}
+        {summary && summary.models.length > 0 ? (
+          <p className="muted">{t("inspector.modelsUsed", { models: summary.models.join(", ") })}</p>
+        ) : null}
+      </Panel>
+      {cacheTimeline.length > 0 ? (
+        <Panel title={t("inspector.cacheTimeline")} aside={<span className="muted">{t("inspector.cacheTimelineAside")}</span>}>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th className="numeric">#</th>
+                  <th className="numeric">{t("inspector.col.offset")}</th>
+                  <th>{t("sessions.col.model")}</th>
+                  <th className="numeric">{t("inspector.col.hitRate")}</th>
+                  <th className="numeric">{t("ws.col.cached")}</th>
+                  <th className="numeric">{t("inspector.col.cacheWrite")}</th>
+                  <th>{t("inspector.col.signal")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cacheTimeline.map((turn) => (
+                  <tr key={turn.seq}>
+                    <td className="numeric">{turn.seq}</td>
+                    <td className="numeric">{formatMs(turn.startMs)}</td>
+                    <td><span className="model-tag">{turn.model || "—"}</span></td>
+                    <td className="numeric">
+                      <span className={`pill ${turn.cacheBreak ? "pill-bad" : "pill-good"}`}>{formatPercent(turn.hitRate)}</span>
+                    </td>
+                    <td className="numeric">{formatCompact(turn.cacheReadTokens)}</td>
+                    <td className="numeric">{formatCompact(turn.cacheCreationTokens)}</td>
+                    <td className="muted">
+                      {turn.modelSwitched ? t("inspector.modelSwitch") : turn.cacheBreak ? t("inspector.cacheBreak") : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted">{t("inspector.cacheNote")}</p>
+        </Panel>
+      ) : null}
+      {events.length > 0 ? (
+        <Panel title={t("inspector.eventLog")} aside={<span className="muted">{t("inspector.eventCount", { count: events.length })}</span>}>
+          <div className="table-wrap">
+            <table className="sessions-table">
+              <thead>
+                <tr>
+                  <th className="numeric">{t("inspector.col.offset")}</th>
+                  <th>{t("inspector.col.type")}</th>
+                  <th>{t("inspector.col.name")}</th>
+                  <th>{t("inspector.col.detail")}</th>
+                  <th className="numeric">{t("inspector.col.duration")}</th>
+                  <th className="numeric">{t("ws.col.input")}</th>
+                  <th className="numeric">{t("sessions.col.output")}</th>
+                  <th className="numeric">{t("ws.col.cached")}</th>
+                  <th>{t("inspector.col.error")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={`${event.spanId}-${event.startMs}`}>
+                    <td className="numeric">{formatMs(event.startMs)}</td>
+                    <td><span className={`pill ${eventTypeTone(event.type)}`}>{t(`inspector.type.${event.type}`)}</span></td>
+                    <td>{event.name}</td>
+                    <td className="muted">{event.tool || event.model || event.agent || "—"}</td>
+                    <td className="numeric">{formatMs(event.durationMs)}</td>
+                    <td className="numeric">{formatCompact(event.inputTokens)}</td>
+                    <td className="numeric">{formatCompact(event.outputTokens)}</td>
+                    <td className="numeric">{formatCompact(event.cacheReadTokens)}</td>
+                    <td>{event.error ? <span className="pill pill-bad">{event.error}</span> : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted">{t("inspector.eventNote")}</p>
+        </Panel>
+      ) : null}
+      <Panel title={t("inspector.practices")} aside={<span className="muted">{t("coach.bestPractices")}</span>}>
+        <ul className="playbook-grid">
+          {practices.map((item) => (
+            <li key={item.id} className="playbook-card">
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </li>
+          ))}
+        </ul>
+        <p className="muted">{t("inspector.importNote")}</p>
+      </Panel>
+    </>
+  );
+}
+
 function OverviewView({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
   const t = useT();
   const alerts = localizeAlerts(summary?.alerts ?? [], t);
@@ -1598,6 +1820,7 @@ const viewRenderers: Record<ViewId, (props: ViewProps) => ReactNode> = {
   overview: ({ summary }) => <OverviewView summary={summary} />,
   credits: ({ summary }) => <CreditsView summary={summary} />,
   planner: ({ summary, repo }) => <PlannerView summary={summary} repo={repo} />,
+  inspector: ({ sessions }) => <InspectorView sessions={sessions} />,
   sessions: ({ sessions }) => <SessionsView sessions={sessions} />,
   workspaces: ({ summary }) => <WorkspacesView summary={summary} />,
   coach: ({ coach, summary }) => <CoachView coach={coach} summary={summary} />,
