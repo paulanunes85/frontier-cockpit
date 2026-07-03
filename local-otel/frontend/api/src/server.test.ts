@@ -220,3 +220,49 @@ test("cache analysis falls back to prefix drift without content capture", async 
   assert.equal(result.cacheBreaks, 1);
   assert.equal(result.timeline[1].breakCause, "prefix-drift");
 });
+
+test("message preview extracts the last matching role from captured JSON", async () => {
+  const mod = await loadServer("preview");
+  const raw = JSON.stringify([
+    { role: "system", content: "You are an assistant." },
+    { role: "user", content: "First question" },
+    { role: "assistant", content: [{ type: "text", text: "First answer" }] },
+    { role: "user", content: [{ type: "text", text: "faça o sync das branches remotas com as locais" }] }
+  ]);
+  assert.equal(mod.extractMessagePreview(raw, "user"), "faça o sync das branches remotas com as locais");
+  assert.equal(mod.extractMessagePreview(raw, "assistant"), "First answer");
+  assert.equal(mod.extractMessagePreview("plain completion text", "assistant"), "plain completion text");
+  assert.equal(mod.extractMessagePreview("", "user"), "");
+  const long = mod.extractMessagePreview("x".repeat(500), "user");
+  assert.equal(long.length, 200);
+  assert.ok(long.endsWith("…"));
+});
+
+test("agent breakdown groups model turns, tools, and errors per agent", async () => {
+  const mod = await loadServer("agent-breakdown");
+  const ev = (type: string, agent: string, extra: Record<string, unknown> = {}) => ({
+    type,
+    agent,
+    serviceName: "copilot-chat",
+    durationMs: 100,
+    inputTokens: 10,
+    outputTokens: 5,
+    error: null,
+    ...extra
+  });
+  const breakdown = mod.buildAgentBreakdown([
+    ev("llm_request", "GitHub Copilot Chat"),
+    ev("llm_request", "GitHub Copilot Chat"),
+    ev("tool_call", "GitHub Copilot Chat", { error: "ToolExecutionError" }),
+    ev("llm_request", "code-reviewer"),
+    ev("hook", "")
+  ] as never);
+  assert.equal(breakdown.length, 3);
+  assert.equal(breakdown[0].agent, "GitHub Copilot Chat");
+  assert.equal(breakdown[0].llmRequests, 2);
+  assert.equal(breakdown[0].toolCalls, 1);
+  assert.equal(breakdown[0].errors, 1);
+  assert.equal(breakdown[1].agent, "code-reviewer");
+  assert.equal(breakdown[2].agent, "copilot-chat");
+  assert.equal(breakdown[2].hooks, 1);
+});

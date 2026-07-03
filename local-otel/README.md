@@ -20,6 +20,7 @@ The repository can be cloned anywhere. All scripts resolve their own location, s
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.7.0 | 2026-07-03 | Frontier Cockpit Team | Inspector parity with the VS Code Agent Debug Logs: session details header (workspace, branch, location/mode, agent, created, last activity, status), full summary tiles (model turns, tool calls, input/output/cached/total tokens, errors, Copilot usage AIC), an **agent flow chart** with user-message/response previews (content capture) and per-node tool/hook/model steps, a per-agent action table, and trace-scoped deep links (Aspire, Grafana Tempo, Loki). Overview rebuilt as a super dashboard (highlights, top recommendations, best practices) and stack health now lives only in the Health view. |
 | 1.6.1 | 2026-07-03 | Frontier Cockpit Team | Added the in-place upgrade flag to the stack orchestrators (`start-full-stack.sh --update` / `start-full-stack.ps1 -Update`): rebuild of the locally built images with `build --pull` first (a failed build leaves the running stack untouched), then stop with orphan cleanup and restart, in one command, preserving all named volumes; documented the upgrade flow. |
 | 1.6.0 | 2026-07-03 | Frontier Cockpit Team | Cache Explorer parity in the Inspector (token-weighted cache hit, healthy request pairs, avoidable recomputed tokens, and cache-break cause classification: model switch, system-prompt change, tool-catalog change, prefix drift), per-workspace context-window peak, context-management coaching (deliberate `/compact`, session scoping, #-mentions), the Context management playbook in the Coach view, and the VS Code OTel settings checklist. |
 | 1.5.0 | 2026-07-03 | Frontier Cockpit Team | Completed the local persistence layer: the jobs container now runs the DuckDB analytics rollups (analytics volume), the dashboard serves long-term history beyond the 30-day Prometheus retention from the rollup snapshot, the budget panel projects the credit run-out date, and the API gained a node:test suite wired into CI. |
@@ -442,6 +443,14 @@ The mini app's **Inspector** view turns any observed session into a chronologica
 - **Healthy request pairs**: consecutive request pairs where the prompt-cache prefix survived (hit rate at or above `THRESHOLD_INSPECTOR_HEALTHY_HIT_RATE`, default 0.5).
 - **Avoidable recomputed tokens**: an estimate of cache-write work forced by each break — tokens that a stable prefix would have served from cache.
 - **Cache-break cause per request**: `model switch`, `system prompt changed`, `tool catalog changed`, or `prefix drift`. The model switch is always detectable; classifying system-prompt and tool-catalog changes needs prompt content on the spans — enable the VS Code setting **Chat > Agent Host > Otel: Capture Content** (safe here: content stays in local Tempo, and the API exposes only short signatures, never the text).
+
+On top of the cache analytics, the view mirrors the rest of the VS Code Agent Debug Logs experience:
+
+- **Session details header**: workspace, branch, location/mode, agent, created, last activity, live/idle status, and duration.
+- **Summary tiles**: model turns, tool calls, input/output/cached-input/total tokens, errors, and Copilot usage (AIC) from the session's real local telemetry.
+- **Agent flow chart**: the session as a chronological node chain — user message, model requests (model, tokens, duration), tool calls (success/failure, duration), hooks, and agent responses — with a filter box. User-message and response previews appear when **Capture Content** is enabled; the preview is truncated server-side and the full text stays in local Tempo.
+- **Agents in this session**: per-agent rollup of model turns, tool calls, hooks, output tokens, errors, and active time — the per-workspace "what did each agent do" view.
+- **Explore trace data**: one-click deep links to the exact trace in Aspire, Grafana Tempo Explore, and the matching Loki logs.
 
 Pick a session in the view or paste a trace id from the Sessions view. Data comes from local Tempo only; raw content never leaves the machine.
 

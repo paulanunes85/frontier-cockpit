@@ -2020,3 +2020,160 @@ ul {
 @media (max-width: 640px) {
   .wizard-grid { grid-template-columns: 1fr; }
 }
+
+/* Inspector: session details grid (VS Code Agent Debug Logs header parity) */
+.session-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px 20px;
+    margin: 0 0 18px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel-inset, rgba(127, 127, 127, 0.05));
+}
+
+.session-details div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.session-details dt {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.session-details dd {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+/* Inspector: trace-scoped deep links (Explore Trace Data) */
+.trace-links {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.trace-links a {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text);
+    background: transparent;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.trace-links a:hover {
+    border-color: var(--accent, #2f6fed);
+    color: var(--accent, #2f6fed);
+}
+
+/* Inspector: agent flow chart */
+.flow-filter {
+    min-width: 220px;
+}
+
+.flow-list {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0 0 0 18px;
+    position: relative;
+}
+
+.flow-list::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.flow-node {
+    position: relative;
+    margin: 0 0 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: 10px;
+    background: var(--panel);
+}
+
+.flow-node::before {
+    content: "";
+    position: absolute;
+    left: -18px;
+    top: 16px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--border);
+}
+
+.flow-title {
+    font-weight: 600;
+    margin-right: 10px;
+    overflow-wrap: anywhere;
+}
+
+.flow-sub {
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.flow-preview {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.flow-user { border-left-color: #2f6fed; }
+.flow-user::before { background: #2f6fed; }
+.flow-model { border-left-color: #7c5cff; }
+.flow-model::before { background: #7c5cff; }
+.flow-response { border-left-color: #4c5561; }
+.flow-tool { border-left-color: #2e9e63; }
+.flow-tool::before { background: #2e9e63; }
+.flow-hook { border-left-color: #8a93a1; }
+.flow-agent { border-left-color: #d29a22; }
+.flow-agent::before { background: #d29a22; }
+.flow-error { border-left-color: #d64545; }
+.flow-error::before { background: #d64545; }
+
+/* Overview: highlights grid */
+.highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+}
+
+.highlight-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    min-width: 0;
+}
+
+.highlight-card .stat-value {
+    overflow-wrap: anywhere;
+}

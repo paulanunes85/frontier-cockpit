@@ -6,6 +6,7 @@ import type {
   CoachResponse,
   CopilotPlanFacts,
   HistoryPoint,
+  InspectorEvent,
   InspectorResponse,
   LongTermHistoryResponse,
   PlannerInsight,
@@ -695,6 +696,7 @@ function CreditsView({ summary }: Readonly<{ summary: SummaryResponse | null }>)
     <>
       <BudgetPanel summary={summary} />
       <ModelMixPanel summary={summary} />
+      <PlanComparisonPanel summary={summary} />
       <ExperiencePanel summary={summary} />
       <Panel title={t("credits.play.title")} aside={<span className="muted">{t("credits.play.aside")}</span>}>
         <ul className="playbook-grid">
@@ -1171,15 +1173,107 @@ function formatMs(value: number | null | undefined): string {
   return `${formatNumber(value, 0)} ms`;
 }
 
+const grafanaBase = "http://localhost:3000";
+
+// Trace-scoped deep links so the raw spans and logs behind a session are one
+// click away, like the VS Code "Explore Trace Data" row.
+function traceExploreLinks(traceId: string): { aspire: string; tempo: string; loki: string } {
+  const range = { from: "now-7d", to: "now" };
+  const tempoPane = {
+    fdb: {
+      datasource: "tempo-local",
+      queries: [{ refId: "A", queryType: "traceql", query: traceId, datasource: { type: "tempo", uid: "tempo-local" } }],
+      range
+    }
+  };
+  const lokiPane = {
+    fdb: {
+      datasource: "loki-local",
+      queries: [{ refId: "A", expr: `{service_name=~".+"} |= \`${traceId}\``, datasource: { type: "loki", uid: "loki-local" } }],
+      range
+    }
+  };
+  return {
+    aspire: `${aspireBase}/traces/detail/${traceId}`,
+    tempo: `${grafanaBase}/explore?schemaVersion=1&orgId=1&panes=${encodeURIComponent(JSON.stringify(tempoPane))}`,
+    loki: `${grafanaBase}/explore?schemaVersion=1&orgId=1&panes=${encodeURIComponent(JSON.stringify(lokiPane))}`
+  };
+}
+
+interface FlowNode {
+  key: string;
+  kind: "user" | "model" | "response" | "tool" | "hook" | "agent" | "other";
+  title: string;
+  sub: string;
+  preview?: string;
+  error?: boolean;
+}
+
+// Flattens the chronological span events into the node chain the VS Code
+// Agent Flow Chart shows: user message → model request → agent response,
+// interleaved with tool calls and hooks.
+function buildFlowNodes(events: InspectorEvent[], t: TranslateFn): FlowNode[] {
+  const nodes: FlowNode[] = [];
+  for (const event of events) {
+    const base = `${event.spanId}-${event.startMs}`;
+    if (event.type === "llm_request") {
+      if (event.inputPreview) {
+        nodes.push({ key: `${base}-u`, kind: "user", title: t("inspector.flow.userMessage"), sub: "", preview: event.inputPreview });
+      }
+      const promptTokens = (event.inputTokens ?? 0) + (event.cacheReadTokens ?? 0) + (event.cacheCreationTokens ?? 0);
+      nodes.push({
+        key: base,
+        kind: "model",
+        title: event.model || event.name,
+        sub: `${event.operation || event.name} · ${formatCompact(promptTokens)} tokens · ${formatMs(event.durationMs)}`,
+        error: Boolean(event.error)
+      });
+      if (event.outputPreview) {
+        nodes.push({ key: `${base}-r`, kind: "response", title: t("inspector.flow.agentResponse"), sub: "", preview: event.outputPreview });
+      }
+    } else if (event.type === "tool_call") {
+      nodes.push({
+        key: base,
+        kind: "tool",
+        title: event.tool || event.name,
+        sub: event.error ?? `${t("inspector.flow.success")} · ${formatMs(event.durationMs)}`,
+        error: Boolean(event.error)
+      });
+    } else if (event.type === "hook") {
+      nodes.push({ key: base, kind: "hook", title: event.name, sub: formatMs(event.durationMs) });
+    } else if (event.type === "agent_turn") {
+      nodes.push({ key: base, kind: "agent", title: event.agent || event.name, sub: `${t("inspector.flow.agentTurn")} · ${formatMs(event.durationMs)}` });
+    } else {
+      nodes.push({ key: base, kind: "other", title: event.name, sub: formatMs(event.durationMs) });
+    }
+  }
+  return nodes;
+}
+
 function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | null }>) {
   const t = useT();
   const items = sessions?.items ?? [];
   const [traceId, setTraceId] = useState("");
+  const [flowFilter, setFlowFilter] = useState("");
   const effectiveTraceId = traceId || (items.length > 0 ? items[0].traceId : "");
   const { inspector, isLoading } = useInspectorData(effectiveTraceId);
   const summary = inspector?.summary ?? null;
   const events = inspector?.events ?? [];
   const cacheTimeline = inspector?.cacheTimeline ?? [];
+  const agents = inspector?.agents ?? [];
+  const session = items.find((item) => item.traceId === effectiveTraceId) ?? null;
+  const links = effectiveTraceId ? traceExploreLinks(effectiveTraceId) : null;
+  const flowNodes = useMemo(() => buildFlowNodes(events, t), [events, t]);
+  const filteredFlow = useMemo(() => {
+    const needle = flowFilter.trim().toLowerCase();
+    if (!needle) {
+      return flowNodes;
+    }
+    return flowNodes.filter((node) =>
+      `${node.title} ${node.sub} ${node.preview ?? ""}`.toLowerCase().includes(needle)
+    );
+  }, [flowNodes, flowFilter]);
+  const shownFlow = filteredFlow.slice(0, 150);
 
   const practices = [
     { id: "lock", title: t("inspector.practice.lock.title"), body: t("inspector.practice.lock.body") },
@@ -1208,13 +1302,49 @@ function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | nul
         {isLoading && !inspector ? <p className="muted">{t("state.loading")}</p> : null}
         {inspector && inspector.status === "unavailable" ? <p className="muted">{inspector.message}</p> : null}
         {summary ? (
-          <div className="composition-stats">
+          <dl className="session-details">
             <div>
-              <span className="stat-label">{t("inspector.duration")}</span>
-              <span className="stat-value">{formatMs(summary.totalDurationMs)}</span>
+              <dt>{t("inspector.details.workspace")}</dt>
+              <dd>{session ? session.repoShort : "—"}</dd>
             </div>
             <div>
-              <span className="stat-label">{t("inspector.llmRequests")}</span>
+              <dt>{t("inspector.details.branch")}</dt>
+              <dd>{session?.branch || "—"}</dd>
+            </div>
+            <div>
+              <dt>{t("inspector.details.location")}</dt>
+              <dd>{session?.modeBucket || session?.operation || summary.services.join(", ") || "—"}</dd>
+            </div>
+            <div>
+              <dt>{t("inspector.details.agent")}</dt>
+              <dd>{agents.length > 0 ? agents.map((entry) => entry.agent).slice(0, 2).join(", ") : "—"}</dd>
+            </div>
+            <div>
+              <dt>{t("inspector.details.created")}</dt>
+              <dd>{summary.startedAt ? new Date(summary.startedAt).toLocaleString() : "—"}</dd>
+            </div>
+            <div>
+              <dt>{t("inspector.details.lastActivity")}</dt>
+              <dd>{summary.endedAt ? new Date(summary.endedAt).toLocaleString() : "—"}</dd>
+            </div>
+            <div>
+              <dt>{t("inspector.details.status")}</dt>
+              <dd>
+                <span className={`pill ${summary.sessionStatus === "active" ? "pill-good" : "pill-warn"}`}>
+                  {summary.sessionStatus === "active" ? t("inspector.details.statusActive") : t("inspector.details.statusIdle")}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>{t("inspector.duration")}</dt>
+              <dd>{formatMs(summary.totalDurationMs)}</dd>
+            </div>
+          </dl>
+        ) : null}
+        {summary ? (
+          <div className="composition-stats">
+            <div>
+              <span className="stat-label">{t("inspector.tile.modelTurns")}</span>
               <span className="stat-value">{formatNumber(summary.llmRequests, 0)}</span>
             </div>
             <div>
@@ -1222,8 +1352,28 @@ function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | nul
               <span className="stat-value">{formatNumber(summary.toolCalls, 0)}</span>
             </div>
             <div>
-              <span className="stat-label">{t("inspector.tokensInOut")}</span>
-              <span className="stat-value">{formatCompact(summary.inputTokens)} / {formatCompact(summary.outputTokens)}</span>
+              <span className="stat-label">{t("inspector.tile.input")}</span>
+              <span className="stat-value">{formatCompact(summary.inputTokens)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.tile.output")}</span>
+              <span className="stat-value">{formatCompact(summary.outputTokens)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.tile.cachedInput")}</span>
+              <span className="stat-value">{formatCompact(summary.cacheReadTokens)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.tile.totalTokens")}</span>
+              <span className="stat-value">{formatCompact(summary.totalTokens)}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.tile.credits")}</span>
+              <span className="stat-value">{session ? formatNumber(session.aiCredits, 2) : "—"}</span>
+            </div>
+            <div>
+              <span className="stat-label">{t("inspector.errors")}</span>
+              <span className="stat-value">{formatNumber(summary.errors, 0)}</span>
             </div>
             <div>
               <span className="stat-label">{t("inspector.cacheHit")}</span>
@@ -1245,10 +1395,14 @@ function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | nul
               <span className="stat-label">{t("inspector.avoidableTokens")}</span>
               <span className="stat-value">{formatCompact(summary.avoidableRecomputedTokens)}</span>
             </div>
-            <div>
-              <span className="stat-label">{t("inspector.errors")}</span>
-              <span className="stat-value">{formatNumber(summary.errors, 0)}</span>
-            </div>
+          </div>
+        ) : null}
+        {summary && links ? (
+          <div className="trace-links">
+            <span className="stat-label">{t("inspector.explore")}</span>
+            <a href={links.aspire} target="_blank" rel="noopener noreferrer">{t("inspector.links.aspire")}</a>
+            <a href={links.tempo} target="_blank" rel="noopener noreferrer">{t("inspector.links.tempo")}</a>
+            <a href={links.loki} target="_blank" rel="noopener noreferrer">{t("inspector.links.logs")}</a>
           </div>
         ) : null}
         {summary && summary.cachedTokenShare !== null ? (
@@ -1265,6 +1419,70 @@ function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | nul
           <p className="muted">{t("inspector.modelsUsed", { models: summary.models.join(", ") })}</p>
         ) : null}
       </Panel>
+      {flowNodes.length > 0 ? (
+        <Panel
+          title={t("inspector.flow.title")}
+          aside={
+            <input
+              className="flow-filter"
+              type="search"
+              placeholder={t("inspector.flow.filter")}
+              value={flowFilter}
+              onChange={(event) => setFlowFilter(event.target.value)}
+            />
+          }
+        >
+          <p className="muted">{t("inspector.flow.aside")}</p>
+          {shownFlow.length > 0 ? (
+            <ol className="flow-list">
+              {shownFlow.map((node) => (
+                <li key={node.key} className={`flow-node flow-${node.kind}${node.error ? " flow-error" : ""}`}>
+                  <span className="flow-title">{node.title}</span>
+                  {node.sub ? <span className="flow-sub">{node.sub}</span> : null}
+                  {node.preview ? <p className="flow-preview">{node.preview}</p> : null}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">{t("inspector.flow.empty")}</p>
+          )}
+          {filteredFlow.length > shownFlow.length ? (
+            <p className="muted">{t("inspector.flow.truncated", { shown: shownFlow.length, total: filteredFlow.length })}</p>
+          ) : null}
+        </Panel>
+      ) : null}
+      {agents.length > 0 ? (
+        <Panel title={t("inspector.agents.title")} aside={<span className="muted">{t("inspector.agents.aside")}</span>}>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>{t("inspector.agents.col.agent")}</th>
+                  <th className="numeric">{t("inspector.agents.col.turns")}</th>
+                  <th className="numeric">{t("inspector.agents.col.tools")}</th>
+                  <th className="numeric">{t("inspector.agents.col.hooks")}</th>
+                  <th className="numeric">{t("sessions.col.output")}</th>
+                  <th className="numeric">{t("inspector.errors")}</th>
+                  <th className="numeric">{t("inspector.agents.col.time")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agents.map((entry) => (
+                  <tr key={entry.agent}>
+                    <td><span className="ws-name">{entry.agent}</span></td>
+                    <td className="numeric">{formatNumber(entry.llmRequests, 0)}</td>
+                    <td className="numeric">{formatNumber(entry.toolCalls, 0)}</td>
+                    <td className="numeric">{formatNumber(entry.hooks, 0)}</td>
+                    <td className="numeric">{formatCompact(entry.outputTokens)}</td>
+                    <td className="numeric">{entry.errors > 0 ? <span className="pill pill-bad">{entry.errors}</span> : "0"}</td>
+                    <td className="numeric">{formatMs(entry.durationMs)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      ) : null}
       {cacheTimeline.length > 0 ? (
         <Panel title={t("inspector.cacheTimeline")} aside={<span className="muted">{t("inspector.cacheTimelineAside")}</span>}>
           <div className="table-wrap">
@@ -1357,17 +1575,29 @@ function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | nul
   );
 }
 
-function OverviewView({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
+function OverviewView({
+  summary,
+  sessions,
+  coach
+}: Readonly<{ summary: SummaryResponse | null; sessions: SessionsResponse | null; coach: CoachResponse | null }>) {
   const t = useT();
   const alerts = localizeAlerts(summary?.alerts ?? [], t);
-  const healthCounts = useMemo(() => {
-    const services = summary?.health ?? [];
-    return {
-      ok: services.filter((service) => service.status === "ok").length,
-      degraded: services.filter((service) => service.status === "degraded").length,
-      unavailable: services.filter((service) => service.status === "unavailable").length
-    };
-  }, [summary]);
+  const topWorkspace = summary?.workspaces.items?.[0] ?? null;
+  const topModel = summary?.modelMix.entries?.[0] ?? null;
+  const topSession = sessions?.items?.find((item) => item.aiCredits > 0) ?? sessions?.items?.[0] ?? null;
+  const budget = summary?.budget ?? null;
+  const contextPeak = summary?.metrics.context.peak.value ?? null;
+  const compactions = summary?.outcomes.contextCompactions.value ?? null;
+  const topRecommendations = (coach?.cards ?? [])
+    .map((card) => localizeCoachCard(card, t))
+    .filter((card) => card.severity !== "good")
+    .slice(0, 3);
+  const practices = [
+    { id: "warm", title: t("playbook.warm.title"), body: t("playbook.warm.body") },
+    { id: "mentions", title: t("ctx.mentions.title"), body: t("ctx.mentions.body") },
+    { id: "compact", title: t("ctx.compact.title"), body: t("ctx.compact.body") },
+    { id: "model", title: t("playbook.model.title"), body: t("playbook.model.body") }
+  ];
 
   return (
     <>
@@ -1388,33 +1618,86 @@ function OverviewView({ summary }: Readonly<{ summary: SummaryResponse | null }>
       />
       <KpiStrip summary={summary} />
       <BudgetPanel summary={summary} compact />
-      <ModelMixPanel summary={summary} />
+      <Panel title={t("overview.highlights")} aside={<span className="muted">{t("overview.highlightsAside")}</span>}>
+        <div className="highlight-grid">
+          <article className="highlight-card">
+            <span className="stat-label">{t("overview.hl.topWorkspace")}</span>
+            <span className="stat-value">{topWorkspace ? topWorkspace.repoShort : t("overview.hl.none")}</span>
+            {topWorkspace ? (
+              <span className="muted">
+                {formatNumber(topWorkspace.aiCredits, 2)} AI Credits · {formatPercent(topWorkspace.cacheEfficiency)} cache
+              </span>
+            ) : null}
+          </article>
+          <article className="highlight-card">
+            <span className="stat-label">{t("overview.hl.topModel")}</span>
+            <span className="stat-value">{topModel ? topModel.model : t("overview.hl.none")}</span>
+            {topModel ? (
+              <span className="muted">
+                {formatPercent(topModel.share)} · {topModel.estimatedAiCredits === null ? "—" : formatNumber(topModel.estimatedAiCredits, 2)} AI Credits
+              </span>
+            ) : null}
+          </article>
+          <article className="highlight-card">
+            <span className="stat-label">{t("overview.hl.topSession")}</span>
+            <span className="stat-value">{topSession ? topSession.repoShort : t("overview.hl.none")}</span>
+            {topSession ? (
+              <span className="muted">
+                {topSession.model} · {formatNumber(topSession.aiCredits, 2)} AI Credits
+              </span>
+            ) : null}
+          </article>
+          <article className="highlight-card">
+            <span className="stat-label">{t("overview.hl.contextPeak")}</span>
+            <span className="stat-value">{contextPeak === null ? "—" : `${formatNumber(contextPeak, 0)}%`}</span>
+            <span className="muted">{t("ctx.aside", {
+              peak: contextPeak === null ? "—" : `${formatNumber(contextPeak, 0)}%`,
+              compactions: compactions === null ? "—" : formatNumber(compactions, 0)
+            })}</span>
+          </article>
+          <article className="highlight-card">
+            <span className="stat-label">{t("overview.hl.exhaustion")}</span>
+            <span className="stat-value">
+              {budget?.projectedExhaustionDate ? new Date(budget.projectedExhaustionDate).toLocaleDateString() : "—"}
+            </span>
+            <span className="muted">
+              {budget?.remainingCredits === null || budget?.remainingCredits === undefined
+                ? t("overview.hl.none")
+                : t("overview.hl.remaining", { value: formatNumber(budget.remainingCredits, 0) })}
+            </span>
+          </article>
+        </div>
+      </Panel>
       <TokenComposition summary={summary} />
       <Panel title={t("overview.topWorkspaces")} aside={<span className="muted">{t("overview.rankedByCredits")}</span>}>
         <WorkspaceTable summary={summary} limit={5} />
       </Panel>
-      <PlanComparisonPanel summary={summary} />
-      <HistoryPanel points={summary?.history.points ?? []} message={summary?.history.message} />
-      <Panel
-        title={t("health.stack")}
-        aside={
-          <span className="health-summary">
-            {t("health.summary", { ok: healthCounts.ok, degraded: healthCounts.degraded, unavailable: healthCounts.unavailable })}
-          </span>
-        }
-      >
-        <div className="health-grid">
-          {(summary?.health ?? []).map((service) => (
-            <article className="health-card" key={service.id}>
-              <div>
-                <h3>{service.name}</h3>
-                <p>{service.detail}</p>
-              </div>
-              <span className={statusClass(service.status)}>{statusText(service.status, t)}</span>
-            </article>
+      {topRecommendations.length > 0 ? (
+        <Panel title={t("overview.topRecs")} aside={<span className="muted">{t("overview.topRecsAside")}</span>}>
+          <ul className="coach-list">
+            {topRecommendations.map((card) => (
+              <li key={card.id} className={`coach-card coach-${card.severity}`}>
+                <div className="coach-head">
+                  <span className={`pill severity-${card.severity}`}>{t(`severity.${card.severity}`)}</span>
+                  <h3>{card.title}</h3>
+                </div>
+                <p className="coach-action"><strong>{t("coach.tryThis")}</strong> {card.action}</p>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      ) : null}
+      <Panel title={t("overview.practices")} aside={<span className="muted">{t("overview.practicesAside")}</span>}>
+        <ul className="playbook-grid">
+          {practices.map((item) => (
+            <li key={item.id} className="playbook-card">
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </li>
           ))}
-        </div>
+        </ul>
       </Panel>
+      <HistoryPanel points={summary?.history.points ?? []} message={summary?.history.message} />
     </>
   );
 }
@@ -2046,7 +2329,7 @@ interface ViewProps {
 }
 
 const viewRenderers: Record<ViewId, (props: ViewProps) => ReactNode> = {
-  overview: ({ summary }) => <OverviewView summary={summary} />,
+  overview: ({ summary, sessions, coach }) => <OverviewView summary={summary} sessions={sessions} coach={coach} />,
   credits: ({ summary }) => <CreditsView summary={summary} />,
   planner: ({ summary, repo, prefs }) => <PlannerView summary={summary} repo={repo} prefs={prefs} />,
   inspector: ({ sessions }) => <InspectorView sessions={sessions} />,

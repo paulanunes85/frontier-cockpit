@@ -1668,6 +1668,11 @@ interface InspectorEvent {
   cacheReadTokens: number | null;
   cacheCreationTokens: number | null;
   error: string | null;
+  // Short plain-text previews of the user message and the model response,
+  // present only when content capture is enabled in VS Code. The full text
+  // never leaves local Tempo; these are truncated for the flow view.
+  inputPreview?: string;
+  outputPreview?: string;
 }
 
 interface InspectorSummary {
@@ -1679,6 +1684,12 @@ interface InspectorSummary {
   hooks: number;
   errors: number;
   totalDurationMs: number | null;
+  // Absolute session window, mirroring the VS Code Agent Debug Logs header
+  // (Created / Last Activity / Status).
+  startedAt: string | null;
+  endedAt: string | null;
+  sessionStatus: "active" | "idle";
+  totalTokens: number;
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
@@ -1729,12 +1740,26 @@ interface InspectorCacheTurn {
   promptSig: string;
 }
 
+// Per-agent action rollup for one session: which agents ran, how many model
+// turns and tool calls each made, and what it cost in tokens and errors.
+export interface InspectorAgentBreakdown {
+  agent: string;
+  llmRequests: number;
+  toolCalls: number;
+  hooks: number;
+  errors: number;
+  inputTokens: number;
+  outputTokens: number;
+  durationMs: number;
+}
+
 interface InspectorResponse {
   status: MetricStatus;
   message?: string;
   summary: InspectorSummary | null;
   events: InspectorEvent[];
   cacheTimeline: InspectorCacheTurn[];
+  agents: InspectorAgentBreakdown[];
 }
 
 interface TempoAttribute {
@@ -1807,6 +1832,103 @@ function firstAttributeText(attrs: Map<string, TempoAttribute["value"]>, keys: s
     }
   }
   return "";
+}
+
+// Content-capture attribute names that can carry the conversation messages.
+const inputMessageAttributeKeys = ["gen_ai.input.messages", "gen_ai.prompt"];
+const outputMessageAttributeKeys = ["gen_ai.output.messages", "gen_ai.completion"];
+
+function textFromMessageContent(content: unknown): string {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === "string") {
+          return part;
+        }
+        if (part && typeof part === "object") {
+          const record = part as Record<string, unknown>;
+          if (typeof record.text === "string") {
+            return record.text;
+          }
+          if (typeof record.content === "string") {
+            return record.content;
+          }
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join(" ");
+  }
+  return "";
+}
+
+// Pulls a short plain-text preview out of a captured message payload. The
+// payload is usually a JSON array of {role, content|parts} records (GenAI
+// semantic conventions); for the input side the last message with the wanted
+// role wins (that is the current user turn), otherwise the raw text is used.
+export function extractMessagePreview(raw: string, role: "user" | "assistant", maxChars = 200): string {
+  if (!raw) {
+    return "";
+  }
+  let text = "";
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    const messages = Array.isArray(parsed) ? parsed : [parsed];
+    for (const message of messages) {
+      if (!message || typeof message !== "object") {
+        continue;
+      }
+      const record = message as Record<string, unknown>;
+      const messageRole = typeof record.role === "string" ? record.role.toLowerCase() : "";
+      if (messageRole && messageRole !== role) {
+        continue;
+      }
+      const candidate = textFromMessageContent(record.content ?? record.parts ?? record.text);
+      if (candidate) {
+        text = candidate; // keep iterating: the LAST matching message wins
+      }
+    }
+  } catch {
+    text = raw;
+  }
+  if (!text) {
+    return "";
+  }
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length > maxChars ? `${collapsed.slice(0, maxChars - 1)}…` : collapsed;
+}
+
+// Groups a session's events by agent, mirroring the "what did each agent do"
+// question: model turns, tool calls, hooks, errors, tokens, and active time.
+export function buildAgentBreakdown(
+  events: Pick<InspectorEvent, "type" | "agent" | "serviceName" | "durationMs" | "inputTokens" | "outputTokens" | "error">[]
+): InspectorAgentBreakdown[] {
+  const byAgent = new Map<string, InspectorAgentBreakdown>();
+  for (const event of events) {
+    const key = event.agent || event.serviceName || "unattributed";
+    let entry = byAgent.get(key);
+    if (!entry) {
+      entry = { agent: key, llmRequests: 0, toolCalls: 0, hooks: 0, errors: 0, inputTokens: 0, outputTokens: 0, durationMs: 0 };
+      byAgent.set(key, entry);
+    }
+    if (event.type === "llm_request") {
+      entry.llmRequests += 1;
+    } else if (event.type === "tool_call") {
+      entry.toolCalls += 1;
+    } else if (event.type === "hook") {
+      entry.hooks += 1;
+    }
+    if (event.error) {
+      entry.errors += 1;
+    }
+    entry.inputTokens += event.inputTokens ?? 0;
+    entry.outputTokens += event.outputTokens ?? 0;
+    entry.durationMs += event.durationMs;
+  }
+  return [...byAgent.values()].sort((a, b) => b.llmRequests - a.llmRequests || b.toolCalls - a.toolCalls);
 }
 
 export function classifyInspectorEvent(operation: string, name: string): InspectorEventType {
@@ -1949,7 +2071,8 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
       message: "Provide a valid traceId query parameter (hex trace id from the Sessions view).",
       summary: null,
       events: [],
-      cacheTimeline: []
+      cacheTimeline: [],
+      agents: []
     };
   }
   let payload: unknown;
@@ -1961,7 +2084,8 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
         message: "Trace was not found in Tempo. It may have expired past local retention or not been ingested yet.",
         summary: null,
         events: [],
-        cacheTimeline: []
+        cacheTimeline: [],
+        agents: []
       };
     }
     if (!response.ok) {
@@ -1974,7 +2098,8 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
       message: error instanceof Error ? error.message : "Tempo trace lookup failed",
       summary: null,
       events: [],
-      cacheTimeline: []
+      cacheTimeline: [],
+      agents: []
     };
   }
 
@@ -2024,6 +2149,8 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
           cacheReadTokens: num("gen_ai.usage.cache_read.input_tokens"),
           cacheCreationTokens: num("gen_ai.usage.cache_creation.input_tokens"),
           error: errorType || (statusError ? status?.message || "error" : null),
+          inputPreview: extractMessagePreview(firstAttributeText(spanAttrs, inputMessageAttributeKeys), "user") || undefined,
+          outputPreview: extractMessagePreview(firstAttributeText(spanAttrs, outputMessageAttributeKeys), "assistant") || undefined,
           systemSig: contentSignature(firstAttributeText(spanAttrs, systemPromptAttributeKeys)),
           toolSig: contentSignature(firstAttributeText(spanAttrs, toolCatalogAttributeKeys))
         });
@@ -2037,7 +2164,8 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
       message: "The trace contains no spans.",
       summary: null,
       events: [],
-      cacheTimeline: []
+      cacheTimeline: [],
+      agents: []
     };
   }
 
@@ -2056,6 +2184,10 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
     hooks: 0,
     errors: 0,
     totalDurationMs: null,
+    startedAt: null,
+    endedAt: null,
+    sessionStatus: "idle",
+    totalTokens: 0,
     inputTokens: 0,
     outputTokens: 0,
     cacheReadTokens: 0,
@@ -2103,6 +2235,13 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
     event.durationMs = Math.round(event.durationMs * 10) / 10;
   }
   summary.totalDurationMs = Math.round((lastEnd - firstStart) * 10) / 10;
+  summary.startedAt = Number.isFinite(firstStart) && firstStart > 0 ? new Date(firstStart).toISOString() : null;
+  summary.endedAt = Number.isFinite(lastEnd) && lastEnd > 0 ? new Date(lastEnd).toISOString() : null;
+  // Mirrors the VS Code session header: a session with no activity in the
+  // last two minutes reads as Idle.
+  summary.sessionStatus = Date.now() - lastEnd < 120_000 ? "active" : "idle";
+  summary.totalTokens =
+    summary.inputTokens + summary.outputTokens + summary.cacheReadTokens + summary.cacheCreationTokens;
   const promptTotal = summary.cacheReadTokens + summary.cacheCreationTokens;
   summary.cacheEfficiency = promptTotal > 0 ? summary.cacheReadTokens / promptTotal : null;
   summary.models = [...models].sort((a, b) => a.localeCompare(b));
@@ -2138,7 +2277,7 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
   // The signatures are internal inputs to the analysis; only the events'
   // public shape leaves the API.
   const publicEvents = events.slice(0, 500).map(({ systemSig: _systemSig, toolSig: _toolSig, ...rest }) => rest);
-  return { status: "ok", summary, events: publicEvents, cacheTimeline: analysis.timeline };
+  return { status: "ok", summary, events: publicEvents, cacheTimeline: analysis.timeline, agents: buildAgentBreakdown(events) };
 }
 
 // Long-term history: the jobs container's daily rollup persists per-day,

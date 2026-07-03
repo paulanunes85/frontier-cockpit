@@ -228,6 +228,8 @@ export interface InspectorEvent {
     cacheReadTokens: number | null;
     cacheCreationTokens: number | null;
     error: string | null;
+    inputPreview?: string;
+    outputPreview?: string;
 }
 
 export type CacheBreakCause = "model-switch" | "system-prompt-change" | "tool-catalog-change" | "prefix-drift";
@@ -255,6 +257,10 @@ export interface InspectorSummary {
     hooks: number;
     errors: number;
     totalDurationMs: number | null;
+    startedAt: string | null;
+    endedAt: string | null;
+    sessionStatus: "active" | "idle";
+    totalTokens: number;
     inputTokens: number;
     outputTokens: number;
     cacheReadTokens: number;
@@ -273,12 +279,24 @@ export interface InspectorSummary {
     services: string[];
 }
 
+export interface InspectorAgentBreakdown {
+    agent: string;
+    llmRequests: number;
+    toolCalls: number;
+    hooks: number;
+    errors: number;
+    inputTokens: number;
+    outputTokens: number;
+    durationMs: number;
+}
+
 export interface InspectorResponse {
     status: MetricStatus;
     message?: string;
     summary: InspectorSummary | null;
     events: InspectorEvent[];
     cacheTimeline: InspectorCacheTurn[];
+    agents: InspectorAgentBreakdown[];
 }
 
 export interface BudgetInsight {
