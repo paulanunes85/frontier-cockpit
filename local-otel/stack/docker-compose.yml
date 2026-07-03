@@ -65,7 +65,7 @@ services:
       - observability
 
   loki:
-    image: grafana/loki:3.3.2
+    image: grafana/loki:3.3.4
     container_name: copilot-otel-loki
     command: ["-config.file=/etc/loki/local-config.yaml"]
     volumes:
@@ -166,7 +166,10 @@ services:
       - observability
 
   grafana:
-    image: grafana/grafana-oss:11.6.5
+    # Use grafana/grafana, not grafana/grafana-oss: Docker Hub marks the -oss
+    # repository as no longer updated starting with Grafana 12.4.0. Both carry
+    # the same Grafana OSS images; this is the maintained one.
+    image: grafana/grafana:12.4.3
     container_name: copilot-otel-grafana
     env_file:
       - ./grafana-admin.env
