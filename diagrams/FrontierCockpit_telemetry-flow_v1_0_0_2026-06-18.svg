@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 520" width="1400" height="520"
+     style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: white;">
+
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M1,1.2 L8,4 L1,6.8" fill="#B4B2A9" stroke="none"/>
+    </marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- TITLE BLOCK -->
+  <text x="60" y="36" font-size="22" font-weight="700" fill="#2C2C2A">Telemetry Flow</text>
+  <text x="60" y="57" font-size="13" fill="#888780">Full local fidelity · sanitized Azure forwarding · daily rollups · Frontier Cockpit Local</text>
+  <rect x="60"  y="66" width="55" height="3" rx="1.5" fill="#0078D4"/>
+  <rect x="119" y="66" width="55" height="3" rx="1.5" fill="#7FBA00"/>
+  <rect x="178" y="66" width="55" height="3" rx="1.5" fill="#FFB900"/>
+  <rect x="237" y="66" width="55" height="3" rx="1.5" fill="#F25022"/>
+
+  <!-- SECTION BACKGROUNDS -->
+  <rect x="40"  y="82" width="680" height="420" rx="10" fill="#0078D4" fill-opacity="0.025"/>
+  <rect x="740" y="82" width="620" height="420" rx="10" fill="#0078D4" fill-opacity="0.015"/>
+  <text x="380" y="104" text-anchor="middle" font-size="10" font-weight="700" fill="#0078D4" fill-opacity="0.5" letter-spacing="2">LOCAL PIPELINE</text>
+  <text x="1050" y="104" text-anchor="middle" font-size="10" font-weight="700" fill="#0078D4" fill-opacity="0.5" letter-spacing="2">AZURE PIPELINE</text>
+  <line x1="718" y1="96" x2="718" y2="488" stroke="#D3D1C7" stroke-width="1" stroke-dasharray="5,4"/>
+
+  <!-- NODE 1: GitHub Copilot local signals -->
+  <rect x="60" y="168" width="180" height="84" rx="10" fill="white" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="150" y="189" text-anchor="middle" font-size="13" font-weight="600" fill="#0078D4">GitHub Copilot</text>
+  <text x="150" y="205" text-anchor="middle" font-size="12" font-weight="500" fill="#2C2C2A">local signals</text>
+  <text x="150" y="222" text-anchor="middle" font-size="10" fill="#888780">traces · metrics · logs</text>
+  <text x="150" y="237" text-anchor="middle" font-size="10" fill="#888780">content capture</text>
+
+  <!-- NODE 2: Local OTel Collector (HUB) -->
+  <rect x="315" y="152" width="195" height="116" rx="10" fill="#0078D4" fill-opacity="0.04" stroke="#0078D4" stroke-width="2"/>
+  <circle cx="334" cy="175" r="9" fill="#0078D4" fill-opacity="0.15"/>
+  <text x="334" y="179" font-size="10" fill="#0078D4" text-anchor="middle" font-weight="700">*</text>
+  <text x="413" y="179" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Local OTel Collector</text>
+  <text x="413" y="196" text-anchor="middle" font-size="11" fill="#888780">fan-out and redaction pipelines</text>
+  <text x="413" y="213" text-anchor="middle" font-size="10" fill="#888780">localhost:4317 / 4318</text>
+  <text x="413" y="230" text-anchor="middle" font-size="10" fill="#888780">traces · metrics · logs</text>
+  <text x="413" y="247" text-anchor="middle" font-size="10" fill="#888780">Prometheus + Loki exporters</text>
+
+  <!-- NODE 3: Local Stores -->
+  <rect x="580" y="118" width="175" height="134" rx="10" fill="#7FBA00" fill-opacity="0.04" stroke="#7FBA00" stroke-width="1.5"/>
+  <text x="667" y="139" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Local Stores</text>
+  <text x="667" y="157" text-anchor="middle" font-size="10" fill="#888780">Aspire Dashboard</text>
+  <text x="667" y="173" text-anchor="middle" font-size="10" fill="#888780">Tempo  (traces 30d)</text>
+  <text x="667" y="189" text-anchor="middle" font-size="10" fill="#888780">Prometheus  (metrics 30d)</text>
+  <text x="667" y="205" text-anchor="middle" font-size="10" fill="#888780">Loki  (logs 30d)</text>
+  <text x="667" y="221" text-anchor="middle" font-size="10" fill="#888780">Grafana · SQLite</text>
+  <text x="667" y="238" text-anchor="middle" font-size="10" fill="#5F5E5A">DuckDB insights</text>
+
+  <!-- NODE 4: Materializers -->
+  <rect x="580" y="345" width="175" height="90" rx="10" fill="#FFB900" fill-opacity="0.05" stroke="#FFB900" stroke-width="1.5"/>
+  <text x="667" y="368" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Materializers</text>
+  <text x="667" y="385" text-anchor="middle" font-size="10" fill="#888780">sessions · daily rollup</text>
+  <text x="667" y="401" text-anchor="middle" font-size="10" fill="#888780">VS Code memory sampling</text>
+  <text x="667" y="416" text-anchor="middle" font-size="10" fill="#888780">workspace rollup  (24h)</text>
+  <text x="667" y="430" text-anchor="middle" font-size="10" fill="#5F5E5A">every 5 min via LaunchAgent</text>
+
+  <!-- NODE 5: Azure Redaction Pipeline -->
+  <rect x="760" y="168" width="190" height="84" rx="10" fill="#F25022" fill-opacity="0.04" stroke="#F25022" stroke-width="1.5"/>
+  <text x="855" y="192" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Azure Redaction</text>
+  <text x="855" y="209" text-anchor="middle" font-size="11" fill="#888780">remove raw prompts</text>
+  <text x="855" y="226" text-anchor="middle" font-size="10" fill="#888780">tool args · large attrs</text>
+  <text x="855" y="241" text-anchor="middle" font-size="10" fill="#888780">transform/azure_redact</text>
+
+  <!-- NODE 6: Azure Cloud Collector -->
+  <rect x="1010" y="145" width="195" height="110" rx="10" fill="#0078D4" fill-opacity="0.04" stroke="#0078D4" stroke-width="1.5"/>
+  <circle cx="1028" cy="168" r="9" fill="#0078D4" fill-opacity="0.15"/>
+  <text x="1028" y="172" font-size="10" fill="#0078D4" text-anchor="middle" font-weight="700">*</text>
+  <text x="1115" y="172" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Azure Collector</text>
+  <text x="1115" y="190" text-anchor="middle" font-size="11" fill="#888780">Container App</text>
+  <text x="1115" y="207" text-anchor="middle" font-size="10" fill="#888780">OTLP HTTPS  :4318</text>
+  <text x="1115" y="224" text-anchor="middle" font-size="10" fill="#888780">bearer auth · managed id</text>
+  <text x="1115" y="241" text-anchor="middle" font-size="10" fill="#888780">rg-agentobs-dev-eus-001</text>
+
+  <!-- NODE 7: Azure Monitor -->
+  <rect x="1010" y="340" width="195" height="90" rx="10" fill="#0078D4" fill-opacity="0.07" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="1107" y="363" text-anchor="middle" font-size="13" font-weight="600" fill="#0078D4">Azure Monitor</text>
+  <text x="1107" y="381" text-anchor="middle" font-size="10" fill="#888780">AppTraces · AppMetrics</text>
+  <text x="1107" y="398" text-anchor="middle" font-size="10" fill="#888780">AppDependencies</text>
+  <text x="1107" y="415" text-anchor="middle" font-size="10" fill="#888780">Log Analytics workspace</text>
+  <text x="1107" y="429" text-anchor="middle" font-size="10" fill="#888780">Application Insights</text>
+
+  <!-- ARROWS -->
+
+  <!-- 1 to 2: OTLP -->
+  <path d="M240,210 H314" stroke="#B4B2A9" stroke-width="1.4" fill="none" marker-end="url(#arr)"/>
+  <text x="277" y="202" text-anchor="middle" font-size="10" fill="#5F5E5A">OTLP</text>
+
+  <!-- 2 to 3: full content local -->
+  <path d="M510,175 H579" stroke="#7FBA00" stroke-width="1.4" fill="none" marker-end="url(#arr)" stroke-opacity="0.7"/>
+  <text x="545" y="167" text-anchor="middle" font-size="10" fill="#5F5E5A">full content</text>
+
+  <!-- 3 to 4: read traces/metrics (route around right of nodes) -->
+  <path d="M755,185 H775 Q785,185 785,195 V388 Q785,398 775,398 H756"
+        stroke="#B4B2A9" stroke-width="1.4" fill="none" marker-end="url(#arr)"/>
+  <text x="800" y="295" text-anchor="start" font-size="10" fill="#5F5E5A">read</text>
+  <text x="800" y="309" text-anchor="start" font-size="10" fill="#5F5E5A">traces /</text>
+  <text x="800" y="323" text-anchor="start" font-size="10" fill="#5F5E5A">metrics</text>
+
+  <!-- 4 to 2: rollups as OTLP (feedback loop below) -->
+  <path d="M667,435 V468 H424 Q414,468 414,458 V269"
+        stroke="#B4B2A9" stroke-width="1.4" fill="none" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+  <text x="540" y="485" text-anchor="middle" font-size="10" fill="#888780">rollups as OTLP  (daily rollup · 24h window)</text>
+
+  <!-- 2 to 5: Azure pipelines (exits node2 right-lower, routes below node3) -->
+  <path d="M510,247 H736 Q746,247 746,237 V211 Q746,201 756,201 H759"
+        stroke="#B4B2A9" stroke-width="1.4" fill="none" marker-end="url(#arr)"/>
+  <text x="625" y="263" text-anchor="middle" font-size="10" fill="#5F5E5A">Azure pipelines</text>
+
+  <!-- 5 to 6: sanitized OTLP -->
+  <path d="M950,210 H1009" stroke="#F25022" stroke-width="1.4" fill="none" marker-end="url(#arr)" stroke-opacity="0.6"/>
+  <text x="980" y="202" text-anchor="middle" font-size="10" fill="#5F5E5A">sanitized OTLP</text>
+
+  <!-- 6 to 7: azuremonitor exporter -->
+  <path d="M1107,255 V339" stroke="#B4B2A9" stroke-width="1.4" fill="none" marker-end="url(#arr)"/>
+  <text x="1147" y="305" text-anchor="start" font-size="10" fill="#5F5E5A">azuremonitor</text>
+  <text x="1147" y="319" text-anchor="start" font-size="10" fill="#5F5E5A">exporter</text>
+
+  <!-- FOOTER -->
+  <text x="60"   y="508" font-size="10" fill="#B4B2A9">Frontier Cockpit  ·  Telemetry Architecture  ·  2026-06-18</text>
+  <text x="1340" y="508" text-anchor="end" font-size="10" fill="#B4B2A9">v1.0.0</text>
+
+</svg>

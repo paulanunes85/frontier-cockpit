@@ -1,0 +1,318 @@
+name: copilot-otel-local
+
+services:
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.4
+    container_name: aspire-dashboard
+    env_file:
+      - ./aspire-api-key.env
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+      DOTNET_DASHBOARD_OTLP_ENDPOINT_URL: "http://0.0.0.0:18889"
+      DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL: "http://0.0.0.0:18890"
+      DASHBOARD__OTLP__AUTHMODE: "ApiKey"
+      DASHBOARD__OTLP__PRIMARYAPIKEY: "${ASPIRE_DASHBOARD_API_KEY}"
+      DASHBOARD__API__ENABLED: "true"
+      DASHBOARD__API__AUTHMODE: "ApiKey"
+      DASHBOARD__API__PRIMARYAPIKEY: "${ASPIRE_DASHBOARD_API_KEY}"
+      DASHBOARD__TELEMETRYLIMITS__MAXLOGCOUNT: "50000"
+      DASHBOARD__TELEMETRYLIMITS__MAXTRACECOUNT: "50000"
+      DASHBOARD__TELEMETRYLIMITS__MAXMETRICSCOUNT: "50000"
+      DASHBOARD__TELEMETRYLIMITS__MAXATTRIBUTECOUNT: "512"
+    ports:
+      - "127.0.0.1:18888:18888"
+    restart: unless-stopped
+    networks:
+      - observability
+
+  otel-collector:
+    image: docker.io/otel/opentelemetry-collector-contrib:0.155.0
+    container_name: copilot-otel-collector
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    env_file:
+      - ./aspire-api-key.env
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:9464:9464"
+    depends_on:
+      - aspire-dashboard
+      - tempo
+      - loki
+    restart: unless-stopped
+    networks:
+      - observability
+
+  tempo:
+    image: docker.io/grafana/tempo:2.6.1
+    container_name: copilot-otel-tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "127.0.0.1:3200:3200"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3200/ready || curl -sf http://127.0.0.1:3200/ready -o /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - observability
+
+  loki:
+    image: docker.io/grafana/loki:3.3.4
+    container_name: copilot-otel-loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./loki.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3100/ready || curl -sf http://127.0.0.1:3100/ready -o /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - observability
+
+  prometheus:
+    image: docker.io/prom/prometheus:v3.1.0
+    container_name: copilot-otel-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9090/-/healthy || curl -sf http://127.0.0.1:9090/-/healthy -o /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - observability
+
+  registry:
+    build:
+      context: ..
+      dockerfile: registry/Dockerfile
+    container_name: copilot-otel-registry
+    environment:
+      FRONTIER_SKIP_ENV_ZSH: "true"
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://otel-collector:4318/v1/metrics"
+      REGISTRY_REFRESH_SECONDS: "300"
+    depends_on:
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/frontier-registry.last-ok && test $$(($$(date +%s) - $$(cat /tmp/frontier-registry.last-ok))) -lt 900"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - observability
+
+  jobs:
+    build:
+      context: ..
+      dockerfile: jobs/Dockerfile
+    container_name: copilot-otel-jobs
+    environment:
+      FRONTIER_SKIP_ENV_ZSH: "true"
+      TEMPO_URL: "http://tempo:3200"
+      PROMETHEUS_URL: "http://prometheus:9090"
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://otel-collector:4318/v1/metrics"
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://otel-collector:4318/v1/logs"
+      COPILOT_MATERIALIZE_CONTENT: "${FRONTIER_ENABLE_CONTENT_CAPTURE:-false}"
+      COPILOT_MATERIALIZE_STATE_FILE: "/state/materialized-traces.json"
+      JOBS_MATERIALIZE_INTERVAL_SECONDS: "300"
+      JOBS_ROLLUP_INTERVAL_SECONDS: "86400"
+      JOBS_COVERAGE_INTERVAL_SECONDS: "3600"
+      LOKI_URL: "http://loki:3100"
+      FRONTIER_COVERAGE_SKIP_SETTINGS: "true"
+      FRONTIER_INSIGHTS_DB: "/analytics/frontier-insights.duckdb"
+      FRONTIER_OTEL_EXPORT_DB: "/analytics/frontier-otel-export.duckdb"
+      FRONTIER_INSIGHTS_SNAPSHOT: "/analytics/long-term-history.json"
+    volumes:
+      - jobs-state:/state
+      - analytics-data:/analytics
+    depends_on:
+      otel-collector:
+        condition: service_started
+      tempo:
+        condition: service_started
+      prometheus:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/frontier-jobs.last-ok && test $$(($$(date +%s) - $$(cat /tmp/frontier-jobs.last-ok))) -lt 1200"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - observability
+
+  grafana:
+    # Use grafana/grafana, not grafana/grafana-oss: Docker Hub marks the -oss
+    # repository as no longer updated starting with Grafana 12.4.0. Both carry
+    # the same Grafana OSS images; this is the maintained one.
+    image: docker.io/grafana/grafana:12.4.3
+    container_name: copilot-otel-grafana
+    env_file:
+      - ./grafana-admin.env
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health || curl -sf http://127.0.0.1:3000/api/health -o /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
+      tempo:
+        condition: service_started
+      loki:
+        condition: service_started
+    networks:
+      - observability
+
+  frontier-dashboard-api:
+    build:
+      context: ../frontend/api
+    container_name: frontier-dashboard-api
+    environment:
+      PORT: "8080"
+      PROMETHEUS_URL: "http://prometheus:9090"
+      TEMPO_URL: "http://tempo:3200"
+      LOKI_URL: "http://loki:3100"
+      GRAFANA_URL: "http://grafana:3000"
+      ASPIRE_URL: "http://aspire-dashboard:18888"
+      COLLECTOR_METRICS_URL: "http://otel-collector:9464/metrics"
+      PUBLIC_GRAFANA_URL: "http://localhost:3000"
+      PUBLIC_ASPIRE_URL: "http://localhost:18888"
+      PUBLIC_PROMETHEUS_URL: "http://localhost:9090"
+      PUBLIC_TEMPO_URL: "http://localhost:3200"
+      PUBLIC_LOKI_URL: "http://localhost:3100"
+      FRONTIER_PARTICIPANT_NAME: "${FRONTIER_PARTICIPANT_NAME:-Workshop Participant}"
+      FRONTIER_PARTICIPANT_ROLE: "${FRONTIER_PARTICIPANT_ROLE:-Developer}"
+      FRONTIER_PARTICIPANT_EMAIL: "${FRONTIER_PARTICIPANT_EMAIL:-}"
+      FRONTIER_PARTICIPANT_TEAM: "${FRONTIER_PARTICIPANT_TEAM:-}"
+      FRONTIER_CUSTOMER_NAME: "${FRONTIER_CUSTOMER_NAME:-}"
+      FRONTIER_DASHBOARD_TITLE: "${FRONTIER_DASHBOARD_TITLE:-Frontier Cockpit Local}"
+      FRONTIER_COPILOT_PLAN: "${FRONTIER_COPILOT_PLAN:-business}"
+      FRONTIER_COPILOT_SEATS: "${FRONTIER_COPILOT_SEATS:-1}"
+      FRONTIER_AI_CREDITS_USE_PROMO: "${FRONTIER_AI_CREDITS_USE_PROMO:-false}"
+      FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE: "${FRONTIER_AI_CREDITS_MONTHLY_ALLOWANCE:-}"
+      FRONTIER_AI_CREDITS_PROMO_START: "${FRONTIER_AI_CREDITS_PROMO_START:-}"
+      FRONTIER_AI_CREDITS_PROMO_END: "${FRONTIER_AI_CREDITS_PROMO_END:-}"
+      AI_CREDIT_USD: "${AI_CREDIT_USD:-}"
+      AUTO_MODEL_SELECTION_DISCOUNT: "${AUTO_MODEL_SELECTION_DISCOUNT:-}"
+      THRESHOLD_AI_CREDITS_WARN: "${THRESHOLD_AI_CREDITS_WARN:-}"
+      THRESHOLD_AI_CREDITS_CRIT: "${THRESHOLD_AI_CREDITS_CRIT:-}"
+      THRESHOLD_INPUT_TOKENS_WARN: "${THRESHOLD_INPUT_TOKENS_WARN:-}"
+      THRESHOLD_INPUT_TOKENS_CRIT: "${THRESHOLD_INPUT_TOKENS_CRIT:-}"
+      THRESHOLD_CONTEXT_WARN_PCT: "${THRESHOLD_CONTEXT_WARN_PCT:-}"
+      THRESHOLD_CONTEXT_CRIT_PCT: "${THRESHOLD_CONTEXT_CRIT_PCT:-}"
+      THRESHOLD_CACHE_EFFICIENCY_WARN: "${THRESHOLD_CACHE_EFFICIENCY_WARN:-}"
+      THRESHOLD_COLD_RATIO_WARN: "${THRESHOLD_COLD_RATIO_WARN:-}"
+      THRESHOLD_AI_CREDITS_BUDGET_WARN_PCT: "${THRESHOLD_AI_CREDITS_BUDGET_WARN_PCT:-}"
+      THRESHOLD_AI_CREDITS_BUDGET_CRIT_PCT: "${THRESHOLD_AI_CREDITS_BUDGET_CRIT_PCT:-}"
+      THRESHOLD_MODEL_CONCENTRATION: "${THRESHOLD_MODEL_CONCENTRATION:-}"
+      THRESHOLD_PROMPT_IO_RATIO: "${THRESHOLD_PROMPT_IO_RATIO:-}"
+      THRESHOLD_INSPECTOR_HEALTHY_HIT_RATE: "${THRESHOLD_INSPECTOR_HEALTHY_HIT_RATE:-}"
+      THRESHOLD_CONTEXT_COMPACTIONS_INFO: "${THRESHOLD_CONTEXT_COMPACTIONS_INFO:-}"
+      COACH_SCORE_BASE: "${COACH_SCORE_BASE:-}"
+      COACH_SCORE_CACHE_WEIGHT: "${COACH_SCORE_CACHE_WEIGHT:-}"
+      COACH_SCORE_COLD_PENALTY: "${COACH_SCORE_COLD_PENALTY:-}"
+      COACH_SCORE_CONTEXT_PENALTY: "${COACH_SCORE_CONTEXT_PENALTY:-}"
+      COACH_SCORE_ERROR_PENALTY: "${COACH_SCORE_ERROR_PENALTY:-}"
+      COACH_COLD_SAVINGS_FACTOR: "${COACH_COLD_SAVINGS_FACTOR:-}"
+      COACH_ERROR_SAVINGS_FACTOR: "${COACH_ERROR_SAVINGS_FACTOR:-}"
+      PLANNER_FRONTIER_OUTPUT_PRICE_MIN: "${PLANNER_FRONTIER_OUTPUT_PRICE_MIN:-}"
+      PLANNER_COMPLEX_SESSION_MIN_TOOL_CALLS: "${PLANNER_COMPLEX_SESSION_MIN_TOOL_CALLS:-}"
+      LONG_TERM_HISTORY_FILE: "/analytics/long-term-history.json"
+    volumes:
+      - analytics-data:/analytics:ro
+    expose:
+      - "8080"
+    depends_on:
+      prometheus:
+        condition: service_started
+      grafana:
+        condition: service_started
+      tempo:
+        condition: service_started
+      loki:
+        condition: service_started
+      registry:
+        condition: service_started
+      jobs:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8080/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - observability
+
+  frontier-dashboard-web:
+    build:
+      context: ../frontend/web
+    container_name: frontier-dashboard-web
+    ports:
+      - "127.0.0.1:3300:80"
+    depends_on:
+      frontier-dashboard-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - observability
+
+networks:
+  observability:
+    name: copilot-otel-local
+
+volumes:
+  analytics-data:
+  grafana-data:
+  jobs-state:
+  loki-data:
+  prometheus-data:
+  tempo-data:

@@ -1,0 +1,99 @@
+# Hybrid overlay for the local OpenTelemetry Collector.
+# Loaded in addition to otel-collector-config.yaml only in hybrid mode (start-full-stack.sh
+# --hybrid). It adds a forwarding exporter that sends the same signals to the Azure cloud
+# Collector ingress (Azure Container Apps), authenticated with a bearer token. The local
+# stack keeps working without this overlay, so offline demos are unaffected.
+#
+# Required environment variables (provided by docker-compose.azure.yaml):
+#   AZURE_OTLP_ENDPOINT  e.g. https://ca-otelcol-dev-eus-001.<region>.azurecontainerapps.io
+#   AZURE_OTLP_TOKEN     shared bearer token also configured on the cloud Collector
+
+extensions:
+  bearertokenauth/azure:
+    scheme: Bearer
+    token: ${env:AZURE_OTLP_TOKEN}
+
+exporters:
+  otlp_http/azure:
+    endpoint: ${env:AZURE_OTLP_ENDPOINT}
+    auth:
+      authenticator: bearertokenauth/azure
+
+processors:
+  transform/azure_redact:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - delete_key(span.attributes, "gen_ai.input.messages")
+          - delete_key(span.attributes, "gen_ai.output.messages")
+          - delete_key(span.attributes, "gen_ai.system_instructions")
+          - delete_key(span.attributes, "gen_ai.tool.definitions")
+          - delete_key(span.attributes, "gen_ai.tool.call.arguments")
+          - delete_key(span.attributes, "gen_ai.tool.call.result")
+          - delete_key(span.attributes, "copilot_chat.user_request")
+          - delete_key(span.attributes, "copilot_chat.reasoning_content")
+          - delete_key(span.attributes, "copilot_chat.hook_input")
+          - delete_key(span.attributes, "copilot_chat.hook_output")
+          - delete_key(span.attributes, "copilot_chat.request.shape")
+          - delete_key(span.attributes, "github.copilot.tool.parameters.command")
+          - delete_key(span.attributes, "toolDefinitions")
+    metric_statements:
+      - context: datapoint
+        statements:
+          - delete_key(datapoint.attributes, "request_shape")
+          - delete_key(datapoint.attributes, "copilot_chat.request.shape")
+          - delete_key(datapoint.attributes, "copilot_chat.hook_input")
+          - delete_key(datapoint.attributes, "copilot_chat.hook_output")
+          - delete_key(datapoint.attributes, "toolDefinitions")
+          - delete_key(datapoint.attributes, "gen_ai.input.messages")
+          - delete_key(datapoint.attributes, "gen_ai.output.messages")
+          - delete_key(datapoint.attributes, "gen_ai.system_instructions")
+          - delete_key(datapoint.attributes, "gen_ai.tool.definitions")
+          - delete_key(datapoint.attributes, "gen_ai.tool.call.arguments")
+          - delete_key(datapoint.attributes, "gen_ai.tool.call.result")
+          - delete_key(datapoint.attributes, "copilot_chat.user_request")
+          - delete_key(datapoint.attributes, "copilot_chat.reasoning_content")
+    log_statements:
+      - context: log
+        statements:
+          - delete_key(log.attributes, "gen_ai.input.messages")
+          - delete_key(log.attributes, "gen_ai.output.messages")
+          - delete_key(log.attributes, "gen_ai.system_instructions")
+          - delete_key(log.attributes, "gen_ai.tool.definitions")
+          - delete_key(log.attributes, "gen_ai.tool.call.arguments")
+          - delete_key(log.attributes, "gen_ai.tool.call.result")
+          - delete_key(log.attributes, "copilot_chat.user_request")
+          - delete_key(log.attributes, "copilot_chat.reasoning_content")
+          - delete_key(log.attributes, "copilot_chat.hook_input")
+          - delete_key(log.attributes, "copilot_chat.hook_output")
+          - delete_key(log.attributes, "copilot_chat.request.shape")
+          - delete_key(log.attributes, "toolDefinitions")
+
+service:
+  extensions: [bearertokenauth/azure]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp_grpc/aspire, otlp_grpc/tempo]
+    traces/azure:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, transform/azure_redact, batch]
+      exporters: [otlp_http/azure]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp_grpc/aspire, prometheus]
+    metrics/azure:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, transform/azure_redact, batch]
+      exporters: [otlp_http/azure]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp_grpc/aspire, otlp_http/loki]
+    logs/azure:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, transform/azure_redact, batch]
+      exporters: [otlp_http/azure]

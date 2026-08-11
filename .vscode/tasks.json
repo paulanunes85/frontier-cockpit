@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Validate workspace",
+      "type": "shell",
+      "command": "bash .github/scripts/audit-primitives.sh && bash .github/scripts/audit-skills.sh && bash .github/scripts/audit-external-content.sh && bash .github/scripts/validate-deliverables.sh && bash .github/scripts/validate-dashboards.sh && bash .github/scripts/generate-llms-txt.sh --check",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Validate primitives",
+      "type": "shell",
+      "command": "bash .github/scripts/audit-primitives.sh && bash .github/scripts/audit-skills.sh && bash .github/scripts/audit-external-content.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Validate dashboards",
+      "type": "shell",
+      "command": "bash .github/scripts/validate-dashboards.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Generate llms.txt",
+      "type": "shell",
+      "command": "bash .github/scripts/generate-llms-txt.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Validate deliverables",
+      "type": "shell",
+      "command": "bash .github/scripts/validate-deliverables.sh",
+      "problemMatcher": []
+    }
+  ]
+}

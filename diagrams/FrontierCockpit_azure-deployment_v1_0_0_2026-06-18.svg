@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 600" width="1300" height="600"
+     style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: white;">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M1,1.2 L8,4 L1,6.8" fill="#B4B2A9" stroke="none"/>
+    </marker>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- TITLE BLOCK -->
+  <text x="60" y="36" font-size="22" font-weight="700" fill="#2C2C2A">Azure Deployment</text>
+  <text x="60" y="57" font-size="13" fill="#888780">rg-agentobs-dev-eus-001  ·  East US  ·  subscription your-subscription-name</text>
+  <rect x="60"  y="66" width="55" height="3" rx="1.5" fill="#0078D4"/>
+  <rect x="119" y="66" width="55" height="3" rx="1.5" fill="#7FBA00"/>
+  <rect x="178" y="66" width="55" height="3" rx="1.5" fill="#FFB900"/>
+  <rect x="237" y="66" width="55" height="3" rx="1.5" fill="#F25022"/>
+
+  <!-- AZURE SUBSCRIPTION BOUNDARY -->
+  <rect x="40" y="82" width="1220" height="492" rx="14" fill="none" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="8,5"/>
+  <text x="80" y="102" font-size="11" font-weight="700" fill="#0078D4" fill-opacity="0.6">Azure Subscription: your-subscription-name</text>
+
+  <!-- RESOURCE GROUP BOUNDARY -->
+  <rect x="60" y="112" width="1180" height="450" rx="10" fill="#0078D4" fill-opacity="0.015"/>
+  <text x="100" y="132" font-size="11" font-weight="600" fill="#0078D4" fill-opacity="0.5">Resource Group: rg-agentobs-dev-eus-001  ·  East US</text>
+
+  <!-- ROW 1: Managed Identity (left), Container Apps Env + App (center) -->
+
+  <!-- NODE: Managed Identity -->
+  <rect x="90" y="148" width="190" height="90" rx="10" fill="white" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="185" y="170" text-anchor="middle" font-size="12" font-weight="600" fill="#2C2C2A">Managed Identity</text>
+  <text x="185" y="187" text-anchor="middle" font-size="10" fill="#888780">id-agentobs-dev-eus-001</text>
+  <text x="185" y="203" text-anchor="middle" font-size="10" fill="#888780">user-assigned</text>
+  <text x="185" y="218" text-anchor="middle" font-size="10" fill="#5F5E5A">least-privilege RBAC</text>
+  <text x="185" y="231" text-anchor="middle" font-size="10" fill="#5F5E5A">Bicep IaC</text>
+
+  <!-- NODE: Container Apps Environment -->
+  <rect x="345" y="140" width="440" height="115" rx="10" fill="#0078D4" fill-opacity="0.025" stroke="#0078D4" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="565" y="162" text-anchor="middle" font-size="11" font-weight="600" fill="#0078D4" fill-opacity="0.6">Container Apps Environment</text>
+  <text x="565" y="178" text-anchor="middle" font-size="10" fill="#888780">cae-agentobs-dev-eus-001  ·  Consumption tier</text>
+
+  <!-- NODE: Container App Collector (inside CAE) -->
+  <rect x="365" y="188" width="400" height="56" rx="8" fill="white" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="565" y="207" text-anchor="middle" font-size="12" font-weight="600" fill="#2C2C2A">Container App: OTel Collector</text>
+  <text x="565" y="223" text-anchor="middle" font-size="10" fill="#888780">ca-otelcol-dev-eus-001  ·  HTTPS ingress :4318  ·  bearer token auth</text>
+  <text x="565" y="237" text-anchor="middle" font-size="10" fill="#5F5E5A">otel/opentelemetry-collector-contrib  ·  managed identity attached</text>
+
+  <!-- NODE: Application Insights -->
+  <rect x="855" y="148" width="195" height="90" rx="10" fill="white" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="952" y="170" text-anchor="middle" font-size="12" font-weight="600" fill="#2C2C2A">Application Insights</text>
+  <text x="952" y="187" text-anchor="middle" font-size="10" fill="#888780">appi-agentobs-dev-eus-001</text>
+  <text x="952" y="203" text-anchor="middle" font-size="10" fill="#888780">workspace-based mode</text>
+  <text x="952" y="219" text-anchor="middle" font-size="10" fill="#5F5E5A">AppTraces · AppMetrics</text>
+  <text x="952" y="232" text-anchor="middle" font-size="10" fill="#5F5E5A">AppDependencies</text>
+
+  <!-- ROW 2: Log Analytics, Azure Monitor Workspace, Azure Managed Grafana -->
+
+  <!-- NODE: Log Analytics Workspace -->
+  <rect x="90" y="308" width="215" height="100" rx="10" fill="white" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="197" y="330" text-anchor="middle" font-size="12" font-weight="600" fill="#2C2C2A">Log Analytics</text>
+  <text x="197" y="347" text-anchor="middle" font-size="10" fill="#888780">law-agentobs-dev-eus-001</text>
+  <text x="197" y="363" text-anchor="middle" font-size="10" fill="#888780">30-day retention</text>
+  <text x="197" y="379" text-anchor="middle" font-size="10" fill="#5F5E5A">KQL query surface</text>
+  <text x="197" y="393" text-anchor="middle" font-size="10" fill="#5F5E5A">workspace for App Insights</text>
+
+  <!-- NODE: Azure Monitor Workspace (Prometheus) -->
+  <rect x="365" y="308" width="215" height="100" rx="10" fill="white" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="472" y="330" text-anchor="middle" font-size="12" font-weight="600" fill="#2C2C2A">Azure Monitor</text>
+  <text x="472" y="347" text-anchor="middle" font-size="10" fill="#888780">Workspace  (Prometheus)</text>
+  <text x="472" y="363" text-anchor="middle" font-size="10" fill="#888780">amw-agentobs-dev-eus-001</text>
+  <text x="472" y="379" text-anchor="middle" font-size="10" fill="#5F5E5A">remote_write endpoint</text>
+  <text x="472" y="393" text-anchor="middle" font-size="10" fill="#5F5E5A">Grafana Prometheus datasource</text>
+
+  <!-- NODE: Azure Managed Grafana -->
+  <rect x="640" y="290" width="230" height="130" rx="10" fill="#0078D4" fill-opacity="0.04" stroke="#0078D4" stroke-width="2"/>
+  <text x="755" y="313" text-anchor="middle" font-size="13" font-weight="700" fill="#0078D4">Azure Managed Grafana</text>
+  <text x="755" y="331" text-anchor="middle" font-size="10" fill="#888780">amg-agentobs-dev-eus01</text>
+  <text x="755" y="347" text-anchor="middle" font-size="10" fill="#888780">Standard tier</text>
+  <text x="755" y="363" text-anchor="middle" font-size="10" fill="#888780">App Insights datasource</text>
+  <text x="755" y="379" text-anchor="middle" font-size="10" fill="#888780">Log Analytics datasource</text>
+  <text x="755" y="395" text-anchor="middle" font-size="10" fill="#888780">Prometheus datasource</text>
+  <text x="755" y="412" text-anchor="middle" font-size="10" fill="#5F5E5A">Grafana Admin RBAC</text>
+
+  <!-- NODE: Storage Account -->
+  <rect x="935" y="308" width="215" height="100" rx="10" fill="white" stroke="#B4B2A9" stroke-width="1.5"/>
+  <text x="1042" y="330" text-anchor="middle" font-size="12" font-weight="600" fill="#2C2C2A">Storage Account</text>
+  <text x="1042" y="347" text-anchor="middle" font-size="10" fill="#888780">st-agentobs-dev-eus-001</text>
+  <text x="1042" y="363" text-anchor="middle" font-size="10" fill="#888780">github-audit-log container</text>
+  <text x="1042" y="379" text-anchor="middle" font-size="10" fill="#5F5E5A">audit stream sink</text>
+  <text x="1042" y="393" text-anchor="middle" font-size="10" fill="#5F5E5A">SAS token · HTTPS</text>
+
+  <!-- ROW 3: Key Vault (optional), Bicep IaC note -->
+  <rect x="90" y="468" width="1055" height="70" rx="8" fill="#F3F2F1" fill-opacity="0.6"/>
+  <text x="617" y="491" text-anchor="middle" font-size="11" font-weight="600" fill="#2C2C2A">Infrastructure as Code  ·  Bicep</text>
+  <text x="617" y="508" text-anchor="middle" font-size="10" fill="#888780">local-otel/azure/main.bicep  ·  deploy.sh  ·  validate.sh  ·  destroy.sh  ·  check-azure-runtime.sh</text>
+  <text x="617" y="524" text-anchor="middle" font-size="10" fill="#5F5E5A">managed identity  ·  least-privilege RBAC  ·  private endpoints where practical  ·  no local secrets committed</text>
+
+  <!-- ARROWS -->
+
+  <!-- Managed Identity → Container App (user-assigned) -->
+  <path d="M280,193 H364" stroke="#0078D4" stroke-width="1.3" fill="none" marker-end="url(#arr)" stroke-opacity="0.6" stroke-dasharray="4,3"/>
+  <text x="322" y="185" text-anchor="middle" font-size="10" fill="#5F5E5A">assigned to</text>
+
+  <!-- Container App → Application Insights (traces/metrics) -->
+  <path d="M765,216 H854" stroke="#0078D4" stroke-width="1.4" fill="none" marker-end="url(#arr)" stroke-opacity="0.7"/>
+  <text x="809" y="208" text-anchor="middle" font-size="10" fill="#5F5E5A">traces · metrics</text>
+
+  <!-- Container App → Log Analytics -->
+  <path d="M450,244 V285 Q450,295 440,295 V307"
+        stroke="#B4B2A9" stroke-width="1.4" fill="none" marker-end="url(#arr)"/>
+  <text x="405" y="272" text-anchor="start" font-size="10" fill="#5F5E5A">logs</text>
+
+  <!-- Application Insights → Log Analytics (workspace-based) -->
+  <path d="M952,238 V295 Q952,305 942,305 V307"
+        stroke="#B4B2A9" stroke-width="1.3" fill="none" marker-end="url(#arr)" stroke-dasharray="4,3"/>
+  <text x="965" y="270" text-anchor="start" font-size="10" fill="#888780">workspace-based</text>
+
+  <!-- Log Analytics → Azure Managed Grafana -->
+  <path d="M305,350 H639" stroke="#B4B2A9" stroke-width="1.3" fill="none" marker-end="url(#arr)" stroke-opacity="0.7"/>
+  <text x="472" y="342" text-anchor="middle" font-size="10" fill="#5F5E5A">KQL datasource</text>
+
+  <!-- Azure Monitor Workspace → Azure Managed Grafana -->
+  <path d="M580,350 H639" stroke="#B4B2A9" stroke-width="1.3" fill="none" marker-end="url(#arr)" stroke-opacity="0.7"/>
+  <text x="609" y="342" text-anchor="middle" font-size="10" fill="#5F5E5A">Prometheus</text>
+
+  <!-- Application Insights → Azure Managed Grafana -->
+  <path d="M855,200 H880 Q890,200 890,210 V289" stroke="#B4B2A9" stroke-width="1.3" fill="none" marker-end="url(#arr)" stroke-opacity="0.7"/>
+
+  <!-- FOOTER -->
+  <text x="60"   y="588" font-size="10" fill="#B4B2A9">Frontier Cockpit  ·  Azure Deployment  ·  2026-06-18</text>
+  <text x="1240" y="588" text-anchor="end" font-size="10" fill="#B4B2A9">v1.0.0</text>
+</svg>

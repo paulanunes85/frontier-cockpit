@@ -1,0 +1,15 @@
+apiVersion: 1
+
+# Load dashboards provisioned from disk into a "GitHub Copilot" folder.
+
+providers:
+  - name: copilot-agent-observability
+    orgId: 1
+    folder: GitHub Copilot
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

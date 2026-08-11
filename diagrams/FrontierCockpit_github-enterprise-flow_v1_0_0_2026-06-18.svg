@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 480" width="1400" height="480"
+     style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: white;">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M1,1.2 L8,4 L1,6.8" fill="#B4B2A9" stroke="none"/>
+    </marker>
+    <style>text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }</style>
+  </defs>
+
+  <!-- TITLE BLOCK -->
+  <text x="60" y="36" font-size="22" font-weight="700" fill="#2C2C2A">GitHub Enterprise Signal Flow</text>
+  <text x="60" y="57" font-size="13" fill="#888780">Audit log ingestion · organization settings · Copilot metrics availability · Frontier Cockpit Hybrid</text>
+  <rect x="60"  y="66" width="55" height="3" rx="1.5" fill="#0078D4"/>
+  <rect x="119" y="66" width="55" height="3" rx="1.5" fill="#7FBA00"/>
+  <rect x="178" y="66" width="55" height="3" rx="1.5" fill="#FFB900"/>
+  <rect x="237" y="66" width="55" height="3" rx="1.5" fill="#F25022"/>
+
+  <!-- SECTION BACKGROUNDS -->
+  <!-- GitHub Enterprise source -->
+  <rect x="40"  y="82" width="310" height="370" rx="10" fill="#F3F2F1" fill-opacity="0.7"/>
+  <text x="195" y="104" text-anchor="middle" font-size="10" font-weight="700" fill="#888780" letter-spacing="2">GITHUB ENTERPRISE</text>
+  <!-- Local ingestion -->
+  <rect x="370" y="82" width="310" height="370" rx="10" fill="#0078D4" fill-opacity="0.025"/>
+  <text x="525" y="104" text-anchor="middle" font-size="10" font-weight="700" fill="#0078D4" fill-opacity="0.5" letter-spacing="2">LOCAL INGESTION</text>
+  <!-- Azure sink -->
+  <rect x="700" y="82" width="660" height="370" rx="10" fill="#0078D4" fill-opacity="0.015"/>
+  <text x="1030" y="104" text-anchor="middle" font-size="10" font-weight="700" fill="#0078D4" fill-opacity="0.5" letter-spacing="2">AZURE SIGNAL STORE</text>
+
+  <!-- SECTION DIVIDERS -->
+  <line x1="350" y1="96" x2="350" y2="438" stroke="#D3D1C7" stroke-width="1" stroke-dasharray="5,4"/>
+  <line x1="680" y1="96" x2="680" y2="438" stroke="#D3D1C7" stroke-width="1" stroke-dasharray="5,4"/>
+
+  <!-- NODE: GitHub Enterprise -->
+  <rect x="60" y="130" width="210" height="140" rx="10" fill="white" stroke="#B4B2A9" stroke-width="1.5"/>
+  <text x="165" y="156" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">GitHub Enterprise</text>
+  <text x="165" y="174" text-anchor="middle" font-size="10" fill="#888780">[External System]</text>
+  <text x="165" y="193" text-anchor="middle" font-size="10" fill="#888780">Audit Log REST API</text>
+  <text x="165" y="209" text-anchor="middle" font-size="10" fill="#888780">Audit Log Streaming API</text>
+  <text x="165" y="225" text-anchor="middle" font-size="10" fill="#888780">Organization APIs</text>
+  <text x="165" y="241" text-anchor="middle" font-size="10" fill="#5F5E5A">Copilot usage metrics</text>
+  <text x="165" y="260" text-anchor="middle" font-size="10" fill="#888780">your-enterprise-slug</text>
+
+  <!-- NODE: Audit Log REST ingestion job -->
+  <rect x="385" y="116" width="195" height="80" rx="10" fill="white" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="482" y="140" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Audit REST Job</text>
+  <text x="482" y="158" text-anchor="middle" font-size="10" fill="#888780">ingest-github-enterprise.sh</text>
+  <text x="482" y="174" text-anchor="middle" font-size="10" fill="#888780">hourly via LaunchAgent</text>
+  <text x="482" y="188" text-anchor="middle" font-size="10" fill="#5F5E5A">API key auth · pagination</text>
+
+  <!-- NODE: Org ingestion job -->
+  <rect x="385" y="228" width="195" height="80" rx="10" fill="white" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="482" y="252" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Org Status Job</text>
+  <text x="482" y="270" text-anchor="middle" font-size="10" fill="#888780">ingest-github-orgs.sh</text>
+  <text x="482" y="287" text-anchor="middle" font-size="10" fill="#888780">hourly via LaunchAgent</text>
+  <text x="482" y="301" text-anchor="middle" font-size="10" fill="#5F5E5A">Copilot policy + billing</text>
+
+  <!-- NODE: Audit Streaming job -->
+  <rect x="385" y="340" width="195" height="70" rx="10" fill="white" stroke="#FFB900" stroke-width="1.5"/>
+  <text x="482" y="364" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Audit Stream Relay</text>
+  <text x="482" y="382" text-anchor="middle" font-size="10" fill="#888780">Azure Blob Storage sink</text>
+  <text x="482" y="397" text-anchor="middle" font-size="10" fill="#888780">SAS URL · encrypted stream</text>
+
+  <!-- NODE: Local OTel Collector -->
+  <rect x="700" y="130" width="190" height="100" rx="10" fill="#0078D4" fill-opacity="0.04" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="795" y="155" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Local OTel Collector</text>
+  <text x="795" y="173" text-anchor="middle" font-size="10" fill="#888780">receives OTLP logs + metrics</text>
+  <text x="795" y="189" text-anchor="middle" font-size="10" fill="#888780">GitHub API status signals</text>
+  <text x="795" y="205" text-anchor="middle" font-size="10" fill="#888780">availability annotations</text>
+  <text x="795" y="221" text-anchor="middle" font-size="10" fill="#5F5E5A">prometheus + loki export</text>
+
+  <!-- NODE: Prometheus + Loki -->
+  <rect x="700" y="260" width="190" height="90" rx="10" fill="#7FBA00" fill-opacity="0.04" stroke="#7FBA00" stroke-width="1.5"/>
+  <text x="795" y="283" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Local Stores</text>
+  <text x="795" y="301" text-anchor="middle" font-size="10" fill="#888780">Prometheus  (availability metrics)</text>
+  <text x="795" y="317" text-anchor="middle" font-size="10" fill="#888780">Loki  (API response logs)</text>
+  <text x="795" y="333" text-anchor="middle" font-size="10" fill="#5F5E5A">Grafana dashboards</text>
+
+  <!-- NODE: Azure Blob Storage -->
+  <rect x="950" y="116" width="195" height="90" rx="10" fill="#0078D4" fill-opacity="0.04" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="1047" y="140" text-anchor="middle" font-size="13" font-weight="600" fill="#2C2C2A">Azure Blob Storage</text>
+  <text x="1047" y="158" text-anchor="middle" font-size="10" fill="#888780">github-audit-log container</text>
+  <text x="1047" y="174" text-anchor="middle" font-size="10" fill="#888780">raw audit JSON archives</text>
+  <text x="1047" y="190" text-anchor="middle" font-size="10" fill="#5F5E5A">rg-agentobs-dev-eus-001</text>
+  <text x="1047" y="202" text-anchor="middle" font-size="10" fill="#5F5E5A">SAS token access</text>
+
+  <!-- NODE: Azure Monitor / Log Analytics -->
+  <rect x="950" y="240" width="195" height="110" rx="10" fill="#0078D4" fill-opacity="0.07" stroke="#0078D4" stroke-width="1.5"/>
+  <text x="1047" y="262" text-anchor="middle" font-size="13" font-weight="600" fill="#0078D4">Azure Monitor</text>
+  <text x="1047" y="280" text-anchor="middle" font-size="10" fill="#888780">Log Analytics workspace</text>
+  <text x="1047" y="296" text-anchor="middle" font-size="10" fill="#888780">org policy status logs</text>
+  <text x="1047" y="312" text-anchor="middle" font-size="10" fill="#888780">Copilot metrics availability</text>
+  <text x="1047" y="328" text-anchor="middle" font-size="10" fill="#888780">Azure Managed Grafana</text>
+  <text x="1047" y="344" text-anchor="middle" font-size="10" fill="#5F5E5A">KQL queries · dashboards</text>
+
+  <!-- ARROWS -->
+
+  <!-- GitHub Enterprise → Audit REST Job: pull audit log -->
+  <path d="M270,175 H384" stroke="#B4B2A9" stroke-width="1.4" fill="none" marker-end="url(#arr)"/>
+  <text x="327" y="167" text-anchor="middle" font-size="10" fill="#5F5E5A">pull audit log</text>
+
+  <!-- GitHub Enterprise → Org Status Job: org APIs -->
+  <path d="M270,260 H384" stroke="#B4B2A9" stroke-width="1.4" fill="none" marker-end="url(#arr)"/>
+  <text x="327" y="252" text-anchor="middle" font-size="10" fill="#5F5E5A">org APIs</text>
+
+  <!-- GitHub Enterprise → Audit Stream: configure stream -->
+  <path d="M270,330 H384" stroke="#FFB900" stroke-width="1.4" fill="none" marker-end="url(#arr)" stroke-opacity="0.8"/>
+  <text x="327" y="322" text-anchor="middle" font-size="10" fill="#5F5E5A">configure stream</text>
+
+  <!-- Audit REST Job → Local OTel Collector: OTLP logs/metrics -->
+  <path d="M580,156 H699" stroke="#0078D4" stroke-width="1.4" fill="none" marker-end="url(#arr)" stroke-opacity="0.6"/>
+  <text x="639" y="148" text-anchor="middle" font-size="10" fill="#5F5E5A">OTLP logs</text>
+  <text x="639" y="161" text-anchor="middle" font-size="10" fill="#5F5E5A">+ metrics</text>
+
+  <!-- Org Status Job → Local OTel Collector: OTLP metrics -->
+  <path d="M580,268 H718 Q728,268 728,258 V231" stroke="#0078D4" stroke-width="1.4" fill="none" marker-end="url(#arr)" stroke-opacity="0.6"/>
+  <text x="639" y="278" text-anchor="middle" font-size="10" fill="#5F5E5A">org status OTLP</text>
+
+  <!-- Local OTel → Local Stores -->
+  <path d="M795,230 V259" stroke="#7FBA00" stroke-width="1.4" fill="none" marker-end="url(#arr)" stroke-opacity="0.7"/>
+  <text x="830" y="249" text-anchor="start" font-size="10" fill="#5F5E5A">metrics + logs</text>
+
+  <!-- Audit Stream → Azure Blob Storage: encrypted SAS URL -->
+  <path d="M580,370 H949" stroke="#FFB900" stroke-width="1.4" fill="none" marker-end="url(#arr)" stroke-opacity="0.7"/>
+  <text x="764" y="362" text-anchor="middle" font-size="10" fill="#5F5E5A">encrypted SAS URL stream</text>
+
+  <!-- Local OTel → Azure Monitor (forward) -->
+  <path d="M890,180 H949" stroke="#B4B2A9" stroke-width="1.3" fill="none" marker-end="url(#arr)" stroke-dasharray="4,3"/>
+  <text x="919" y="172" text-anchor="middle" font-size="10" fill="#888780">hybrid forward</text>
+
+  <!-- Azure Blob → Azure Monitor -->
+  <path d="M1047,206 V239" stroke="#B4B2A9" stroke-width="1.4" fill="none" marker-end="url(#arr)"/>
+  <text x="1082" y="226" text-anchor="start" font-size="10" fill="#5F5E5A">ingest</text>
+
+  <!-- FOOTER -->
+  <text x="60"   y="466" font-size="10" fill="#B4B2A9">Frontier Cockpit  ·  GitHub Enterprise Signal Flow  ·  2026-06-18</text>
+  <text x="1340" y="466" text-anchor="end" font-size="10" fill="#B4B2A9">v1.0.0</text>
+</svg>
