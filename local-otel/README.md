@@ -2,8 +2,8 @@
 title: "Frontier Cockpit Local OpenTelemetry Kit"
 description: "User-level local OpenTelemetry runtime for Frontier Cockpit Local, including Aspire, Grafana, Prometheus, Tempo, Loki, containerized materialization jobs, and Frontier Cockpit Hybrid Azure forwarding."
 author: "Frontier Cockpit Team"
-date: "2026-08-11"
-version: "1.8.0"
+date: "2026-08-12"
+version: "1.8.1"
 status: "approved"
 tags: ["frontier-cockpit", "github-copilot", "opentelemetry", "aspire", "grafana", "local-runtime"]
 ---
@@ -20,6 +20,7 @@ The repository can be cloned anywhere. All scripts resolve their own location, s
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.8.1 | 2026-08-12 | Frontier Cockpit Team | Matched every GitHub Copilot Chat OpenTelemetry service name (`github-copilot` and `copilot-chat`) across the dashboard API, session materializer, DuckDB export, and Grafana dashboards, so a VS Code client upgrade no longer empties the dashboard. Documented the `COPILOT_OTEL_SERVICE_NAMES` override. |
 | 1.8.0 | 2026-08-11 | Frontier Cockpit Team | Documented the six-view mini app navigation, session-detail drill-down, and panel data scope badges. |
 | 1.7.1 | 2026-07-03 | Frontier Cockpit Team | Documented the fork upgrade path ("Keep a fork in sync with upstream"): git upstream sync plus `start-full-stack.sh --update`, with the guarantees that telemetry volumes, gitignored local identity/secrets, and per-developer wizard preferences all survive the update. |
 | 1.7.0 | 2026-07-03 | Frontier Cockpit Team | Inspector parity with the VS Code Agent Debug Logs: session details header (workspace, branch, location/mode, agent, created, last activity, status), full summary tiles (model turns, tool calls, input/output/cached/total tokens, errors, Copilot usage AIC), an **agent flow chart** with user-message/response previews (content capture) and per-node tool/hook/model steps, a per-agent action table, and trace-scoped deep links (Aspire, Grafana Tempo, Loki). Overview rebuilt as a super dashboard (highlights, top recommendations, best practices) and stack health now lives only in the Health view. |
@@ -536,6 +537,23 @@ Two independent emitters ship telemetry from VS Code, and each has its own OTLP 
 | `GitHub > Copilot > Chat > Otel: Service Name` / `Outfile` | leave empty | Defaults are correct; `Outfile` would divert the exporter to a file. |
 
 All of these require a window reload after changing. Workspace attribution (repo, branch, workspace name) comes from the OTel resource attributes exported by the client bootstrap, so run `client-bootstrap.sh` / `client-bootstrap.ps1` in each workspace once.
+
+### Copilot Chat service names
+
+GitHub Copilot Chat has shipped more than one OpenTelemetry `service.name`. Newer VS Code builds emit `github-copilot`, while older builds emit `copilot-chat`. The dashboard API, the session materializer, the DuckDB export, and the Grafana dashboards match every known name, so a client upgrade does not silently empty the dashboard.
+
+Override the list with `COPILOT_OTEL_SERVICE_NAMES` (comma separated) if a future client ships another name:
+
+```bash
+COPILOT_OTEL_SERVICE_NAMES="github-copilot,copilot-chat" bash local-otel/materialize-copilot-sessions.sh
+```
+
+Check which names your stack actually receives:
+
+```bash
+curl -s http://localhost:3200/api/search/tag/service.name/values
+curl -s http://localhost:9090/api/v1/label/service_name/values
+```
 
 ## Manage context per workspace
 

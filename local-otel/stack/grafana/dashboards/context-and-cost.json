@@ -12,7 +12,7 @@
     },
     {
       "title": "Tempo Explore",
-      "url": "/explore?left={\"datasource\":\"tempo-local\",\"queries\":[{\"query\":\"{service.name=\\\"copilot-chat\\\" && github.copilot.git.repository!=\\\"\\\"}\"}],\"range\":{\"from\":\"now-3h\",\"to\":\"now\"}}",
+      "url": "/explore?left={\"datasource\":\"tempo-local\",\"queries\":[{\"query\":\"{resource.service.name=~\\\"github-copilot|copilot-chat\\\" && github.copilot.git.repository!=\\\"\\\"}\"}],\"range\":{\"from\":\"now-3h\",\"to\":\"now\"}}",
       "targetBlank": false
     }
   ],
@@ -29,7 +29,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "# Real context and operational AIU, workspace sessions only\n\nAll values come from real `copilot-chat` traces that carry a repository attribute.\n\n- **Context window use:** `peak input tokens / copilot_chat.request.max_prompt_tokens`. This is how full the context window got at its busiest turn.\n- **Context temperature (hot/warm/cold):** based on real cache token attributes. **Warm/hot** is `gen_ai.usage.cache_read.input_tokens` (prompt prefix reused). **Warming** is `gen_ai.usage.cache_creation.input_tokens` (new cache written). **Cold** is the remaining uncached input. Cache reuse depends on the model and provider, so some sessions are fully cold and that is real, not an error.\n- **Operational AIU:** `copilot_chat.copilot_usage_nano_aiu` divided by 1e9 gives AI Units (AIU) reported by GitHub Copilot telemetry. This is local operational telemetry, not official billing. For official invoiced totals, reconcile with GitHub billing or usage exports."
+        "content": "# Real context and operational AIU, workspace sessions only\n\nAll values come from real GitHub Copilot Chat traces that carry a repository attribute.\n\n- **Context window use:** `peak input tokens / copilot_chat.request.max_prompt_tokens`. This is how full the context window got at its busiest turn.\n- **Context temperature (hot/warm/cold):** based on real cache token attributes. **Warm/hot** is `gen_ai.usage.cache_read.input_tokens` (prompt prefix reused). **Warming** is `gen_ai.usage.cache_creation.input_tokens` (new cache written). **Cold** is the remaining uncached input. Cache reuse depends on the model and provider, so some sessions are fully cold and that is real, not an error.\n- **Operational AIU:** `copilot_chat.copilot_usage_nano_aiu` divided by 1e9 gives AI Units (AIU) reported by GitHub Copilot telemetry. This is local operational telemetry, not official billing. For official invoiced totals, reconcile with GitHub billing or usage exports."
       }
     },
     {

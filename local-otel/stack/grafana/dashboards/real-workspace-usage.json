@@ -8,7 +8,7 @@
   "links": [
     {
       "title": "Tempo Explore, workspace traces",
-      "url": "/explore?left={\"datasource\":\"tempo-local\",\"queries\":[{\"query\":\"{service.name=\\\"copilot-chat\\\" && github.copilot.git.repository!=\\\"\\\"}\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}",
+      "url": "/explore?left={\"datasource\":\"tempo-local\",\"queries\":[{\"query\":\"{resource.service.name=~\\\"github-copilot|copilot-chat\\\" && github.copilot.git.repository!=\\\"\\\"}\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}",
       "targetBlank": false
     },
     {

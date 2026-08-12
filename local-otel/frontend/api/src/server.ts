@@ -68,7 +68,26 @@ const publicAspireUrl = process.env.PUBLIC_ASPIRE_URL ?? "http://localhost:18888
 const publicPrometheusUrl = process.env.PUBLIC_PROMETHEUS_URL ?? "http://localhost:9090";
 const publicTempoUrl = process.env.PUBLIC_TEMPO_URL ?? "http://localhost:3200";
 const publicLokiUrl = process.env.PUBLIC_LOKI_URL ?? "http://localhost:3100";
+
+// GitHub Copilot Chat has shipped more than one OpenTelemetry service name.
+// Newer VS Code builds emit "github-copilot" while older ones emit
+// "copilot-chat". Match every known name so a client upgrade does not silently
+// empty the dashboard.
+export const copilotServiceNames = parseServiceNames(process.env.COPILOT_OTEL_SERVICE_NAMES);
+const copilotServiceNamePattern = copilotServiceNames.join("|");
+const copilotServiceSelector = `service_name=~"${copilotServiceNamePattern}"`;
 const allowedRanges = new Set(["1h", "6h", "24h", "7d"]);
+
+// Resolve the OpenTelemetry service names that identify GitHub Copilot Chat.
+// Falls back to the known names so an unset or empty override never produces a
+// selector that silently matches nothing.
+export function parseServiceNames(raw: string | undefined): string[] {
+  const names = (raw ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+  return names.length > 0 ? names : ["github-copilot", "copilot-chat"];
+}
 
 function numberFromEnv(name: string, fallback: number): number {
   const raw = process.env[name];
@@ -1112,12 +1131,12 @@ export function computeEconomy(input: {
 function appLinks() {
   const tempoExploreQuery = encodeURIComponent(JSON.stringify({
     datasource: "tempo-local",
-    queries: [{ query: '{service.name="copilot-chat"}' }],
+    queries: [{ query: `{resource.service.name=~"${copilotServiceNamePattern}"}` }],
     range: { from: "now-1h", to: "now" }
   }));
   const lokiExploreQuery = encodeURIComponent(JSON.stringify({
     datasource: "loki-local",
-    queries: [{ expr: '{service_name="copilot-chat"}' }],
+    queries: [{ expr: `{${copilotServiceSelector}}` }],
     range: { from: "now-1h", to: "now" }
   }));
   return [
@@ -1334,9 +1353,9 @@ function applyModelToken(entry: ModelMixEntry, tokenType: string, value: number)
 
 async function modelMix(range: string): Promise<ModelMix> {
   const callsQuery =
-    `sum by (gen_ai_request_model) (increase(gen_ai_client_operation_duration_count{service_name="copilot-chat"}[${range}]))`;
-  const tokenQuery = `sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{service_name="copilot-chat"}[${range}]))`;
-  const aiCreditsQuery = `sum by (gen_ai_request_model) (((increase(gen_ai_client_token_usage_sum{service_name="copilot-chat"}[${range}]) / 1e6) * on (gen_ai_request_model, gen_ai_token_type) group_left() max by (gen_ai_request_model, gen_ai_token_type) (copilot_model_price_usd_per_million_ratio)) / 0.01)`;
+    `sum by (gen_ai_request_model) (increase(gen_ai_client_operation_duration_count{${copilotServiceSelector}}[${range}]))`;
+  const tokenQuery = `sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{${copilotServiceSelector}}[${range}]))`;
+  const aiCreditsQuery = `sum by (gen_ai_request_model) (((increase(gen_ai_client_token_usage_sum{${copilotServiceSelector}}[${range}]) / 1e6) * on (gen_ai_request_model, gen_ai_token_type) group_left() max by (gen_ai_request_model, gen_ai_token_type) (copilot_model_price_usd_per_million_ratio)) / 0.01)`;
   const [calls, tokens, costs] = await Promise.all([
     seriesMetric(callsQuery),
     seriesMetric(tokenQuery),
@@ -1392,7 +1411,7 @@ async function modelMix(range: string): Promise<ModelMix> {
 // Developer-experience latency signals. GenAI latency metrics are recorded in
 // seconds per the OpenTelemetry GenAI semantic conventions.
 async function experienceMetrics(range: string): Promise<ExperienceMetrics> {
-  const filter = `service_name="copilot-chat"`;
+  const filter = copilotServiceSelector;
   const [ttft, response, turns] = await Promise.all([
     scalarMetric(
       `sum(increase(copilot_chat_time_to_first_token_sum{${filter}}[${range}])) / ` +
@@ -1415,7 +1434,7 @@ async function experienceMetrics(range: string): Promise<ExperienceMetrics> {
 // are not attributable to a specific Git workspace, so they describe local
 // GitHub Copilot value broadly rather than per repository.
 async function outcomeMetrics(range: string): Promise<OutcomeMetrics> {
-  const filter = `service_name="copilot-chat"`;
+  const filter = copilotServiceSelector;
   const [acceptances, lines, survival, compactions] = await Promise.all([
     scalarMetric(`sum(increase(copilot_chat_edit_acceptance_count_total{${filter}}[${range}]))`),
     scalarMetric(`sum(increase(copilot_chat_lines_of_code_count_total{${filter}}[${range}]))`),
@@ -1438,8 +1457,8 @@ async function summary(url: URL) {
   const selector = realWorkspaceSelector(repoLabelMatcher);
   const contextTypicalQuery = `avg(max by (trace_id) (max_over_time(copilot_real_session_context_utilization_pct_ratio{${selector}}[${range}])))`;
   const contextPeakQuery = `max(max by (trace_id) (max_over_time(copilot_real_session_context_utilization_pct_ratio{${selector}}[${range}])))`;
-  const tokensQuery = `sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{service_name="copilot-chat"}[${range}]))`;
-  const usdQuery = `sum by (gen_ai_request_model) ((increase(gen_ai_client_token_usage_sum{service_name="copilot-chat"}[${range}]) / 1e6) * on (gen_ai_request_model, gen_ai_token_type) group_left() max by (gen_ai_request_model, gen_ai_token_type) (copilot_model_price_usd_per_million_ratio))`;
+  const tokensQuery = `sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{${copilotServiceSelector}}[${range}]))`;
+  const usdQuery = `sum by (gen_ai_request_model) ((increase(gen_ai_client_token_usage_sum{${copilotServiceSelector}}[${range}]) / 1e6) * on (gen_ai_request_model, gen_ai_token_type) group_left() max by (gen_ai_request_model, gen_ai_token_type) (copilot_model_price_usd_per_million_ratio))`;
   const workspaceRealQuery = `count(max by (trace_id) (max_over_time(copilot_real_session_input_tokens_ratio{${selector}}[${range}])))`;
   const nonWorkspaceRealQuery = `count(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope="non_workspace_real"}[${range}]))`;
   const observedCoverageQuery = `sum(max_over_time(copilot_otel_coverage_status_ratio{status="observed"}[${range}]))`;

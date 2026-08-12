@@ -8,7 +8,7 @@
   "links": [
     {
       "title": "Tempo Explore",
-      "url": "/explore?left={\"datasource\":\"tempo-local\",\"queries\":[{\"query\":\"{service.name=\\\"copilot-chat\\\"}\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}",
+      "url": "/explore?left={\"datasource\":\"tempo-local\",\"queries\":[{\"query\":\"{resource.service.name=~\\\"github-copilot|copilot-chat\\\"}\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}",
       "targetBlank": false
     },
     {
@@ -51,7 +51,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(50, sum by (session_id, gen_ai_request_model, gen_ai_response_model, gen_ai_token_type, workspace_path_hash) (increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range])))",
+          "expr": "topk(50, sum by (session_id, gen_ai_request_model, gen_ai_response_model, gen_ai_token_type, workspace_path_hash) (increase(gen_ai_client_token_usage_sum{service_name=~\"github-copilot|copilot-chat\"}[$__range])))",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -130,7 +130,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range]))",
+          "expr": "sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{service_name=~\"github-copilot|copilot-chat\"}[$__range]))",
           "legendFormat": "{{gen_ai_request_model}} {{gen_ai_token_type}}",
           "instant": true,
           "datasource": {
@@ -223,7 +223,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (gen_ai_request_model) ((increase(gen_ai_client_token_usage_sum{service_name=\"copilot-chat\"}[$__range]) / 1e6) * on (gen_ai_request_model, gen_ai_token_type) group_left() max by (gen_ai_request_model, gen_ai_token_type) (copilot_model_price_usd_per_million_ratio))",
+          "expr": "sum by (gen_ai_request_model) ((increase(gen_ai_client_token_usage_sum{service_name=~\"github-copilot|copilot-chat\"}[$__range]) / 1e6) * on (gen_ai_request_model, gen_ai_token_type) group_left() max by (gen_ai_request_model, gen_ai_token_type) (copilot_model_price_usd_per_million_ratio))",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -329,7 +329,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## Content capture\n\nContent capture is not shown in Grafana dashboards by default because it may include prompts, file snippets, tool arguments, and tool results.\n\nUse one of these paths:\n\n1. **Aspire:** open `http://localhost:18888`, go to Traces, select a `copilot-chat` trace, open a `chat` or `execute_tool` span, inspect attributes like `gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.tool.call.arguments`, and `gen_ai.tool.call.result`.\n\n2. **Grafana Tempo Explore:** open Explore, choose Tempo, query `{service.name=\"copilot-chat\"}`, select a trace, inspect span attributes.\n\n3. **CLI safe inspection:** use `$HOME/frontier-cockpit/local-otel/show-trace-content.sh` to list content-capture keys without printing raw content. Use `--show-content` only in trusted local demos.\n\nFor customer environments, keep content capture off unless the customer explicitly approves it."
+        "content": "## Content capture\n\nContent capture is not shown in Grafana dashboards by default because it may include prompts, file snippets, tool arguments, and tool results.\n\nUse one of these paths:\n\n1. **Aspire:** open `http://localhost:18888`, go to Traces, select a `github-copilot` trace, open a `chat` or `execute_tool` span, inspect attributes like `gen_ai.input.messages`, `gen_ai.output.messages`, `gen_ai.tool.call.arguments`, and `gen_ai.tool.call.result`.\n\n2. **Grafana Tempo Explore:** open Explore, choose Tempo, query `{resource.service.name=~\"github-copilot|copilot-chat\"}`, select a trace, inspect span attributes.\n\n3. **CLI safe inspection:** use `$HOME/frontier-cockpit/local-otel/show-trace-content.sh` to list content-capture keys without printing raw content. Use `--show-content` only in trusted local demos.\n\nFor customer environments, keep content capture off unless the customer explicitly approves it."
       }
     }
   ],

@@ -31,6 +31,11 @@ tempo_url, metrics_endpoint, logs_endpoint, state_file, show_content, limit = sy
 show_content = show_content.lower() == "true"
 limit = int(limit)
 prometheus_url = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
+copilot_service_names = [
+    name.strip()
+    for name in os.environ.get("COPILOT_OTEL_SERVICE_NAMES", "github-copilot,copilot-chat").split(",")
+    if name.strip()
+]
 force_replay = os.environ.get("COPILOT_MATERIALIZE_FORCE_REPLAY", "false").lower() == "true"
 use_active_workspace = os.environ.get("COPILOT_MATERIALIZE_ACTIVE_WORKSPACE", "false").lower() == "true"
 state_path = pathlib.Path(state_file)
@@ -205,7 +210,11 @@ def apply_commit_record(summary, record):
     return "span_commit_registry"
 
 trace_ids = []
-trace_ids.extend(search_trace_ids('service.name="copilot-chat"', limit))
+# GitHub Copilot Chat has shipped more than one OpenTelemetry service name.
+# Newer VS Code builds emit "github-copilot" while older ones emit
+# "copilot-chat", so search every known name to avoid dropping real sessions.
+for service_name in copilot_service_names:
+    trace_ids.extend(search_trace_ids(f'service.name="{service_name}"', limit))
 for repo_tag in ["github.copilot.git.repository", "copilot_chat.repo.remote_url"]:
     try:
         repo_values = fetch_json(f"{tempo_url}/api/search/tag/{repo_tag}/values").get("tagValues", [])

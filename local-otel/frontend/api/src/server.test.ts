@@ -317,3 +317,13 @@ test("the selected workspace is applied to the Prometheus selector", async () =>
   assert.ok(scoped.includes('repo="acme/app"'));
   assert.ok(scoped.includes('usage_scope="workspace_real"'));
 });
+
+test("GenAI queries match every GitHub Copilot Chat service name", async () => {
+  const mod = await loadServer("service-names");
+  // Newer VS Code builds emit "github-copilot"; older ones emit "copilot-chat".
+  // Matching only one name silently empties the dashboard after a client upgrade.
+  assert.deepEqual(mod.parseServiceNames(undefined), ["github-copilot", "copilot-chat"]);
+  assert.deepEqual(mod.parseServiceNames(""), ["github-copilot", "copilot-chat"]);
+  assert.deepEqual(mod.parseServiceNames("  ,  "), ["github-copilot", "copilot-chat"]);
+  assert.deepEqual(mod.parseServiceNames(" a , b "), ["a", "b"]);
+});

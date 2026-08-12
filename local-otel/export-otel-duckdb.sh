@@ -349,7 +349,9 @@ if loki_records:
     )
 
 trace_ids = []
-for tags_query in ['service.name="copilot-chat"', 'service.name="copilot-real-session-materializer"']:
+# GitHub Copilot Chat has shipped more than one OpenTelemetry service name:
+# newer VS Code builds emit "github-copilot", older ones "copilot-chat".
+for tags_query in ['service.name="github-copilot"', 'service.name="copilot-chat"', 'service.name="copilot-real-session-materializer"']:
     search_url = f"{tempo_url}/api/search?" + urllib.parse.urlencode(
         {"tags": tags_query, "start": str(start_seconds), "end": str(now_seconds), "limit": "500"}
     )
