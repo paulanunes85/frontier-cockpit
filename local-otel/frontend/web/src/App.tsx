@@ -5,6 +5,7 @@ import type {
   CoachCard,
   CoachResponse,
   CopilotPlanFacts,
+  DataScopeKind,
   HistoryPoint,
   InspectorEvent,
   InspectorResponse,
@@ -21,6 +22,7 @@ import {
   CompositionBar,
   Kpi,
   Panel,
+  ScopeBadge,
   TrendChart,
   cacheTone,
   contextTone,
@@ -73,7 +75,7 @@ function planQueryParams(prefs: SetupPrefs | null): Record<string, string> {
   return { plan: prefs.plan, seats: String(prefs.seats), promo: String(prefs.promo) };
 }
 
-type ViewId = "overview" | "credits" | "planner" | "inspector" | "sessions" | "workspaces" | "coach" | "history" | "health" | "settings";
+type ViewId = "today" | "sessions" | "trends" | "credits" | "diagnostics" | "settings";
 
 interface ViewDef {
   id: ViewId;
@@ -81,18 +83,9 @@ interface ViewDef {
   blurb: string;
 }
 
-const viewOrder: ViewId[] = [
-  "overview",
-  "credits",
-  "planner",
-  "inspector",
-  "sessions",
-  "workspaces",
-  "coach",
-  "history",
-  "health",
-  "settings"
-];
+// Settings is rendered separately as a quiet trailing entry rather than a
+// primary destination: it is a configuration reference, not a daily view.
+const viewOrder: ViewId[] = ["today", "sessions", "trends", "credits", "diagnostics"];
 
 function buildViews(t: TranslateFn): ViewDef[] {
   return viewOrder.map((id) => ({
@@ -118,39 +111,64 @@ interface DashboardData {
   coach: CoachResponse | null;
 }
 
-function useDashboardData(range: RangeOption, repo: string, prefs: SetupPrefs | null) {
+// Only the datasets the active view renders are fetched. Coach alone used to
+// rebuild the whole summary and session set on every load, so scoping the fan
+// out keeps a view switch from re-querying Prometheus for panels nobody sees.
+const coachViews = new Set<ViewId>(["today", "credits"]);
+const sessionViews = new Set<ViewId>(["sessions"]);
+
+function useDashboardData(range: RangeOption, repo: string, prefs: SetupPrefs | null, view: ViewId) {
   const [data, setData] = useState<DashboardData>({ summary: null, sessions: null, coach: null });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const needsCoach = coachViews.has(view);
+  const needsSessions = sessionViews.has(view);
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({ range, repo, ...planQueryParams(prefs) });
-      const query = params.toString();
-      const [summaryRes, sessionsRes, coachRes] = await Promise.all([
-        fetch(`/api/summary?${query}`, { cache: "no-store" }),
-        fetch(`/api/sessions?${query}`, { cache: "no-store" }),
-        fetch(`/api/coach?${query}`, { cache: "no-store" })
-      ]);
-      if (!summaryRes.ok) {
-        throw new Error(`Dashboard API returned HTTP ${summaryRes.status}`);
+  const load = useCallback(
+    async (fresh = false) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({ range, repo, ...planQueryParams(prefs) });
+        if (fresh) {
+          params.set("fresh", "true");
+        }
+        const query = params.toString();
+        const [summaryRes, sessionsRes, coachRes] = await Promise.all([
+          fetch(`/api/summary?${query}`, { cache: "no-store" }),
+          needsSessions ? fetch(`/api/sessions?${query}`, { cache: "no-store" }) : null,
+          needsCoach ? fetch(`/api/coach?${query}`, { cache: "no-store" }) : null
+        ]);
+        if (!summaryRes.ok) {
+          throw new Error(`Dashboard API returned HTTP ${summaryRes.status}`);
+        }
+        const summary = (await summaryRes.json()) as SummaryResponse;
+        const sessions = sessionsRes?.ok ? ((await sessionsRes.json()) as SessionsResponse) : null;
+        const coach = coachRes?.ok ? ((await coachRes.json()) as CoachResponse) : null;
+        // Keep previously loaded slices so switching views does not blank panels
+        // that the new view still shows.
+        setData((current) => ({
+          summary,
+          sessions: needsSessions ? sessions : current.sessions,
+          coach: needsCoach ? coach : current.coach
+        }));
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Unable to load dashboard data.");
+      } finally {
+        setIsLoading(false);
       }
-      const summary = (await summaryRes.json()) as SummaryResponse;
-      const sessions = sessionsRes.ok ? ((await sessionsRes.json()) as SessionsResponse) : null;
-      const coach = coachRes.ok ? ((await coachRes.json()) as CoachResponse) : null;
-      setData({ summary, sessions, coach });
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to load dashboard data.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [range, repo, prefs]);
+    },
+    [range, repo, prefs, needsCoach, needsSessions]
+  );
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Scope and range changes invalidate every cached slice.
+  useEffect(() => {
+    setData({ summary: null, sessions: null, coach: null });
+  }, [range, repo]);
 
   return { data, error, isLoading, reload: load };
 }
@@ -347,7 +365,15 @@ function TokenComposition({ summary }: Readonly<{ summary: SummaryResponse | nul
   const t = useT();
   const tokens = summary?.metrics.tokens;
   return (
-    <Panel title={t("composition.title")} aside={<span className="muted">{t("composition.aside")}</span>}>
+    <Panel
+      title={t("composition.title")}
+      aside={
+        <PanelAside>
+          <span className="muted">{t("composition.aside")}</span>
+          <ScopeTag scope={sectionScope(summary, "tokens", "workspace")} />
+        </PanelAside>
+      }
+    >
       {tokens && tokens.promptTotal > 0 ? (
         <CompositionBar
           segments={[
@@ -385,7 +411,7 @@ function TokenComposition({ summary }: Readonly<{ summary: SummaryResponse | nul
   );
 }
 
-function HistoryPanel({ points, message }: Readonly<{ points: HistoryPoint[]; message?: string }>) {
+function HistoryPanel({ points, message, scope }: Readonly<{ points: HistoryPoint[]; message?: string; scope: DataScopeKind }>) {
   const t = useT();
   const [field, setField] = useState<HistoryField>("aiCredits");
   const historyFields = buildHistoryFields(t);
@@ -394,13 +420,16 @@ function HistoryPanel({ points, message }: Readonly<{ points: HistoryPoint[]; me
     <Panel
       title={t("history.title")}
       aside={
-        <div className="segmented small">
-          {historyFields.map((entry) => (
-            <button key={entry.field} type="button" className={field === entry.field ? "active" : ""} onClick={() => setField(entry.field)}>
-              {entry.label}
-            </button>
-          ))}
-        </div>
+        <PanelAside>
+          <div className="segmented small">
+            {historyFields.map((entry) => (
+              <button key={entry.field} type="button" className={field === entry.field ? "active" : ""} onClick={() => setField(entry.field)}>
+                {entry.label}
+              </button>
+            ))}
+          </div>
+          <ScopeTag scope={scope} />
+        </PanelAside>
       }
     >
       {points.length > 0 ? (
@@ -545,6 +574,7 @@ function BudgetPanel({ summary, compact }: Readonly<{ summary: SummaryResponse |
               {t(`budget.level.${budget.alertLevel}`)}
             </span>
           ) : null}
+          <ScopeTag scope={sectionScope(summary, "budget", "all-workspaces")} />
         </div>
       }
     >
@@ -615,7 +645,12 @@ function ModelMixPanel({ summary }: Readonly<{ summary: SummaryResponse | null }
     <Panel
       title={t("mix.title")}
       status={mix?.status}
-      aside={<span className="muted">{t("mix.aside")}</span>}
+      aside={
+        <PanelAside>
+          <span className="muted">{t("mix.aside")}</span>
+          <ScopeTag scope={sectionScope(summary, "modelMix", "device")} />
+        </PanelAside>
+      }
     >
       {mix && mix.totalEstimatedAiCredits !== null ? (
         <div className="mix-split">
@@ -677,7 +712,10 @@ function ExperiencePanel({ summary }: Readonly<{ summary: SummaryResponse | null
   return (
     <section className="panel two-column">
       <div>
-        <div className="panel-header"><h2>{t("experience.title")}</h2></div>
+        <div className="panel-header">
+          <h2>{t("experience.title")}</h2>
+          <ScopeTag scope={sectionScope(summary, "experience", "device")} />
+        </div>
         <dl className="quality-grid">
           <div>
             <dt>{t("experience.ttft")}</dt>
@@ -695,7 +733,10 @@ function ExperiencePanel({ summary }: Readonly<{ summary: SummaryResponse | null
         <p className="muted">{t("experience.note")}</p>
       </div>
       <div>
-        <div className="panel-header"><h2>{t("outcomes.title")}</h2></div>
+        <div className="panel-header">
+          <h2>{t("outcomes.title")}</h2>
+          <ScopeTag scope={sectionScope(summary, "outcomes", "device")} />
+        </div>
         <dl className="quality-grid">
           <div>
             <dt>{t("outcomes.acceptances")}</dt>
@@ -720,32 +761,40 @@ function ExperiencePanel({ summary }: Readonly<{ summary: SummaryResponse | null
   );
 }
 
-function CreditsView({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
+type CreditsMode = "usage" | "forecast";
+
+function CreditsView({
+  summary,
+  coach,
+  repo,
+  prefs
+}: Readonly<{ summary: SummaryResponse | null; coach: CoachResponse | null; repo: string; prefs: SetupPrefs | null }>) {
   const t = useT();
-  const playbook = [
-    { id: "included", title: t("credits.play.included.title"), body: t("credits.play.included.body") },
-    { id: "budget", title: t("credits.play.budget.title"), body: t("credits.play.budget.body") },
-    { id: "batch", title: t("credits.play.batch.title"), body: t("credits.play.batch.body") },
-    { id: "cache", title: t("credits.play.cache.title"), body: t("credits.play.cache.body") },
-    { id: "retry", title: t("credits.play.retry.title"), body: t("credits.play.retry.body") },
-    { id: "monitor", title: t("credits.play.monitor.title"), body: t("credits.play.monitor.body") }
-  ];
+  const [mode, setMode] = useState<CreditsMode>("usage");
   return (
     <>
-      <BudgetPanel summary={summary} />
-      <ModelMixPanel summary={summary} />
-      <PlanComparisonPanel summary={summary} />
-      <ExperiencePanel summary={summary} />
-      <Panel title={t("credits.play.title")} aside={<span className="muted">{t("credits.play.aside")}</span>}>
-        <ul className="playbook-grid">
-          {playbook.map((item) => (
-            <li key={item.id} className="playbook-card">
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </li>
-          ))}
-        </ul>
-      </Panel>
+      <div className="segmented mode-switch">
+        <button type="button" className={mode === "usage" ? "active" : ""} onClick={() => setMode("usage")}>
+          {t("credits.mode.usage")}
+        </button>
+        <button type="button" className={mode === "forecast" ? "active" : ""} onClick={() => setMode("forecast")}>
+          {t("credits.mode.forecast")}
+        </button>
+      </div>
+      {mode === "usage" ? (
+        <>
+          <BudgetPanel summary={summary} />
+          <ModelMixPanel summary={summary} />
+          <CoachPanels coach={coach} summary={summary} />
+          <ExperiencePanel summary={summary} />
+          <details className="advanced-details">
+            <summary>{t("plans.title")}</summary>
+            <PlanComparisonPanel summary={summary} />
+          </details>
+        </>
+      ) : (
+        <PlannerView summary={summary} repo={repo} prefs={prefs} />
+      )}
     </>
   );
 }
@@ -887,6 +936,7 @@ function PlanComparisonPanel({ summary }: Readonly<{ summary: SummaryResponse | 
               {focused ? t("plans.showAll") : t("plans.showMine")}
             </button>
           ) : null}
+          <ScopeTag scope={sectionScope(summary, "officialBilling", "official-github")} />
         </div>
       }
     >
@@ -1059,6 +1109,7 @@ function PlannerView({ summary, repo, prefs }: Readonly<{ summary: SummaryRespon
                 </button>
               ))}
             </div>
+            <ScopeTag scope={sectionScope(summary, "economy", "workspace")} />
           </div>
         }
       >
@@ -1126,7 +1177,12 @@ function PlannerView({ summary, repo, prefs }: Readonly<{ summary: SummaryRespon
       {planner && strategy ? (
         <Panel
           title={t("planner.modelStrategy")}
-          aside={<span className={`pill ${plannerVerdictTone(strategy.verdict)}`}>{t(`planner.verdict.${strategy.verdict}`)}</span>}
+          aside={
+            <PanelAside>
+              <span className={`pill ${plannerVerdictTone(strategy.verdict)}`}>{t(`planner.verdict.${strategy.verdict}`)}</span>
+              <ScopeTag scope={sectionScope(summary, "economy", "workspace")} />
+            </PanelAside>
+          }
         >
           {strategy.splits.length > 0 ? (
             <div className="table-wrap">
@@ -1347,12 +1403,106 @@ function buildFlowNodes(events: InspectorEvent[], t: TranslateFn): FlowNode[] {
   return nodes;
 }
 
-function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | null }>) {
+function SessionDetailHeader({
+  summary,
+  session,
+  agents
+}: Readonly<{ summary: InspectorResponse["summary"]; session: SessionRecord | null; agents: InspectorResponse["agents"] }>) {
+  const t = useT();
+  if (!summary) {
+    return null;
+  }
+  const agentNames = agents.length > 0 ? agents.map((entry) => entry.agent).slice(0, 2).join(", ") : "—";
+  const isActive = summary.sessionStatus === "active";
+  return (
+    <dl className="session-details">
+      <div>
+        <dt>{t("inspector.details.workspace")}</dt>
+        <dd>{session ? session.repoShort : "—"}</dd>
+      </div>
+      <div>
+        <dt>{t("inspector.details.branch")}</dt>
+        <dd>{session?.branch || "—"}</dd>
+      </div>
+      <div>
+        <dt>{t("inspector.details.location")}</dt>
+        <dd>{session?.modeBucket || session?.operation || summary.services.join(", ") || "—"}</dd>
+      </div>
+      <div>
+        <dt>{t("inspector.details.agent")}</dt>
+        <dd>{agentNames}</dd>
+      </div>
+      <div>
+        <dt>{t("inspector.details.created")}</dt>
+        <dd>{summary.startedAt ? new Date(summary.startedAt).toLocaleString() : "—"}</dd>
+      </div>
+      <div>
+        <dt>{t("inspector.details.lastActivity")}</dt>
+        <dd>{summary.endedAt ? new Date(summary.endedAt).toLocaleString() : "—"}</dd>
+      </div>
+      <div>
+        <dt>{t("inspector.details.status")}</dt>
+        <dd>
+          <span className={`pill ${isActive ? "pill-good" : "pill-warn"}`}>
+            {isActive ? t("inspector.details.statusActive") : t("inspector.details.statusIdle")}
+          </span>
+        </dd>
+      </div>
+      <div>
+        <dt>{t("inspector.duration")}</dt>
+        <dd>{formatMs(summary.totalDurationMs)}</dd>
+      </div>
+    </dl>
+  );
+}
+
+function SessionDetailTiles({
+  summary,
+  session
+}: Readonly<{ summary: InspectorResponse["summary"]; session: SessionRecord | null }>) {
+  const t = useT();
+  if (!summary) {
+    return null;
+  }
+  const pairs =
+    summary.requestPairs > 0
+      ? `${formatNumber(summary.healthyPairs, 0)}/${formatNumber(summary.requestPairs, 0)}`
+      : "—";
+  const tiles: { label: string; value: string }[] = [
+    { label: t("inspector.tile.modelTurns"), value: formatNumber(summary.llmRequests, 0) },
+    { label: t("inspector.toolCalls"), value: formatNumber(summary.toolCalls, 0) },
+    { label: t("inspector.tile.input"), value: formatCompact(summary.inputTokens) },
+    { label: t("inspector.tile.output"), value: formatCompact(summary.outputTokens) },
+    { label: t("inspector.tile.cachedInput"), value: formatCompact(summary.cacheReadTokens) },
+    { label: t("inspector.tile.totalTokens"), value: formatCompact(summary.totalTokens) },
+    { label: t("inspector.tile.credits"), value: session ? formatNumber(session.aiCredits, 2) : "—" },
+    { label: t("inspector.errors"), value: formatNumber(summary.errors, 0) },
+    { label: t("inspector.cacheHit"), value: formatPercent(summary.cacheEfficiency) },
+    { label: t("inspector.cacheBreaks"), value: formatNumber(summary.cacheBreaks, 0) },
+    { label: t("inspector.healthyPairs"), value: pairs },
+    { label: t("inspector.avoidableTokens"), value: formatCompact(summary.avoidableRecomputedTokens) }
+  ];
+  return (
+    <div className="composition-stats">
+      {tiles.map((tile) => (
+        <div key={tile.label}>
+          <span className="stat-label">{tile.label}</span>
+          <span className="stat-value">{tile.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SessionDetail({
+  sessions,
+  traceId,
+  onBack
+}: Readonly<{ sessions: SessionsResponse | null; traceId: string; onBack: () => void }>) {
   const t = useT();
   const items = sessions?.items ?? [];
-  const [traceId, setTraceId] = useState("");
   const [flowFilter, setFlowFilter] = useState("");
-  const effectiveTraceId = traceId || (items.length > 0 ? items[0].traceId : "");
+  const effectiveTraceId = traceId;
   const { inspector, isLoading } = useInspectorData(effectiveTraceId);
   const summary = inspector?.summary ?? null;
   const events = inspector?.events ?? [];
@@ -1372,128 +1522,25 @@ function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | nul
   }, [flowNodes, flowFilter]);
   const shownFlow = filteredFlow.slice(0, 150);
 
-  const practices = [
-    { id: "lock", title: t("inspector.practice.lock.title"), body: t("inspector.practice.lock.body") },
-    { id: "stable", title: t("inspector.practice.stable.title"), body: t("inspector.practice.stable.body") },
-    { id: "late", title: t("inspector.practice.late.title"), body: t("inspector.practice.late.body") },
-    { id: "fresh", title: t("inspector.practice.fresh.title"), body: t("inspector.practice.fresh.body") }
-  ];
-
   return (
     <>
       <Panel
         title={t("inspector.title")}
         status={inspector?.status}
         aside={
-          <select value={effectiveTraceId} onChange={(event) => setTraceId(event.target.value)}>
-            {items.length === 0 ? <option value="">{t("inspector.noSessions")}</option> : null}
-            {items.map((session) => (
-              <option key={session.traceId} value={session.traceId}>
-                {session.repoShort} · {session.model} · {formatNumber(session.aiCredits, 2)} cr · {session.traceId.slice(0, 8)}…
-              </option>
-            ))}
-          </select>
+          <PanelAside>
+            <ScopeTag scope="workspace" />
+            <button type="button" className="plan-toggle" onClick={onBack}>
+              {t("sessions.back")}
+            </button>
+          </PanelAside>
         }
       >
         <p className="muted">{t("inspector.blurb")}</p>
         {isLoading && !inspector ? <p className="muted">{t("state.loading")}</p> : null}
-        {inspector && inspector.status === "unavailable" ? <p className="muted">{inspector.message}</p> : null}
-        {summary ? (
-          <dl className="session-details">
-            <div>
-              <dt>{t("inspector.details.workspace")}</dt>
-              <dd>{session ? session.repoShort : "—"}</dd>
-            </div>
-            <div>
-              <dt>{t("inspector.details.branch")}</dt>
-              <dd>{session?.branch || "—"}</dd>
-            </div>
-            <div>
-              <dt>{t("inspector.details.location")}</dt>
-              <dd>{session?.modeBucket || session?.operation || summary.services.join(", ") || "—"}</dd>
-            </div>
-            <div>
-              <dt>{t("inspector.details.agent")}</dt>
-              <dd>{agents.length > 0 ? agents.map((entry) => entry.agent).slice(0, 2).join(", ") : "—"}</dd>
-            </div>
-            <div>
-              <dt>{t("inspector.details.created")}</dt>
-              <dd>{summary.startedAt ? new Date(summary.startedAt).toLocaleString() : "—"}</dd>
-            </div>
-            <div>
-              <dt>{t("inspector.details.lastActivity")}</dt>
-              <dd>{summary.endedAt ? new Date(summary.endedAt).toLocaleString() : "—"}</dd>
-            </div>
-            <div>
-              <dt>{t("inspector.details.status")}</dt>
-              <dd>
-                <span className={`pill ${summary.sessionStatus === "active" ? "pill-good" : "pill-warn"}`}>
-                  {summary.sessionStatus === "active" ? t("inspector.details.statusActive") : t("inspector.details.statusIdle")}
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("inspector.duration")}</dt>
-              <dd>{formatMs(summary.totalDurationMs)}</dd>
-            </div>
-          </dl>
-        ) : null}
-        {summary ? (
-          <div className="composition-stats">
-            <div>
-              <span className="stat-label">{t("inspector.tile.modelTurns")}</span>
-              <span className="stat-value">{formatNumber(summary.llmRequests, 0)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.toolCalls")}</span>
-              <span className="stat-value">{formatNumber(summary.toolCalls, 0)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.tile.input")}</span>
-              <span className="stat-value">{formatCompact(summary.inputTokens)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.tile.output")}</span>
-              <span className="stat-value">{formatCompact(summary.outputTokens)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.tile.cachedInput")}</span>
-              <span className="stat-value">{formatCompact(summary.cacheReadTokens)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.tile.totalTokens")}</span>
-              <span className="stat-value">{formatCompact(summary.totalTokens)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.tile.credits")}</span>
-              <span className="stat-value">{session ? formatNumber(session.aiCredits, 2) : "—"}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.errors")}</span>
-              <span className="stat-value">{formatNumber(summary.errors, 0)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.cacheHit")}</span>
-              <span className="stat-value">{formatPercent(summary.cacheEfficiency)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.cacheBreaks")}</span>
-              <span className="stat-value">{formatNumber(summary.cacheBreaks, 0)}</span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.healthyPairs")}</span>
-              <span className="stat-value">
-                {summary.requestPairs > 0
-                  ? `${formatNumber(summary.healthyPairs, 0)}/${formatNumber(summary.requestPairs, 0)}`
-                  : "—"}
-              </span>
-            </div>
-            <div>
-              <span className="stat-label">{t("inspector.avoidableTokens")}</span>
-              <span className="stat-value">{formatCompact(summary.avoidableRecomputedTokens)}</span>
-            </div>
-          </div>
-        ) : null}
+        {inspector?.status === "unavailable" ? <p className="muted">{inspector.message}</p> : null}
+        <SessionDetailHeader summary={summary} session={session} agents={agents} />
+        <SessionDetailTiles summary={summary} session={session} />
         {summary && links ? (
           <div className="trace-links">
             <span className="stat-label">{t("inspector.explore")}</span>
@@ -1658,43 +1705,123 @@ function InspectorView({ sessions }: Readonly<{ sessions: SessionsResponse | nul
         </Panel>
       ) : null}
       <Panel title={t("inspector.practices")} aside={<span className="muted">{t("coach.bestPractices")}</span>}>
-        <ul className="playbook-grid">
-          {practices.map((item) => (
-            <li key={item.id} className="playbook-card">
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </li>
-          ))}
-        </ul>
+        <p className="muted">{t("inspector.vscodeHint")}</p>
+        <div className="link-grid">
+          <a href="https://code.visualstudio.com/docs/agents/agent-troubleshooting/chat-debug-view" target="_blank" rel="noopener noreferrer">
+            {t("inspector.link.debugLogs")}
+          </a>
+          <a href="https://code.visualstudio.com/docs/agents/agent-troubleshooting/cache-explorer" target="_blank" rel="noopener noreferrer">
+            {t("inspector.link.cacheExplorer")}
+          </a>
+          <a href="https://code.visualstudio.com/docs/agents/guides/optimize-usage" target="_blank" rel="noopener noreferrer">
+            {t("inspector.link.optimize")}
+          </a>
+        </div>
         <p className="muted">{t("inspector.importNote")}</p>
       </Panel>
     </>
   );
 }
 
-function OverviewView({
-  summary,
-  sessions,
-  coach
-}: Readonly<{ summary: SummaryResponse | null; sessions: SessionsResponse | null; coach: CoachResponse | null }>) {
+// The API owns the scope map, so panels resolve their population from the
+// summary instead of repeating a literal the server could later change. The
+// fallback only applies before the first summary lands.
+function sectionScope(summary: SummaryResponse | null, section: string, fallback: DataScopeKind): DataScopeKind {
+  return summary?.scopeBySection?.[section] ?? fallback;
+}
+
+// Groups a badge with whatever controls or notes a panel already puts in its
+// header, so adding scope disclosure never displaces an existing aside.
+function PanelAside({ children }: Readonly<{ children: ReactNode }>) {
+  return <div className="panel-header-actions">{children}</div>;
+}
+
+// Localized wrapper around ScopeBadge so every panel states the population it
+// covers with one short label.
+function ScopeTag({ scope }: Readonly<{ scope?: DataScopeKind }>) {
   const t = useT();
-  const alerts = localizeAlerts(summary?.alerts ?? [], t);
+  if (!scope) {
+    return null;
+  }
+  return <ScopeBadge scope={scope} label={t(`scope.${scope}.label`)} title={t(`scope.${scope}.help`)} />;
+}
+
+function TodayHighlights({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
+  const t = useT();
   const topWorkspace = summary?.workspaces.items?.[0] ?? null;
   const topModel = summary?.modelMix.entries?.[0] ?? null;
-  const topSession = sessions?.items?.find((item) => item.aiCredits > 0) ?? sessions?.items?.[0] ?? null;
   const budget = summary?.budget ?? null;
   const contextPeak = summary?.metrics.context.peak.value ?? null;
   const compactions = summary?.outcomes.contextCompactions.value ?? null;
+  const contextText = contextPeak === null ? "—" : `${formatNumber(contextPeak, 0)}%`;
+  const compactionText = compactions === null ? "—" : formatNumber(compactions, 0);
+
+  // The four highlights come from different populations, so a single panel
+  // badge would be a false claim. Each card discloses its own scope.
+  return (
+    <Panel title={t("overview.highlights")}>
+      <div className="highlight-grid">
+        <article className="highlight-card">
+          <div className="highlight-card-head">
+            <span className="stat-label">{t("overview.hl.topWorkspace")}</span>
+            <ScopeTag scope={sectionScope(summary, "workspaces", "workspace")} />
+          </div>
+          <span className="stat-value">{topWorkspace ? topWorkspace.repoShort : t("overview.hl.none")}</span>
+          {topWorkspace ? (
+            <span className="muted">
+              {formatNumber(topWorkspace.aiCredits, 2)} AI Credits · {formatPercent(topWorkspace.cacheEfficiency)} cache
+            </span>
+          ) : null}
+        </article>
+        <article className="highlight-card">
+          <div className="highlight-card-head">
+            <span className="stat-label">{t("overview.hl.contextPeak")}</span>
+            <ScopeTag scope={sectionScope(summary, "context", "workspace")} />
+          </div>
+          <span className="stat-value">{contextText}</span>
+          <span className="muted">{t("ctx.aside", { peak: contextText, compactions: compactionText })}</span>
+        </article>
+        <article className="highlight-card">
+          <div className="highlight-card-head">
+            <span className="stat-label">{t("overview.hl.topModel")}</span>
+            <ScopeTag scope={sectionScope(summary, "modelMix", "device")} />
+          </div>
+          <span className="stat-value">{topModel ? topModel.model : t("overview.hl.none")}</span>
+          {topModel ? (
+            <span className="muted">
+              {formatPercent(topModel.share)} · {topModel.estimatedAiCredits === null ? "—" : formatNumber(topModel.estimatedAiCredits, 2)} AI Credits
+            </span>
+          ) : null}
+        </article>
+        <article className="highlight-card">
+          <div className="highlight-card-head">
+            <span className="stat-label">{t("overview.hl.exhaustion")}</span>
+            <ScopeTag scope={sectionScope(summary, "budget", "all-workspaces")} />
+          </div>
+          <span className="stat-value">
+            {budget?.projectedExhaustionDate ? new Date(budget.projectedExhaustionDate).toLocaleDateString() : "—"}
+          </span>
+          <span className="muted">
+            {budget?.remainingCredits === null || budget?.remainingCredits === undefined
+              ? t("overview.hl.none")
+              : t("overview.hl.remaining", { value: formatNumber(budget.remainingCredits, 0) })}
+          </span>
+        </article>
+      </div>
+    </Panel>
+  );
+}
+
+function TodayView({
+  summary,
+  coach
+}: Readonly<{ summary: SummaryResponse | null; coach: CoachResponse | null }>) {
+  const t = useT();
+  const alerts = localizeAlerts(summary?.alerts ?? [], t);
   const topRecommendations = (coach?.cards ?? [])
     .map((card) => localizeCoachCard(card, t))
     .filter((card) => card.severity !== "good")
     .slice(0, 3);
-  const practices = [
-    { id: "warm", title: t("playbook.warm.title"), body: t("playbook.warm.body") },
-    { id: "mentions", title: t("ctx.mentions.title"), body: t("ctx.mentions.body") },
-    { id: "compact", title: t("ctx.compact.title"), body: t("ctx.compact.body") },
-    { id: "model", title: t("playbook.model.title"), body: t("playbook.model.body") }
-  ];
 
   return (
     <>
@@ -1715,64 +1842,6 @@ function OverviewView({
       />
       <KpiStrip summary={summary} />
       <BudgetPanel summary={summary} compact />
-      <Panel title={t("overview.highlights")} aside={<span className="muted">{t("overview.highlightsAside")}</span>}>
-        <div className="highlight-grid">
-          <article className="highlight-card">
-            <span className="stat-label">{t("overview.hl.topWorkspace")}</span>
-            <span className="stat-value">{topWorkspace ? topWorkspace.repoShort : t("overview.hl.none")}</span>
-            {topWorkspace ? (
-              <span className="muted">
-                {formatNumber(topWorkspace.aiCredits, 2)} AI Credits · {formatPercent(topWorkspace.cacheEfficiency)} cache
-              </span>
-            ) : null}
-          </article>
-          <article className="highlight-card">
-            <span className="stat-label">{t("overview.hl.topModel")}</span>
-            <span className="stat-value">{topModel ? topModel.model : t("overview.hl.none")}</span>
-            {topModel ? (
-              <span className="muted">
-                {formatPercent(topModel.share)} · {topModel.estimatedAiCredits === null ? "—" : formatNumber(topModel.estimatedAiCredits, 2)} AI Credits
-              </span>
-            ) : null}
-          </article>
-          <article className="highlight-card">
-            <span className="stat-label">{t("overview.hl.topSession")}</span>
-            <span className="stat-value">{topSession ? topSession.repoShort : t("overview.hl.none")}</span>
-            {topSession ? (
-              <span className="muted">
-                {topSession.model} · {formatNumber(topSession.aiCredits, 2)} AI Credits
-              </span>
-            ) : null}
-          </article>
-          <article className="highlight-card">
-            <span className="stat-label">{t("overview.hl.contextPeak")}</span>
-            <span className="stat-value">{contextPeak === null ? "—" : `${formatNumber(contextPeak, 0)}%`}</span>
-            {contextPeak === null && compactions === null ? (
-              <span className="muted">{t("overview.hl.none")}</span>
-            ) : (
-              <span className="muted">{t("ctx.aside", {
-                peak: contextPeak === null ? "—" : `${formatNumber(contextPeak, 0)}%`,
-                compactions: compactions === null ? "—" : formatNumber(compactions, 0)
-              })}</span>
-            )}
-          </article>
-          <article className="highlight-card">
-            <span className="stat-label">{t("overview.hl.exhaustion")}</span>
-            <span className="stat-value">
-              {budget?.projectedExhaustionDate ? new Date(budget.projectedExhaustionDate).toLocaleDateString() : "—"}
-            </span>
-            <span className="muted">
-              {budget?.remainingCredits === null || budget?.remainingCredits === undefined
-                ? t("overview.hl.none")
-                : t("overview.hl.remaining", { value: formatNumber(budget.remainingCredits, 0) })}
-            </span>
-          </article>
-        </div>
-      </Panel>
-      <TokenComposition summary={summary} />
-      <Panel title={t("overview.topWorkspaces")} aside={<span className="muted">{t("overview.rankedByCredits")}</span>}>
-        <WorkspaceTable summary={summary} limit={5} />
-      </Panel>
       {topRecommendations.length > 0 ? (
         <Panel title={t("overview.topRecs")} aside={<span className="muted">{t("overview.topRecsAside")}</span>}>
           <ul className="coach-list">
@@ -1781,45 +1850,35 @@ function OverviewView({
                 <div className="coach-head">
                   <span className={`pill severity-${card.severity}`}>{t(`severity.${card.severity}`)}</span>
                   <h3>{card.title}</h3>
+                  <ScopeTag scope={card.scope} />
                 </div>
+                <p className="coach-insight">{card.insight}</p>
                 <p className="coach-action"><strong>{t("coach.tryThis")}</strong> {card.action}</p>
               </li>
             ))}
           </ul>
         </Panel>
       ) : null}
-      <Panel title={t("overview.practices")} aside={<span className="muted">{t("overview.practicesAside")}</span>}>
-        <ul className="playbook-grid">
-          {practices.map((item) => (
-            <li key={item.id} className="playbook-card">
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </li>
-          ))}
-        </ul>
+      <TodayHighlights summary={summary} />
+      <TokenComposition summary={summary} />
+      <Panel title={t("overview.topWorkspaces")} aside={<ScopeTag scope={sectionScope(summary, "workspaces", "workspace")} />}>
+        <WorkspaceTable summary={summary} limit={5} />
       </Panel>
-      <HistoryPanel points={summary?.history.points ?? []} message={summary?.history.message} />
     </>
   );
 }
 
 const aspireBase = "http://localhost:18888";
-const grafanaSessions = "http://localhost:3000/d/copilot-sessions-models-local/github-copilot-sessions-and-model-labels-local";
+const grafanaTrends = "http://localhost:3000/d/copilot-developer-trends-local/frontier-cockpit-developer-trends";
 
 function SessionsView({ sessions }: Readonly<{ sessions: SessionsResponse | null }>) {
   const t = useT();
-  const [copied, setCopied] = useState<string | null>(null);
+  const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
   const items = sessions?.items ?? [];
 
-  const copyTrace = useCallback(async (traceId: string) => {
-    try {
-      await navigator.clipboard.writeText(traceId);
-      setCopied(traceId);
-      setTimeout(() => setCopied((current) => (current === traceId ? null : current)), 1500);
-    } catch {
-      setCopied(null);
-    }
-  }, []);
+  if (selectedTraceId) {
+    return <SessionDetail sessions={sessions} traceId={selectedTraceId} onBack={() => setSelectedTraceId(null)} />;
+  }
 
   return (
     <Panel
@@ -1827,8 +1886,9 @@ function SessionsView({ sessions }: Readonly<{ sessions: SessionsResponse | null
       status={sessions?.status}
       aside={
         <div className="link-row">
+          <ScopeTag scope="workspace" />
           <a href={`${aspireBase}/traces`} target="_blank" rel="noopener noreferrer">{t("sessions.aspire")}</a>
-          <a href={grafanaSessions} target="_blank" rel="noopener noreferrer">{t("sessions.grafana")}</a>
+          <a href={grafanaTrends} target="_blank" rel="noopener noreferrer">{t("sessions.grafana")}</a>
         </div>
       }
     >
@@ -1844,12 +1904,11 @@ function SessionsView({ sessions }: Readonly<{ sessions: SessionsResponse | null
                 <th className="numeric">{t("ws.col.input")}</th>
                 <th className="numeric">{t("sessions.col.output")}</th>
                 <th className="numeric">{t("ws.col.cached")}</th>
-                <th className="numeric">{t("inspector.col.cacheWrite")}</th>
                 <th className="numeric">{t("ws.col.cold")}</th>
                 <th className="numeric">{t("ws.col.cacheEff")}</th>
                 <th className="numeric">{t("sessions.col.tools")}</th>
                 <th className="numeric">{t("sessions.col.context")}</th>
-                <th>{t("sessions.col.trace")}</th>
+                <th>{t("sessions.col.inspect")}</th>
               </tr>
             </thead>
             <tbody>
@@ -1865,7 +1924,6 @@ function SessionsView({ sessions }: Readonly<{ sessions: SessionsResponse | null
                   <td className="numeric">{formatCompact(session.inputTokens)}</td>
                   <td className="numeric">{formatCompact(session.outputTokens)}</td>
                   <td className="numeric">{formatCompact(session.cacheReadTokens)}</td>
-                  <td className="numeric">{formatCompact(session.cacheCreationTokens)}</td>
                   <td className="numeric">{formatCompact(session.coldInputTokens)}</td>
                   <td className="numeric">
                     <span className={`pill ${cacheTone(session.cacheEfficiency)}`}>{formatPercent(session.cacheEfficiency)}</span>
@@ -1873,8 +1931,13 @@ function SessionsView({ sessions }: Readonly<{ sessions: SessionsResponse | null
                   <td className="numeric">{formatNumber(session.toolCalls, 0)}</td>
                   <td className="numeric">{formatPctText(session.contextPct)}</td>
                   <td>
-                    <button type="button" className="trace-copy" onClick={() => void copyTrace(session.traceId)} title={session.traceId}>
-                      {copied === session.traceId ? t("sessions.copied") : `${session.traceId.slice(0, 8)}…`}
+                    <button
+                      type="button"
+                      className="trace-copy"
+                      onClick={() => setSelectedTraceId(session.traceId)}
+                      title={session.traceId}
+                    >
+                      {t("sessions.inspect")}
                     </button>
                   </td>
                 </tr>
@@ -1886,16 +1949,6 @@ function SessionsView({ sessions }: Readonly<{ sessions: SessionsResponse | null
         <p className="muted" title={sessions?.message}>{t("sessions.empty")}</p>
       )}
       <p className="muted">{t("sessions.note")}</p>
-    </Panel>
-  );
-}
-
-function WorkspacesView({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
-  const t = useT();
-  return (
-    <Panel title={t("workspaces.title")} status={summary?.workspaces.status} aside={undefined}>
-      <WorkspaceTable summary={summary} />
-      <p className="muted">{t("workspaces.note")}</p>
     </Panel>
   );
 }
@@ -1966,36 +2019,31 @@ function localizeCoachCard(card: CoachCard, t: TranslateFn): CoachCard {
   };
 }
 
-function CoachView({ coach, summary }: Readonly<{ coach: CoachResponse | null; summary: SummaryResponse | null }>) {
+// Savings copy is localized by id when a translation exists; otherwise the
+// API text is shown as-is.
+function localizedOr(t: TranslateFn, key: string, fallback: string, params: Record<string, string | number> = {}): string {
+  const value = t(key, params);
+  return value.startsWith(key.split(".")[0] + ".") ? fallback : value;
+}
+
+function CoachPanels({ coach, summary }: Readonly<{ coach: CoachResponse | null; summary: SummaryResponse | null }>) {
   const t = useT();
   const cards = (coach?.cards ?? []).map((card) => localizeCoachCard(card, t));
   const topSessions = coach?.topSessions ?? [];
   const economy = summary?.economy;
   const score = economy?.efficiencyScore ?? null;
   const opportunities = economy?.savingsOpportunities ?? [];
-  const playbook: { id: string; title: string; body: string }[] = [
-    { id: "warm", title: t("playbook.warm.title"), body: t("playbook.warm.body") },
-    { id: "cold", title: t("playbook.cold.title"), body: t("playbook.cold.body") },
-    { id: "focus", title: t("playbook.focus.title"), body: t("playbook.focus.body") },
-    { id: "errors", title: t("playbook.errors.title"), body: t("playbook.errors.body") },
-    { id: "model", title: t("playbook.model.title"), body: t("playbook.model.body") },
-    { id: "validate", title: t("playbook.validate.title"), body: t("playbook.validate.body") },
-    { id: "workspace", title: t("playbook.workspace.title"), body: t("playbook.workspace.body") }
-  ];
-  const contextPlaybook: { id: string; title: string; body: string }[] = [
-    { id: "mentions", title: t("ctx.mentions.title"), body: t("ctx.mentions.body") },
-    { id: "codebase", title: t("ctx.codebase.title"), body: t("ctx.codebase.body") },
-    { id: "monitor", title: t("ctx.monitor.title"), body: t("ctx.monitor.body") },
-    { id: "compact", title: t("ctx.compact.title"), body: t("ctx.compact.body") },
-    { id: "sessions", title: t("ctx.sessions.title"), body: t("ctx.sessions.body") },
-    { id: "cache", title: t("ctx.cache.title"), body: t("ctx.cache.body") }
-  ];
+  const savingsText =
+    economy?.potentialSavingsCredits === null || economy === undefined
+      ? "\u2014"
+      : t("coach.creditsUnit", { value: formatNumber(economy.potentialSavingsCredits, 0) });
+
   return (
     <>
-      <Panel title={t("coach.efficiency")} aside={<span className="muted">{t("coach.localEstimate")}</span>}>
+      <Panel title={t("coach.efficiency")} aside={<ScopeTag scope={sectionScope(summary, "economy", "workspace")} />}>
         <div className="efficiency-row">
           <div className={`score-dial score-${efficiencyTone(score)}`}>
-            <span className="score-value">{score ?? "—"}</span>
+            <span className="score-value">{score ?? "\u2014"}</span>
             <span className="score-max">/ 100</span>
           </div>
           <div className="efficiency-facts">
@@ -2013,32 +2061,39 @@ function CoachView({ coach, summary }: Readonly<{ coach: CoachResponse | null; s
             </div>
             <div>
               <span className="stat-label">{t("coach.potentialSavings")}</span>
-              <span className="stat-value">
-                {economy?.potentialSavingsCredits === null || economy === undefined
-                  ? "—"
-                  : t("coach.creditsUnit", { value: formatNumber(economy.potentialSavingsCredits, 0) })}
-              </span>
+              <span className="stat-value">{savingsText}</span>
             </div>
           </div>
         </div>
         <p className="muted">{t("coach.scoreNote")}</p>
       </Panel>
       {opportunities.length > 0 ? (
-        <Panel title={t("coach.savings")} aside={<span className="muted">{t("coach.savingsAside")}</span>}>
+        <Panel
+          title={t("coach.savings")}
+          aside={
+            <PanelAside>
+              <span className="muted">{t("coach.savingsAside")}</span>
+              <ScopeTag scope={sectionScope(summary, "economy", "workspace")} />
+            </PanelAside>
+          }
+        >
           <ul className="savings-list">
             {opportunities.map((item) => (
               <li key={item.id} className="savings-card">
                 <div className="savings-head">
-                  <h3>{(() => { const l = t(`savings.${item.id}.label`); return l.startsWith("savings.") ? item.label : l; })()}</h3>
+                  <h3>{localizedOr(t, `savings.${item.id}.label`, item.label)}</h3>
                   <span className="savings-credits">{t("coach.creditsUnit", { value: formatNumber(item.estimateCredits, 0) })}</span>
                 </div>
-                <p>{(() => { const d = t(`savings.${item.id}.detail`, item.params ?? {}); return d.startsWith("savings.") ? item.detail : d; })()}</p>
+                <p>{localizedOr(t, `savings.${item.id}.detail`, item.detail, item.params ?? {})}</p>
               </li>
             ))}
           </ul>
         </Panel>
       ) : null}
-      <Panel title={t("coach.recommendations")} aside={<span className="muted">{coach ? t("coach.generated", { time: new Date(coach.generatedAt).toLocaleTimeString() }) : ""}</span>}>
+      <Panel
+        title={t("coach.recommendations")}
+        aside={<span className="muted">{coach ? t("coach.generated", { time: new Date(coach.generatedAt).toLocaleTimeString() }) : ""}</span>}
+      >
         {cards.length > 0 ? (
           <ul className="coach-list">
             {cards.map((card) => (
@@ -2046,6 +2101,7 @@ function CoachView({ coach, summary }: Readonly<{ coach: CoachResponse | null; s
                 <div className="coach-head">
                   <span className="coach-tag">{t(`severity.${card.severity}`)}</span>
                   <h3>{card.title}</h3>
+                  <ScopeTag scope={card.scope} />
                 </div>
                 <p className="coach-insight">{card.insight}</p>
                 <p className="coach-action"><strong>{t("coach.tryThis")}</strong> {card.action}</p>
@@ -2055,47 +2111,10 @@ function CoachView({ coach, summary }: Readonly<{ coach: CoachResponse | null; s
         ) : (
           <p className="muted">{t("coach.noRecs")}</p>
         )}
-      </Panel>
-      <Panel title={t("coach.playbook")} aside={<span className="muted">{t("coach.bestPractices")}</span>}>
-        <ul className="playbook-grid">
-          {playbook.map((item) => (
-            <li key={item.id} className="playbook-card">
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </li>
-          ))}
-        </ul>
-      </Panel>
-      <Panel
-        title={t("ctx.title")}
-        aside={
-          <span className="muted">
-            {t("ctx.aside", {
-              peak:
-                summary?.metrics.context.peak.value == null
-                  ? "—"
-                  : `${formatNumber(summary.metrics.context.peak.value, 0)}%`,
-              compactions:
-                summary?.outcomes.contextCompactions.value == null
-                  ? "—"
-                  : formatNumber(summary.outcomes.contextCompactions.value, 0)
-            })}
-          </span>
-        }
-      >
-        <p className="muted">{t("ctx.blurb")}</p>
-        <ul className="playbook-grid">
-          {contextPlaybook.map((item) => (
-            <li key={item.id} className="playbook-card">
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </li>
-          ))}
-        </ul>
-        <p className="muted">{t("ctx.note")}</p>
+        <p className="muted">{t("coach.guidanceLink")}</p>
       </Panel>
       {topSessions.length > 0 ? (
-        <Panel title={t("coach.expensive")} aside={<span className="muted">{t("coach.byCredits")}</span>}>
+        <Panel title={t("coach.expensive")} aside={<ScopeTag scope={sectionScope(summary, "sessionMetrics", "workspace")} />}>
           <div className="table-wrap">
             <table className="sessions-table">
               <thead>
@@ -2161,7 +2180,12 @@ function LongTermPanel({ repo }: Readonly<{ repo: string }>) {
     <Panel
       title={t("longterm.title")}
       status={history?.status}
-      aside={<span className="muted">{t("longterm.aside")}</span>}
+      aside={
+        <PanelAside>
+          <span className="muted">{t("longterm.aside")}</span>
+          <ScopeTag scope="workspace" />
+        </PanelAside>
+      }
     >
       <p className="muted">{t("longterm.blurb")}</p>
       {days.length > 0 ? (
@@ -2203,14 +2227,19 @@ function LongTermPanel({ repo }: Readonly<{ repo: string }>) {
   );
 }
 
-function HistoryView({ summary, repo }: Readonly<{ summary: SummaryResponse | null; repo: string }>) {
+function TrendsView({ summary, repo }: Readonly<{ summary: SummaryResponse | null; repo: string }>) {
   const t = useT();
   const points = summary?.history.points ?? [];
   return (
     <>
-      <HistoryPanel points={points} message={summary?.history.message} />
+      <HistoryPanel points={points} message={summary?.history.message} scope={sectionScope(summary, "history", "workspace")} />
+      <Panel title={t("workspaces.title")} status={summary?.workspaces.status} aside={<ScopeTag scope={sectionScope(summary, "workspaces", "workspace")} />}>
+        <WorkspaceTable summary={summary} />
+        <p className="muted">{t("workspaces.note")}</p>
+      </Panel>
       <LongTermPanel repo={repo} />
-      <Panel title={t("history.detail")} aside={<span className="muted">{t("history.buckets", { count: points.length })}</span>}>
+      <details className="advanced-details">
+        <summary>{t("history.detail")}</summary>
         {points.length > 0 ? (
           <div className="table-wrap">
             <table>
@@ -2241,12 +2270,12 @@ function HistoryView({ summary, repo }: Readonly<{ summary: SummaryResponse | nu
         ) : (
           <p className="muted" title={summary?.history.message}>{t("history.emptyRows")}</p>
         )}
-      </Panel>
+      </details>
     </>
   );
 }
 
-function HealthView({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
+function DiagnosticsView({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
   const t = useT();
   const usdTotal = sumSeries(summary?.metrics.usdWhatIf);
   return (
@@ -2266,7 +2295,10 @@ function HealthView({ summary }: Readonly<{ summary: SummaryResponse | null }>) 
       </Panel>
       <section className="panel two-column">
         <div>
-          <div className="panel-header"><h2>{t("health.dataQuality")}</h2></div>
+          <div className="panel-header">
+            <h2>{t("health.dataQuality")}</h2>
+            <ScopeTag scope={sectionScope(summary, "dataQuality", "device")} />
+          </div>
           <dl className="quality-grid">
             <div>
               <dt>{t("health.workspaceReal")}</dt>
@@ -2290,7 +2322,10 @@ function HealthView({ summary }: Readonly<{ summary: SummaryResponse | null }>) 
         <div>
           <div className="panel-header">
             <h2>{t("health.officialBilling")}</h2>
-            <span className={statusClass(summary?.officialBilling.status ?? "unavailable")}>{statusText(summary?.officialBilling.status ?? "unavailable", t)}</span>
+            <PanelAside>
+              <ScopeTag scope={sectionScope(summary, "officialBilling", "official-github")} />
+              <span className={statusClass(summary?.officialBilling.status ?? "unavailable")}>{statusText(summary?.officialBilling.status ?? "unavailable", t)}</span>
+            </PanelAside>
           </div>
           <p>{summary?.officialBilling.reason}</p>
           <p className="muted">{t("health.usdWhatIf", { value: formatCurrencyText(usdTotal, t) })}</p>
@@ -2489,15 +2524,11 @@ interface ViewProps {
 }
 
 const viewRenderers: Record<ViewId, (props: ViewProps) => ReactNode> = {
-  overview: ({ summary, sessions, coach }) => <OverviewView summary={summary} sessions={sessions} coach={coach} />,
-  credits: ({ summary }) => <CreditsView summary={summary} />,
-  planner: ({ summary, repo, prefs }) => <PlannerView summary={summary} repo={repo} prefs={prefs} />,
-  inspector: ({ sessions }) => <InspectorView sessions={sessions} />,
+  today: ({ summary, coach }) => <TodayView summary={summary} coach={coach} />,
   sessions: ({ sessions }) => <SessionsView sessions={sessions} />,
-  workspaces: ({ summary }) => <WorkspacesView summary={summary} />,
-  coach: ({ coach, summary }) => <CoachView coach={coach} summary={summary} />,
-  history: ({ summary, repo }) => <HistoryView summary={summary} repo={repo} />,
-  health: ({ summary }) => <HealthView summary={summary} />,
+  trends: ({ summary, repo }) => <TrendsView summary={summary} repo={repo} />,
+  credits: ({ summary, coach, repo, prefs }) => <CreditsView summary={summary} coach={coach} repo={repo} prefs={prefs} />,
+  diagnostics: ({ summary }) => <DiagnosticsView summary={summary} />,
   settings: ({ summary }) => <SettingsView summary={summary} />
 };
 
@@ -2616,10 +2647,10 @@ function AppShell({ lang, setLang }: Readonly<{ lang: Lang; setLang: (lang: Lang
   const t = useT();
   const [range, setRange] = useState<RangeOption>("24h");
   const [repo, setRepo] = useState("all");
-  const [activeView, setActiveView] = useState<ViewId>("overview");
+  const [activeView, setActiveView] = useState<ViewId>("today");
   const [prefs, setPrefs] = useState<SetupPrefs | null>(() => readSetupPrefs());
   const [wizardOpen, setWizardOpen] = useState(() => readSetupPrefs() === null);
-  const { data, error, isLoading, reload } = useDashboardData(range, repo, prefs);
+  const { data, error, isLoading, reload } = useDashboardData(range, repo, prefs, activeView);
   const { summary, sessions, coach } = data;
 
   const saveSetup = useCallback((next: SetupPrefs) => {
@@ -2632,7 +2663,11 @@ function AppShell({ lang, setLang }: Readonly<{ lang: Lang; setLang: (lang: Lang
 
   const views = buildViews(t);
   const alertCount = summary?.alerts.length ?? 0;
-  const activeDef = views.find((view) => view.id === activeView) ?? views[0];
+  const activeDef = views.find((view) => view.id === activeView) ?? {
+    id: "settings",
+    label: t("nav.settings.label"),
+    blurb: t("nav.settings.blurb")
+  };
 
   const dashboardTitle = summary?.participant.dashboardTitle ?? "Frontier Cockpit Local";
   const participantName = prefs?.name ?? summary?.participant.name ?? "Workshop Participant";
@@ -2674,9 +2709,22 @@ function AppShell({ lang, setLang }: Readonly<{ lang: Lang; setLang: (lang: Lang
                 <span className="nav-label">{view.label}</span>
                 <span className="nav-blurb">{view.blurb}</span>
               </span>
-              {view.id === "overview" && alertCount > 0 ? <span className="nav-badge">{alertCount}</span> : null}
+              {view.id === "today" && alertCount > 0 ? <span className="nav-badge">{alertCount}</span> : null}
             </button>
           ))}
+          {/* Settings is configuration rather than a daily destination, so it
+              trails the rail as a quiet entry that survives every viewport. */}
+          <button
+            type="button"
+            className={`nav-item nav-item-quiet${activeView === "settings" ? " active" : ""}`}
+            onClick={() => setActiveView("settings")}
+          >
+            <span className="nav-icon" aria-hidden><NavIcon id="settings" /></span>
+            <span className="nav-text">
+              <span className="nav-label">{t("nav.settings.label")}</span>
+              <span className="nav-blurb">{t("nav.settings.blurb")}</span>
+            </span>
+          </button>
         </nav>
         <div className="sidebar-lang">
           <span className="sidebar-lang-label">{t("controls.language")}</span>

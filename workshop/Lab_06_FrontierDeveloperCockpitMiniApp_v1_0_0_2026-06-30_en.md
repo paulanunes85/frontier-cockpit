@@ -2,8 +2,8 @@
 title: "Lab 06 Frontier Cockpit Local Mini App"
 description: "Hands-on lab where each participant runs the Frontier Cockpit Local mini app from the template, sets their own identity, and reads token efficiency and AI credit signals."
 author: "Frontier Cockpit Team"
-date: "2026-07-02"
-version: "1.1.0"
+date: "2026-08-11"
+version: "1.2.0"
 status: "approved"
 tags: ["github-copilot", "workshop", "cockpit", "tokens", "ai-credits", "local"]
 ---
@@ -20,6 +20,7 @@ Estimated duration: 60 minutes.
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.2.0 | 2026-08-11 | Frontier Cockpit Team | Updated the lab for the six-view navigation and data scope badges. |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Rebrand to Frontier Cockpit Local, repository-relative paths, containerized jobs, privacy-first defaults, per-lab durations. |
 | 1.0.0 | 2026-06-30 | Frontier Cockpit Team | Initial mini app lab with per-participant identity, token efficiency, the Credits view with AI Credits budget and model cost mix, and a trilingual UI. |
 
@@ -86,7 +87,7 @@ Confirm your name and role appear in the sidebar and in the top bar.
 
 ## 5. Generate Real Telemetry
 
-If the Overview shows the Workshop first run panel, you have no attributed sessions yet.
+If **Today** shows the Workshop first run panel, you have no attributed sessions yet.
 
 1. Open a Git repository in VS Code Insiders.
 2. Ask GitHub Copilot Chat to explain, edit, or test a small file.
@@ -100,22 +101,22 @@ Then click Refresh in the mini app. Your session now appears.
 
 ## 6. Explore The Views
 
-Use the left navigation to open each view:
+Use the sidebar rail to open the first five views. Open **Settings** from the end of the same rail.
 
 | View | What it shows |
 | --- | --- |
-| Overview | Alerts, AI credits, input, output, cached and cold tokens, cache efficiency, context peak, token composition, an AI Credits budget summary, history, top workspaces, stack health. |
-| Credits | AI Credits budget for your plan, model cost mix, developer experience latency, outcome signals, and a best-practice playbook for efficient AI Credits usage. |
-| Sessions | Each session by trace, with model, mode, credits, tokens, cache efficiency, tool calls, and a copyable trace id for Aspire or Tempo. |
-| Workspaces | Every observed Git workspace, so you can compare projects. |
-| Coach | Token efficiency score, savings opportunities, dynamic recommendations, and the token efficiency playbook. |
-| History | Usage over time for AI credits and token classes. |
-| Health | Stack health, data quality, official billing boundary, and drill down links. |
-| Settings | Alert thresholds and how to change them. |
+| Today | Daily AI Credits status, alerts, coach recommendations, and top workspaces. |
+| Sessions | Per-session cost and models. Select a session for its event log, cache analysis, and Aspire, Tempo, or Loki trace links. |
+| Trends | Usage over time and workspace comparison. |
+| Credits | AI Credits budget, plan comparison, model cost, forecast, and budget justification. |
+| Diagnostics | Stack health, data quality, and editor experience metrics. |
+| Settings | Thresholds and the local or enterprise data boundary. |
+
+Each telemetry panel has a scope badge. **Workspace** panels follow the workspace selector. **Pooled (all workspaces)** panels cover the shared AI Credits allowance. **Device** panels cover all VS Code work on this device. **Official** panels use GitHub APIs or billing exports instead of local OpenTelemetry.
 
 ## 7. Read The Token Efficiency Coach
 
-Open the Coach view and review:
+Open **Today** and review the coach recommendations:
 
 - The efficiency score from 0 to 100. It rewards cache reuse and penalizes cold context, context pressure, and tool errors.
 - The savings opportunities, which quantify local AI credit estimates for reducing cold context and avoiding tool error loops.
@@ -143,7 +144,7 @@ The budget panel estimates local AI Credits observed this billing cycle against 
 - Code completions and next edit suggestions are not billed in AI Credits for paid plans.
 - The local estimate uses OpenTelemetry AIU signals. Official totals require GitHub billing exports, the usage dashboard, or the GitHub Copilot usage metrics API.
 
-Read the utilization percentage and the projected month end. The warning and critical marks on the bar default to 75 percent and 90 percent, which follow the budget alert points recommended by GitHub. If you are pacing above these marks, the Coach view suggests how to slow the burn.
+Read the utilization percentage and the projected month end. The warning and critical marks on the bar default to 75 percent and 90 percent, which follow the budget alert points recommended by GitHub. If you are pacing above these marks, the coach recommendations in **Today** suggest how to slow the burn.
 
 Set your plan, seat count, and AI Credits pool so the budget matches your environment. Add these to `local-otel/workshop.env`, then run `local-otel/workshop-ready.sh` again:
 
@@ -168,9 +169,9 @@ To get more from your AI Credits pool:
 - Reuse warm context and avoid resending large prompts.
 - Monitor budget controls in GitHub for official spend and usage behavior.
 
-### 8.3 Developer experience and outcomes
+### 8.3 Compare device-level experience in Diagnostics
 
-The Credits view also shows developer-experience latency, such as average time to first token, and outcome signals, such as accepted edits and edits that were kept without a revert. These help you judge whether the model choice is delivering value for the credits it uses. Outcome signals are editor-level and are not attributed to a single workspace.
+Open **Diagnostics** to review developer-experience latency, such as average time to first token, and outcome signals, such as accepted edits and edits that were kept without a revert. These panels use the **Device** badge because the editor-level signals are not attributed to a single workspace.
 
 ## 9. Optional Customization
 
@@ -192,9 +193,9 @@ The local cockpit is phase one. It is full fidelity for the developer and stays 
 - [ ] `local-otel/workshop-ready.sh` completed and reported ready.
 - [ ] `http://localhost:3300` shows your name and role.
 - [ ] At least one real workspace session appears.
-- [ ] Coach shows an efficiency score and recommendations.
+- [ ] Today shows an efficiency score and coach recommendations.
 - [ ] Credits view shows your AI Credits budget and model cost mix.
-- [ ] You explored all eight views.
+- [ ] You explored all six views, including Settings at the end of the sidebar rail.
 - [ ] You switched the interface language at least once.
 
 ## References

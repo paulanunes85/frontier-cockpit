@@ -155,6 +155,17 @@ dd {
   overflow-y: auto;
 }
 
+/* Settings trails the rail as configuration, not a daily destination. */
+.nav-item-quiet {
+  margin-top: auto;
+  opacity: 0.82;
+}
+
+.nav-item-quiet.active,
+.nav-item-quiet:hover {
+  opacity: 1;
+}
+
 .nav-item {
   position: relative;
   display: flex;
@@ -271,7 +282,7 @@ dd {
 }
 
 .sidebar-setup {
-  flex: 1 1 100%;
+  flex: 1 1 45%;
   padding: 8px 10px;
   border: 1px dashed var(--rule-2);
   border-radius: 8px;
@@ -528,6 +539,50 @@ select {
   color: var(--c-red-700);
   background: var(--c-red-50);
   box-shadow: inset 0 0 0 1px rgba(242, 80, 34, 0.4);
+}
+
+/* Data scope badges disclose the population a panel covers so the workspace selector never implies a filter telemetry cannot honor. */
+.scope-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 4px;
+  color: var(--ink-3);
+  background: var(--bg-alt);
+  font-size: 0.66rem;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--rule-2);
+}
+
+.scope-workspace {
+  color: var(--c-green-700);
+  background: var(--c-green-50);
+  box-shadow: inset 0 0 0 1px rgba(127, 186, 0, 0.34);
+}
+
+.scope-all-workspaces {
+  color: var(--c-yellow-700);
+  background: var(--c-yellow-50);
+  box-shadow: inset 0 0 0 1px rgba(255, 185, 0, 0.38);
+}
+
+.scope-device {
+  color: var(--ink-3);
+  background: var(--bg-alt);
+  box-shadow: inset 0 0 0 1px var(--rule-2);
+}
+
+.scope-official-github {
+  color: var(--c-blue-700);
+  background: var(--c-blue-50);
+  box-shadow: inset 0 0 0 1px rgba(0, 164, 239, 0.34);
 }
 
 .health-summary {
@@ -2193,6 +2248,15 @@ ul {
 
 .highlight-card .stat-value {
     overflow-wrap: anywhere;
+}
+
+/* Each highlight covers a different population, so the badge sits on the card. */
+.highlight-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
 }
 
 /* Plans: focused single-plan view + compare toggle */

@@ -2,11 +2,22 @@ import type { ReactNode } from "react";
 import type {
     Alert,
     AlertSeverity,
+    DataScopeKind,
     HistoryPoint,
     MetricStatus,
     SeriesMetric,
     ServiceStatus
 } from "./types";
+
+// Says which population a panel covers, so the global workspace selector never
+// implies a filter the underlying telemetry cannot honor.
+export function ScopeBadge({ scope, label, title }: Readonly<{ scope: DataScopeKind; label: string; title: string }>) {
+    return (
+        <span className={`scope-badge scope-${scope}`} title={title}>
+            {label}
+        </span>
+    );
+}
 
 // Formatters follow the active UI language; App calls setNumberLocale on switch.
 let numberLocale = "en-US";

@@ -1,9 +1,9 @@
 ---
 title: "Frontier Cockpit AI Credits and Planner Guide"
-description: "Step-by-step guide to GitHub Copilot AI Credits, per-plan allowances, token-efficiency best practices, and the workspace Planner with overage and frontier-model justification."
+description: "Step-by-step guide to GitHub Copilot AI Credits, per-plan allowances, token-efficiency best practices, and the planner forecast in Credits."
 author: "Frontier Cockpit Team"
-date: "2026-07-03"
-version: "1.2.0"
+date: "2026-08-11"
+version: "1.3.0"
 status: "approved"
 language: "en"
 tags: ["github-copilot", "ai-credits", "planner", "token-efficiency", "local"]
@@ -15,12 +15,13 @@ tags: ["github-copilot", "ai-credits", "planner", "token-efficiency", "local"]
 
 This is the default English guide. Portuguese (Brazil) and Spanish versions live next to this file: `FrontierCockpit_AiCreditsAndPlannerGuide_v1_0_0_2026-07-03_pt-BR.md` and `FrontierCockpit_AiCreditsAndPlannerGuide_v1_0_0_2026-07-03_es.md`.
 
-This guide is for the individual developer using the local dashboard at `http://localhost:3300`. It explains how GitHub Copilot AI Credits billing works, how to configure your real license in the cockpit, how to work inside your included allowance, and how to use the Planner view to forecast a project and justify an overage request or the use of frontier models.
+This guide is for the individual developer using the local dashboard at `http://localhost:3300`. It explains how GitHub Copilot AI Credits billing works, how to configure your real license in the cockpit, how to work inside your included allowance, and how to use the planner forecast in **Credits** to forecast a project and justify an overage request or the use of frontier models.
 
 ## Change Log
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.3.0 | 2026-08-11 | Frontier Cockpit Team | Aligned coach, planner, session inspection, workspace comparison, and settings instructions with the six-view navigation. |
 | 1.2.0 | 2026-07-03 | Frontier Cockpit Team | Section 9 gained the full Cache Explorer analytics (token-weighted cache hit, healthy request pairs, avoidable recomputed tokens, cache-break cause classification) and a new section 10 covers context management and the VS Code OTel settings checklist. |
 | 1.1.0 | 2026-07-03 | Frontier Cockpit Team | Added section 9: the Inspector view (per-session debug log and cache explorer) and importing VS Code Agent Debug Logs exports. |
 | 1.0.0 | 2026-07-03 | Frontier Cockpit Team | Initial trilingual guide for AI Credits, token efficiency, and the Planner view. |
@@ -31,7 +32,7 @@ This guide is for the individual developer using the local dashboard at `http://
 - [2. Included AI Credits Per Plan](#2-included-ai-credits-per-plan)
 - [3. Step By Step: Configure Your License In The Cockpit](#3-step-by-step-configure-your-license-in-the-cockpit)
 - [4. Step By Step: Work Inside Your Included Credits](#4-step-by-step-work-inside-your-included-credits)
-- [5. Step By Step: Use The Planner View](#5-step-by-step-use-the-planner-view)
+- [5. Step By Step: Use The Planner Forecast In Credits](#5-step-by-step-use-the-planner-forecast-in-credits)
 - [6. Step By Step: Justify Overage Or Frontier Models](#6-step-by-step-justify-overage-or-frontier-models)
 - [7. Every Configurable Value](#7-every-configurable-value)
 - [8. Honesty Rules](#8-honesty-rules)
@@ -109,7 +110,7 @@ The "flex allotment" on individual plans is an additional variable amount on top
 
 The cockpit computes every tip from your real telemetry against thresholds you control. The documented practices behind the coach rules:
 
-1. **Prefer Auto model selection for routine work.** Auto picks a capable model per prompt and is billed with a 10% discount on paid plans. Reserve a specific frontier model for complex refactoring, architecture, or multi-step debugging. Watch the **Coach** view: the "Try Auto model selection" card appears when frontier-tier models dominate low-complexity sessions.
+1. **Prefer Auto model selection for routine work.** Auto picks a capable model per prompt and is billed with a 10% discount on paid plans. Reserve a specific frontier model for complex refactoring, architecture, or multi-step debugging. Watch the coach recommendations in **Today**: the "Try Auto model selection" card appears when frontier-tier models dominate low-complexity sessions.
 2. **Keep one model per session.** Switching models mid-session invalidates the prompt cache, so the full context is re-sent and billed as fresh input. The "Cache reuse is low" alert (default threshold: below 35% cache reads) is the signal.
 3. **Start a new chat when you change topics.** Old history keeps being reprocessed otherwise. The "Context window is filling up" alert fires at 70% peak utilization (90% critical).
 4. **Reference files instead of pasting them, and attach only what the task needs.** The "Cold context is high" alert fires when more than 45% of prompt tokens are uncached cold input; the "Trim oversized prompts" tip fires when input tokens exceed output by 20x.
@@ -117,13 +118,13 @@ The cockpit computes every tip from your real telemetry against thresholds you c
 6. **Fix root causes before retrying.** The "Sessions reported errors" alert points to failing tool calls in Aspire/Tempo; retry loops burn credits with no result.
 7. **Watch your budget pacing.** The budget panel projects month-end consumption from your real daily rate and warns at 75% (critical at 90%) of the included allowance.
 
-Every threshold above is a local planning guardrail — see the **Settings** view for the full table with the exact environment variable for each one.
+Every threshold above is a local planning guardrail. Open **Settings** at the end of the sidebar rail for the full table with the exact environment variable for each one.
 
-## 5. Step By Step: Use The Planner View
+## 5. Step By Step: Use The Planner Forecast In Credits
 
-The Planner answers: *does my project fit in my included credits, and do I need to ask for more?*
+The planner forecast answers: *does my project fit in my included credits, and do I need to ask for more?*
 
-1. Open `http://localhost:3300` → **Planner**.
+1. Open `http://localhost:3300`, then open **Credits** and find the planner forecast.
 2. Pick the **workspace** with the global workspace selector in the top bar (or keep "All workspaces").
 3. Pick the **lookback** (24h, 7d, 14d, 30d) — the window used to measure your real burn rate. Use at least 7d once you have a week of telemetry.
 4. Pick the **horizon** (2, 4, 8, or 12 weeks) — how far ahead to project the project's consumption.
@@ -135,11 +136,13 @@ The Planner answers: *does my project fit in my included credits, and do I need 
 6. The verdict line tells you either "projected usage fits inside the included monthly allowance" or the projected **overage in credits and US$**.
 7. Read the **Model strategy** panel: your credits split by price tier (frontier / standard / unpriced), the average tool calls per tier, and the verdict — `frontier justified`, `review frontier use`, `no frontier usage`, or `no data yet`.
 
+Use the panel badges to interpret the selector correctly. **Workspace** forecast panels follow the selected workspace. **Pooled (all workspaces)** allowance and monthly budget panels always cover the billing entity's shared pool.
+
 The tier classification is data-driven: a model counts as frontier when its registered output price is at or above `PLANNER_FRONTIER_OUTPUT_PRICE_MIN` (default US$20 per 1M output tokens) in the local price registry (`local-otel/seed-model-prices.sh`). Update the registry prices to match your source of truth.
 
 ## 6. Step By Step: Justify Overage Or Frontier Models
 
-1. In the **Planner** view, scroll to **Budget justification draft**.
+1. In **Credits**, scroll to the planner's **Budget justification draft**.
 2. Click **Copy markdown**. The draft contains, from real telemetry: your plan and included allowance, observed credits and sessions in scope, the daily burn, the horizon and monthly projections, the projected overage in credits and US$, and the model-strategy rationale.
 3. Paste it into your request to your tech lead or organization admin. Two scenarios:
    - **Overage request**: the draft quantifies how many additional credits the cycle needs and reminds the approver that overage is billed at per-model API rates and requires an admin to enable additional usage with a per-user budget.
@@ -177,7 +180,7 @@ Nothing in the tips, budget, or planner math is hardcoded. Set these on the `fro
 | `PLANNER_FRONTIER_OUTPUT_PRICE_MIN` | `20` | Frontier tier price floor (US$/1M output tokens) |
 | `PLANNER_COMPLEX_SESSION_MIN_TOOL_CALLS` | `5` | Complexity bar for frontier justification |
 
-The **Settings** view renders all of these live, with the value currently in effect.
+**Settings**, at the end of the sidebar rail, renders all of these live with the value currently in effect.
 
 ## 8. Honesty Rules
 
@@ -189,10 +192,10 @@ This dashboard is for the local developer scenario only. It follows three rules 
 
 ## 9. Step By Step: Inspect A Session (Debug Log And Cache Explorer)
 
-The **Inspector** view gives you, per workspace, the same signals as the VS Code Agent Debug Log panel and its Cache Explorer — built from your local trace store, with raw content never leaving the machine.
+The **Sessions** detail view gives you, per workspace, the same signals as the VS Code Agent Debug Log panel and its Cache Explorer. It is built from your local trace store, with raw content never leaving the machine.
 
-1. Open `http://localhost:3300` → **Inspector**.
-2. Pick a session in the selector (sessions are labeled by workspace, model, and credits) or arrive from the Sessions view with a trace id.
+1. Open `http://localhost:3300`, then open **Sessions**.
+2. Pick a session labeled by workspace, model, and credits to open its detail, or open the detail by trace id.
 3. Read the **summary tiles** (like the VS Code Summary view): total duration, LLM requests, agent turns, tool calls, tokens in/out, cache hit rate, cache breaks, **healthy request pairs**, **avoidable recompute**, and errors. Below the tiles, the token-weighted headline reads like the VS Code Cache Explorer: "X of Y prompt-cache tokens were served from cache across N LLM requests".
 4. Read the **Cache explorer** table: one row per LLM request with its cache hit rate (cache reads over cache reads plus writes). A red row marks where the prompt-cache prefix broke, and the signal column names the **cause**: `model switch`, `system prompt changed`, `tool catalog changed`, or `prefix drift`. Model switches are always detectable; classifying system-prompt and tool-catalog changes requires the VS Code setting **Chat > Agent Host > Otel: Capture Content** (safe on this local-only stack — the API exposes only short content signatures, never the text). Everything after a break was re-billed as fresh input.
 5. Read the **Event log**: the chronological span timeline (LLM requests, agent turns, tool calls, hooks) with offsets, durations, per-event tokens, and errors. For full attribute payloads, open the trace id in Aspire or Grafana Tempo Explore.
@@ -217,9 +220,9 @@ The imported session is inspectable by trace id immediately and appears in the s
 Context is the main lever for cost, latency, and answer quality. These steps follow the VS Code guide "Manage context for AI" and are wired into the cockpit with real telemetry.
 
 1. **Check the VS Code OTel settings first.** Two emitters ship telemetry and each has its own endpoint. The most-missed setting is `Chat > Agent Host > Otel: Otlp Endpoint` — without it the agent-host spans never reach the stack. The full checklist (with the values for this stack) is in `local-otel/README.md`, section "VS Code OTel settings checklist". Every change needs a window reload.
-2. **Attach precisely with #-mentions.** Type `#` to attach specific files, folders, or symbols. Reserve `#codebase` for discovery questions ("where is X handled?"); for focused edits, #-mention the two or three files that matter. Cold-input alerts in the Overview drop when you do.
-3. **Watch the context window control** in the chat input: it shows how full the model's window is and the session's AI Credits; hover it for the token breakdown. The cockpit mirrors this per workspace — the Workspaces view has a **Context peak** column colored by the 70%/90% guardrails.
-4. **Compact deliberately.** Run `/compact` at natural checkpoints, optionally with focus instructions (for example `/compact focus on the schema decisions`). The Coach fires "Compact before the window fills" when peak context crosses the warning threshold with zero compactions in the range, and "Scope sessions tighter" when more than the `THRESHOLD_CONTEXT_COMPACTIONS_INFO` guardrail (default 3) ran — frequent auto-compaction means sessions outgrow the window, and each compaction also resets the prompt cache.
+2. **Attach precisely with #-mentions.** Type `#` to attach specific files, folders, or symbols. Reserve `#codebase` for discovery questions ("where is X handled?"); for focused edits, #-mention the two or three files that matter. Cold-input alerts in **Today** drop when you do.
+3. **Watch the context window control** in the chat input: it shows how full the model's window is and the session's AI Credits; hover it for the token breakdown. The cockpit mirrors this per workspace. **Trends** workspace comparison has a **Context peak** column colored by the 70%/90% guardrails.
+4. **Compact deliberately.** Run `/compact` at natural checkpoints, optionally with focus instructions (for example `/compact focus on the schema decisions`). Coach recommendations in **Today** include "Compact before the window fills" when peak context crosses the warning threshold with zero compactions in the range, and "Scope sessions tighter" when more than the `THRESHOLD_CONTEXT_COMPACTIONS_INFO` guardrail (default 3) ran. Frequent auto-compaction means sessions outgrow the window, and each compaction also resets the prompt cache.
 5. **One session per task.** Start a fresh chat for unrelated work; long conversations accumulate stale context and pay for it on every request.
-6. **Verify the effect in the Inspector.** Stable context shows up as healthy request pairs and a higher token-weighted cache hit; churned context shows up as prefix-drift breaks and avoidable recomputed tokens.
-7. **Read the Context management playbook** in the Coach view — it shows these practices with your observed peak context and compaction count for the selected range.
+6. **Verify the effect in a Sessions detail.** Stable context shows up as healthy request pairs and a higher token-weighted cache hit; churned context shows up as prefix-drift breaks and avoidable recomputed tokens.
+7. **Read the Context management playbook** in **Today**. It shows these practices with your observed peak context and compaction count for the selected range.

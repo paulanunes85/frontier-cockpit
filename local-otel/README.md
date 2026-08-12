@@ -2,8 +2,8 @@
 title: "Frontier Cockpit Local OpenTelemetry Kit"
 description: "User-level local OpenTelemetry runtime for Frontier Cockpit Local, including Aspire, Grafana, Prometheus, Tempo, Loki, containerized materialization jobs, and Frontier Cockpit Hybrid Azure forwarding."
 author: "Frontier Cockpit Team"
-date: "2026-07-02"
-version: "1.1.0"
+date: "2026-08-11"
+version: "1.8.0"
 status: "approved"
 tags: ["frontier-cockpit", "github-copilot", "opentelemetry", "aspire", "grafana", "local-runtime"]
 ---
@@ -20,6 +20,7 @@ The repository can be cloned anywhere. All scripts resolve their own location, s
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.8.0 | 2026-08-11 | Frontier Cockpit Team | Documented the six-view mini app navigation, session-detail drill-down, and panel data scope badges. |
 | 1.7.1 | 2026-07-03 | Frontier Cockpit Team | Documented the fork upgrade path ("Keep a fork in sync with upstream"): git upstream sync plus `start-full-stack.sh --update`, with the guarantees that telemetry volumes, gitignored local identity/secrets, and per-developer wizard preferences all survive the update. |
 | 1.7.0 | 2026-07-03 | Frontier Cockpit Team | Inspector parity with the VS Code Agent Debug Logs: session details header (workspace, branch, location/mode, agent, created, last activity, status), full summary tiles (model turns, tool calls, input/output/cached/total tokens, errors, Copilot usage AIC), an **agent flow chart** with user-message/response previews (content capture) and per-node tool/hook/model steps, a per-agent action table, and trace-scoped deep links (Aspire, Grafana Tempo, Loki). Overview rebuilt as a super dashboard (highlights, top recommendations, best practices) and stack health now lives only in the Health view. |
 | 1.6.1 | 2026-07-03 | Frontier Cockpit Team | Added the in-place upgrade flag to the stack orchestrators (`start-full-stack.sh --update` / `start-full-stack.ps1 -Update`): rebuild of the locally built images with `build --pull` first (a failed build leaves the running stack untouched), then stop with orphan cleanup and restart, in one command, preserving all named volumes; documented the upgrade flow. |
@@ -451,7 +452,7 @@ The stack persists data in four layers, all in Docker volumes, all local:
 | Layer | Store | Retention | Written by | Read by |
 | --- | --- | --- | --- | --- |
 | Metric time series | Prometheus TSDB (`prometheus-data`) | 30 days | OTel Collector exporter | Dashboard API, Grafana |
-| Traces / logs | Tempo + Loki volumes | 30 days | OTel Collector | Inspector view, Aspire links, Grafana |
+| Traces / logs | Tempo + Loki volumes | 30 days | OTel Collector | Sessions detail, Aspire links, Grafana |
 | Grafana metadata | Grafana embedded SQLite (`grafana-data`) | permanent | Grafana | Grafana |
 | Long-term analytics | **DuckDB** in the `analytics-data` volume (`frontier-insights.duckdb`, table `developer_daily_rollup`; plus `frontier-otel-export.duckdb`) | permanent | jobs container daily rollup | Dashboard API (via the JSON snapshot), offline analysis |
 
@@ -460,14 +461,34 @@ How the long-term layer works, end to end:
 1. Once a day (and on the first start) the jobs container runs `daily-rollup.sh`, which calls `frontier-local-insights.sh`.
 2. The insights script queries Prometheus for the day's per-repo aggregates and inserts them into `developer_daily_rollup` in `/analytics/frontier-insights.duckdb`.
 3. The same run rebuilds `/analytics/long-term-history.json`, one entry per day per workspace, from the full DuckDB table.
-4. The dashboard API serves that snapshot at `/api/history/long-term`, and the History view shows it as "Long-term history" — so trends keep working after the 30-day Prometheus retention expires and across container restarts.
+4. The dashboard API serves that snapshot at `/api/history/long-term`, and **Trends** shows it as "Long-term history", so trends keep working after the 30-day Prometheus retention expires and across container restarts.
 5. The budget panel additionally projects the **credit run-out date** from the observed daily burn rate against the included allowance.
 
 DuckDB was chosen over SQLite for this layer on purpose: it is a local, embedded, zero-server file database like SQLite, but columnar and built for analytical aggregation, and it exports Parquet for offline analysis. SQLite remains where it fits best (Grafana metadata). Back up the `analytics-data` volume to keep the permanent history; deleting it only loses history older than 30 days, which the next rollups cannot rebuild.
 
+## Frontier Cockpit Local mini app navigation
+
+The sidebar rail contains **Today**, **Sessions**, **Trends**, **Credits**, and **Diagnostics**, followed by **Settings** as a quieter trailing entry.
+
+| View | Purpose |
+| --- | --- |
+| **Today** | Daily AI Credits status, alerts, coach recommendations, and top workspaces. |
+| **Sessions** | Per-session cost and models, with a drill-down detail for the event log, cache analysis, and trace links. |
+| **Trends** | Usage over time and workspace comparison. |
+| **Credits** | AI Credits budget, plan comparison, model cost, forecast, and budget justification. |
+| **Diagnostics** | Stack health, data quality, and editor experience metrics. |
+| **Settings** | Thresholds and the local or enterprise data boundary. |
+
+Every telemetry panel includes a data scope badge:
+
+- **Workspace** means the workspace selector filters session metrics attributed to a Git workspace.
+- **Pooled (all workspaces)** means a shared AI Credits allowance that the workspace selector does not narrow.
+- **Device** means GenAI model, latency, or editor outcome metrics cover all VS Code work on this device.
+- **Official** means the data comes from official GitHub APIs or billing exports rather than local OpenTelemetry.
+
 ## Inspect a session (agent debug log)
 
-The mini app's **Inspector** view turns any observed session into a chronological event log — the same signals the VS Code Agent Debug Log panel shows (LLM requests, agent turns, tool calls, hooks, token usage, errors) plus a per-request **cache explorer** with the same analytics as the VS Code Cache Explorer:
+Open **Sessions** and select a session. The session detail turns the observed session into a chronological event log with the same signals the VS Code Agent Debug Log panel shows (LLM requests, agent turns, tool calls, hooks, token usage, errors), plus a per-request **cache explorer** with the same analytics as the VS Code Cache Explorer:
 
 - **Token-weighted cache hit**: how many prompt-cache tokens were served from cache across all LLM requests in the session (for example "24K of 59K across 5 requests, 40.7%").
 - **Healthy request pairs**: consecutive request pairs where the prompt-cache prefix survived (hit rate at or above `THRESHOLD_INSPECTOR_HEALTHY_HIT_RATE`, default 0.5).
@@ -482,7 +503,7 @@ On top of the cache analytics, the view mirrors the rest of the VS Code Agent De
 - **Agents in this session**: per-agent rollup of model turns, tool calls, hooks, output tokens, errors, and active time — the per-workspace "what did each agent do" view.
 - **Explore trace data**: one-click deep links to the exact trace in Aspire, Grafana Tempo Explore, and the matching Loki logs.
 
-Pick a session in the view or paste a trace id from the Sessions view. Data comes from local Tempo only; raw content never leaves the machine.
+Pick a session in **Sessions** or open its detail by trace id. Data comes from local Tempo only; raw content never leaves the machine.
 
 Sessions exported from the VS Code **Agent Debug Logs** panel (Export icon, OTLP JSON format) can be imported into the same stack, attributed to the current Git workspace:
 
@@ -508,7 +529,7 @@ Two independent emitters ship telemetry from VS Code, and each has its own OTLP 
 | `Chat > Agent Host > Otel: Enabled` | checked | Emits agent-host OpenTelemetry traces from the Copilot SDK. |
 | `Chat > Agent Host > Otel: Otlp Endpoint` | `http://localhost:4318` | **Most-missed setting.** The agent host is a separate process; without this its spans never reach the collector (only the local SQLite Db Span Exporter, if enabled). |
 | `Chat > Agent Host > Otel: Exporter Type` | `otlp-http` | Matches the collector's 4318 HTTP receiver. |
-| `Chat > Agent Host > Otel: Capture Content` | checked (local-only stacks) | Enables cache-break **cause** classification (system prompt vs tool catalog) in the Inspector. Do not enable when spans ship to shared sinks. |
+| `Chat > Agent Host > Otel: Capture Content` | checked (local-only stacks) | Enables cache-break **cause** classification (system prompt vs tool catalog) in session detail. Do not enable when spans ship to shared sinks. |
 | `Chat > Agent Host > Otel: Db Span Exporter` | optional | Local SQLite copy of every span; source for the `Export Agent Host Traces Database` command and the import scripts. |
 | `GitHub > Copilot > Chat > Otel: Protocol` | empty (`http/json`) or `http/protobuf` | The collector's 4318 receiver accepts both. |
 | `GitHub > Copilot > Chat > Otel: Max Attribute Size Chars` | `0` | No truncation; keeps full payloads for cause classification. This stack has no per-attribute cap. |
@@ -520,10 +541,10 @@ All of these require a window reload after changing. Workspace attribution (repo
 
 Context is the main cost and quality lever, so the cockpit tracks it per workspace and coaches on it with real numbers:
 
-- **Workspaces view**: a `Context peak` column shows each workspace's highest context-window utilization in the range, colored by the `THRESHOLD_CONTEXT_WARN_PCT` / `THRESHOLD_CONTEXT_CRIT_PCT` guardrails.
-- **Coach view — Context management playbook**: #-mention targeted files instead of `#codebase`, watch the context window control in the chat input, run `/compact` deliberately at task checkpoints (optionally with focus instructions), one session per task, and keep context stable so the prompt cache keeps hitting. The panel header shows the observed peak context and compaction count for the selected range.
-- **Coach cards**: threshold-driven recommendations fire from real telemetry — context pressure (`/compact` guidance), "compact before the window fills" when pressure is high but no compaction ran, and "scope sessions tighter" when more than `THRESHOLD_CONTEXT_COMPACTIONS_INFO` compactions ran in the range (each compaction also resets the prompt cache).
-- **Inspector**: verifies the effect — stable context shows up directly as healthy request pairs and a higher token-weighted cache hit.
+- **Trends workspace comparison**: a `Context peak` column shows each workspace's highest context-window utilization in the range, colored by the `THRESHOLD_CONTEXT_WARN_PCT` / `THRESHOLD_CONTEXT_CRIT_PCT` guardrails.
+- **Today, Context management playbook**: #-mention targeted files instead of `#codebase`, watch the context window control in the chat input, run `/compact` deliberately at task checkpoints (optionally with focus instructions), use one session per task, and keep context stable so the prompt cache keeps hitting. The panel header shows the observed peak context and compaction count for the selected range.
+- **Today coach cards**: threshold-driven recommendations fire from real telemetry, including context pressure (`/compact` guidance), "compact before the window fills" when pressure is high but no compaction ran, and "scope sessions tighter" when more than `THRESHOLD_CONTEXT_COMPACTIONS_INFO` compactions ran in the range. Each compaction also resets the prompt cache.
+- **Sessions detail**: verifies the effect. Stable context shows up directly as healthy request pairs and a higher token-weighted cache hit.
 
 These practices follow the VS Code guide "Manage context for AI" (`code.visualstudio.com/docs/chat/copilot-chat-context`).
 

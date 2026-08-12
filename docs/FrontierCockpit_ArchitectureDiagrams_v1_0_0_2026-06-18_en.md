@@ -2,8 +2,8 @@
 title: "Frontier Cockpit Architecture Diagrams"
 description: "C4 and flow diagrams for Frontier Cockpit Local, Frontier Cockpit Hybrid, telemetry flow, and GitHub Enterprise ingestion."
 author: "Frontier Cockpit Team"
-date: "2026-07-02"
-version: "1.2.0"
+date: "2026-08-11"
+version: "1.2.1"
 status: "approved"
 tags: ["github-copilot", "architecture", "c4", "drawio", "azure", "opentelemetry"]
 ---
@@ -18,6 +18,7 @@ This document indexes the editable and rendered architecture diagrams for Fronti
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.2.1 | 2026-08-11 | Frontier Cockpit Team | Aligned the dashboard request sequence with Sessions detail and Trends navigation. |
 | 1.2.0 | 2026-07-03 | Frontier Cockpit Team | Added validated Mermaid-as-code diagrams for the current local solution: refreshed C4 context and container, the complete local architecture with per-component roles, and sequence diagrams for the dashboard request path and the persistence pipeline (DuckDB long-term store). |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Rebrand to Frontier Cockpit Local and Hybrid, repository-relative paths, containerized jobs, privacy-first defaults. |
 | 1.0.0 | 2026-06-18 | Frontier Cockpit Team | Initial architecture diagram set. |
@@ -158,7 +159,7 @@ C4Container
     Rel(jobs, collector, "Session metrics")
     Rel(jobs, analytics, "Daily rollup")
     Rel(api, prom, "PromQL")
-    Rel(api, tempo, "Inspector trace lookup")
+    Rel(api, tempo, "Session detail trace lookup")
     Rel(api, analytics, "Long-term snapshot")
     Rel(web, api, "/api proxy")
     Rel(dev, web, "localhost:3300")
@@ -223,12 +224,12 @@ sequenceDiagram
     API->>Prom: PromQL (sessions, tokens, credits, prices)
     Prom-->>API: Series
     API-->>Web: KPIs, alerts, coach cards, budget, plans
-    Dev->>Web: Open Inspector for a session
+    Dev->>Web: Open a session detail from Sessions
     Web->>API: GET /api/inspector?traceId=...
     API->>Tempo: GET /api/traces/{id}
     Tempo-->>API: Raw spans
     API-->>Web: Event log + cache timeline + summary
-    Dev->>Web: Open History (long term)
+    Dev->>Web: Open Trends (long term)
     Web->>API: GET /api/history/long-term
     API->>Vol: Read long-term-history.json
     API-->>Web: Per-day aggregates beyond 30d

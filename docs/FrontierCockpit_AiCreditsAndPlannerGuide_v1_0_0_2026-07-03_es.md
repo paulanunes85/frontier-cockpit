@@ -1,9 +1,9 @@
 ---
 title: "Guía de AI Credits y Planner de Frontier Cockpit"
-description: "Guía paso a paso sobre GitHub Copilot AI Credits, allowances por plan, mejores prácticas de eficiencia de tokens y el Planner de workspace con justificación de overage y de modelos frontier."
+description: "Guía paso a paso sobre GitHub Copilot AI Credits, allowances por plan, eficiencia de tokens y la previsión del Planner dentro de Credits."
 author: "Frontier Cockpit Team"
-date: "2026-07-03"
-version: "1.2.0"
+date: "2026-08-11"
+version: "1.3.0"
 status: "approved"
 language: "es"
 tags: ["github-copilot", "ai-credits", "planner", "token-efficiency", "local"]
@@ -15,12 +15,13 @@ tags: ["github-copilot", "ai-credits", "planner", "token-efficiency", "local"]
 
 Esta es la traducción al español. La versión en inglés es la predeterminada y la fuente de la verdad: `FrontierCockpit_AiCreditsAndPlannerGuide_v1_0_0_2026-07-03_en.md`. También existe versión en portugués de Brasil (`..._pt-BR.md`).
 
-Esta guía es para la persona desarrolladora que usa el dashboard local en `http://localhost:3300`. Explica cómo funciona la facturación por AI Credits de GitHub Copilot, cómo configurar tu licencia real en el cockpit, cómo trabajar dentro del allowance incluido y cómo usar la vista Planner para prever un proyecto y justificar una solicitud de overage o el uso de modelos frontier.
+Esta guía es para la persona desarrolladora que usa el dashboard local en `http://localhost:3300`. Explica cómo funciona la facturación por AI Credits de GitHub Copilot, cómo configurar tu licencia real en el cockpit, cómo trabajar dentro del allowance incluido y cómo usar la previsión del Planner en **Credits** para prever un proyecto y justificar una solicitud de overage o el uso de modelos frontier.
 
 ## Historial de Cambios
 
 | Versión | Fecha | Autor | Cambios |
 | --- | --- | --- | --- |
+| 1.3.0 | 2026-08-11 | Frontier Cockpit Team | Se alinearon las instrucciones de coach, Planner, inspección de sesión, comparación de workspaces y configuración con la navegación de seis vistas. |
 | 1.2.0 | 2026-07-03 | Frontier Cockpit Team | La sección 9 ganó los análisis completos del Cache Explorer (acierto de caché ponderado por tokens, pares de requests sanos, tokens recomputados evitables, clasificación de la causa de las rupturas de caché) y la nueva sección 10 cubre la gestión de contexto y el checklist de configuraciones OTel de VS Code. |
 | 1.1.0 | 2026-07-03 | Frontier Cockpit Team | Añadida la sección 9: la vista Inspector (log de debug y explorador de caché por sesión) y la importación de exports del Agent Debug Logs de VS Code. |
 | 1.0.0 | 2026-07-03 | Frontier Cockpit Team | Guía trilingüe inicial de AI Credits, eficiencia de tokens y la vista Planner. |
@@ -31,7 +32,7 @@ Esta guía es para la persona desarrolladora que usa el dashboard local en `http
 - [2. AI Credits Incluidos Por Plan](#2-ai-credits-incluidos-por-plan)
 - [3. Paso a Paso: Configura Tu Licencia en el Cockpit](#3-paso-a-paso-configura-tu-licencia-en-el-cockpit)
 - [4. Paso a Paso: Trabaja Dentro de los Créditos Incluidos](#4-paso-a-paso-trabaja-dentro-de-los-créditos-incluidos)
-- [5. Paso a Paso: Usa la Vista Planner](#5-paso-a-paso-usa-la-vista-planner)
+- [5. Paso a Paso: Usa la Previsión del Planner en Credits](#5-paso-a-paso-usa-la-previsión-del-planner-en-credits)
 - [6. Paso a Paso: Justifica Overage o Modelos Frontier](#6-paso-a-paso-justifica-overage-o-modelos-frontier)
 - [7. Todos los Valores Configurables](#7-todos-los-valores-configurables)
 - [8. Reglas de Honestidad](#8-reglas-de-honestidad)
@@ -109,7 +110,7 @@ El "flex allotment" de los planes individuales es un monto variable adicional so
 
 El cockpit calcula cada consejo a partir de tu telemetría real contra umbrales que tú controlas. Las prácticas documentadas detrás de las reglas del coach:
 
-1. **Prefiere la selección automática (Auto) para el trabajo rutinario.** Auto elige un modelo capaz por prompt y se factura con un 10% de descuento en los planes de pago. Reserva un modelo frontier específico para refactorizaciones complejas, arquitectura o depuración de varios pasos. Observa la vista **Coach**: la tarjeta "Try Auto model selection" aparece cuando los modelos de tier frontier dominan sesiones de baja complejidad.
+1. **Prefiere la selección automática (Auto) para el trabajo rutinario.** Auto elige un modelo capaz por prompt y se factura con un 10% de descuento en los planes de pago. Reserva un modelo frontier específico para refactorizaciones complejas, arquitectura o depuración de varios pasos. Observa las recomendaciones del coach en **Today**: la tarjeta "Try Auto model selection" aparece cuando los modelos de tier frontier dominan sesiones de baja complejidad.
 2. **Mantén un único modelo por sesión.** Cambiar de modelo a mitad de sesión invalida la caché de prompt, y todo el contexto se reenvía y factura como entrada nueva. La alerta "Cache reuse is low" (umbral predeterminado: menos del 35% de lecturas de caché) es la señal.
 3. **Inicia un chat nuevo al cambiar de tema.** De lo contrario, el historial antiguo se sigue reprocesando. La alerta "Context window is filling up" se dispara al 70% de utilización pico (crítico al 90%).
 4. **Referencia archivos en lugar de pegarlos y adjunta solo lo que la tarea necesita.** La alerta "Cold context is high" se dispara cuando más del 45% de los tokens del prompt son entrada fría sin caché; el consejo "Trim oversized prompts" se dispara cuando la entrada supera a la salida por 20x.
@@ -117,13 +118,13 @@ El cockpit calcula cada consejo a partir de tu telemetría real contra umbrales 
 6. **Corrige la causa raíz antes de reintentar.** La alerta "Sessions reported errors" señala las tool calls fallidas en Aspire/Tempo; los bucles de reintento queman créditos sin resultado.
 7. **Vigila el ritmo del presupuesto.** El panel de presupuesto proyecta el consumo de fin de mes desde tu tasa diaria real y avisa al 75% (crítico al 90%) del allowance incluido.
 
-Todos los umbrales anteriores son guardrails locales de planificación — mira la vista **Settings** para la tabla completa con la variable de entorno exacta de cada uno.
+Todos los umbrales anteriores son guardrails locales de planificación. Abre **Settings** al final de la barra lateral para ver la tabla completa con la variable de entorno exacta de cada uno.
 
-## 5. Paso a Paso: Usa la Vista Planner
+## 5. Paso a Paso: Usa la Previsión del Planner en Credits
 
-El Planner responde: *¿mi proyecto cabe en mis créditos incluidos, y necesito pedir más?*
+La previsión del Planner responde: *¿mi proyecto cabe en mis créditos incluidos, y necesito pedir más?*
 
-1. Abre `http://localhost:3300` → **Planner**.
+1. Abre `http://localhost:3300`, entra en **Credits** y busca la previsión del Planner.
 2. Elige el **workspace** con el selector global de la barra superior (o mantén "Todos los workspaces").
 3. Elige el **lookback** (24h, 7d, 14d, 30d) — la ventana usada para medir tu tasa real de consumo. Usa al menos 7d cuando tengas una semana de telemetría.
 4. Elige el **horizonte** (2, 4, 8 o 12 semanas) — hasta dónde proyectar el consumo del proyecto.
@@ -135,11 +136,13 @@ El Planner responde: *¿mi proyecto cabe en mis créditos incluidos, y necesito 
 6. La línea de veredicto dice "el uso proyectado cabe dentro del allowance mensual incluido" o muestra el **overage proyectado en créditos y US$**.
 7. Lee el panel **Estrategia de modelos**: tus créditos divididos por tier de precio (frontier / estándar / sin precio), el promedio de tool calls por tier y el veredicto — `frontier justificado`, `revisar uso de frontier`, `sin uso de frontier` o `sin datos aún`.
 
+Usa los badges de alcance para interpretar correctamente el selector. Los paneles de previsión **Workspace** siguen el workspace seleccionado. Los paneles de allowance y presupuesto mensual **Pooled (all workspaces)** siempre cubren el pool compartido de la entidad de facturación.
+
 La clasificación de tier está orientada por datos: un modelo cuenta como frontier cuando su precio de salida registrado está en `PLANNER_FRONTIER_OUTPUT_PRICE_MIN` (predeterminado US$20 por 1M de tokens de salida) o por encima en el registro local de precios (`local-otel/seed-model-prices.sh`). Actualiza los precios del registro según tu fuente de la verdad.
 
 ## 6. Paso a Paso: Justifica Overage o Modelos Frontier
 
-1. En la vista **Planner**, baja hasta **Borrador de justificación de presupuesto**.
+1. En **Credits**, baja hasta el **Borrador de justificación de presupuesto** del Planner.
 2. Haz clic en **Copiar markdown**. El borrador contiene, desde telemetría real: tu plan y allowance incluido, los créditos y sesiones observados en el alcance, el consumo diario, las proyecciones de horizonte y mes, el overage proyectado en créditos y US$, y la justificación de la estrategia de modelos.
 3. Pégalo en tu solicitud al tech lead o admin de la organización. Dos escenarios:
    - **Solicitud de overage**: el borrador cuantifica cuántos créditos adicionales necesita el ciclo y recuerda a quien aprueba que el overage se factura a las tarifas de API por modelo y requiere que un admin habilite el uso adicional con presupuesto por usuario.
@@ -177,7 +180,7 @@ Nada en los consejos, el presupuesto o la matemática del planner es hardcoded. 
 | `PLANNER_FRONTIER_OUTPUT_PRICE_MIN` | `20` | Piso de precio del tier frontier (US$/1M tokens de salida) |
 | `PLANNER_COMPLEX_SESSION_MIN_TOOL_CALLS` | `5` | Vara de complejidad para justificar frontier |
 
-La vista **Settings** muestra todas en vivo, con el valor vigente.
+**Settings**, al final de la barra lateral, muestra todas en vivo con el valor vigente.
 
 ## 8. Reglas de Honestidad
 
@@ -189,10 +192,10 @@ Este dashboard es solo para el escenario del desarrollador local. Sigue tres reg
 
 ## 9. Paso a Paso: Inspecciona una Sesión (Log de Debug y Explorador de Caché)
 
-La vista **Inspector** ofrece, por workspace, las mismas señales del panel Agent Debug Log de VS Code y de su Cache Explorer — construidas desde el almacén local de traces, con el contenido crudo sin salir nunca de la máquina.
+La vista de detalle de **Sessions** ofrece, por workspace, las mismas señales del panel Agent Debug Log de VS Code y de su Cache Explorer. Los datos se construyen desde el almacén local de traces, con el contenido crudo sin salir nunca de la máquina.
 
-1. Abre `http://localhost:3300` → **Inspector**.
-2. Elige una sesión en el selector (las sesiones se etiquetan por workspace, modelo y créditos) o llega desde la vista Sessions con un trace id.
+1. Abre `http://localhost:3300` y entra en **Sessions**.
+2. Elige una sesión etiquetada por workspace, modelo y créditos para abrir su detalle, o abre el detalle por trace id.
 3. Lee los **tiles de resumen** (como la Summary view de VS Code): duración total, requests LLM, turnos de agente, tool calls, tokens entrada/salida, tasa de acierto de caché, rupturas de caché, **pares de requests sanos**, **recomputo evitable** y errores. Debajo de los tiles, el titular ponderado por tokens es igual al del Cache Explorer de VS Code: "X de Y tokens de caché de prompt se sirvieron desde la caché en N requests LLM".
 4. Lee la tabla del **Explorador de caché**: una fila por request LLM con su tasa de acierto (lecturas de caché sobre lecturas más escrituras). Una fila roja marca dónde se rompió el prefijo de la caché de prompt, y la columna de señal nombra la **causa**: `cambio de modelo`, `el system prompt cambió`, `el catálogo de herramientas cambió` o `deriva de prefijo`. Los cambios de modelo siempre son detectables; clasificar cambios de system prompt y de catálogo de herramientas requiere la configuración de VS Code **Chat > Agent Host > Otel: Capture Content** (segura en este stack local — la API expone solo firmas cortas del contenido, nunca el texto). Todo lo posterior a una ruptura se volvió a facturar como entrada nueva.
 5. Lee el **Log de eventos**: la línea de tiempo cronológica de spans (requests LLM, turnos de agente, tool calls, hooks) con offsets, duraciones, tokens por evento y errores. Para los payloads completos de atributos, abre el trace id en Aspire o en Grafana Tempo Explore.
@@ -217,9 +220,9 @@ La sesión importada es inspeccionable por trace id de inmediato y aparece en la
 El contexto es la principal palanca de costo, latencia y calidad de las respuestas. Estos pasos siguen la guía de VS Code "Manage context for AI" y están conectados al cockpit con telemetría real.
 
 1. **Revisa primero las configuraciones OTel de VS Code.** Dos emisores envían telemetría y cada uno tiene su propio endpoint. La configuración que más se olvida es `Chat > Agent Host > Otel: Otlp Endpoint` — sin ella los spans del agent host nunca llegan al stack. El checklist completo (con los valores para este stack) está en `local-otel/README.md`, sección "VS Code OTel settings checklist". Todo cambio exige recargar la ventana.
-2. **Adjunta con precisión usando #-mentions.** Escribe `#` para adjuntar archivos, carpetas o símbolos específicos. Reserva `#codebase` para preguntas de descubrimiento ("¿dónde se maneja X?"); para ediciones enfocadas, usa #-mention en los dos o tres archivos que importan. Las alertas de entrada fría en la Overview bajan cuando lo haces.
-3. **Vigila el control de la ventana de contexto** en el campo del chat: muestra cuánto de la ventana del modelo está en uso y los AI Credits de la sesión; pasa el cursor para ver el desglose de tokens. El cockpit lo refleja por workspace — la vista Workspaces tiene la columna **Pico de contexto**, coloreada por los guardrails de 70%/90%.
-4. **Compacta deliberadamente.** Ejecuta `/compact` en puntos de control naturales, opcionalmente con instrucciones de foco (por ejemplo `/compact céntrate en las decisiones de schema`). El Coach dispara "Compacta antes de que la ventana se llene" cuando el pico de contexto cruza el umbral de aviso con cero compactaciones en el rango, y "Acota el alcance de las sesiones" cuando se ejecutaron más compactaciones que el guardrail `THRESHOLD_CONTEXT_COMPACTIONS_INFO` (por defecto 3) — la compactación automática frecuente significa que las sesiones superan la ventana, y cada compactación también reinicia la caché de prompt.
+2. **Adjunta con precisión usando #-mentions.** Escribe `#` para adjuntar archivos, carpetas o símbolos específicos. Reserva `#codebase` para preguntas de descubrimiento ("¿dónde se maneja X?"); para ediciones enfocadas, usa #-mention en los dos o tres archivos que importan. Las alertas de entrada fría en **Today** bajan cuando lo haces.
+3. **Vigila el control de la ventana de contexto** en el campo del chat: muestra cuánto de la ventana del modelo está en uso y los AI Credits de la sesión; pasa el cursor para ver el desglose de tokens. El cockpit lo refleja por workspace. La comparación de workspaces en **Trends** tiene la columna **Pico de contexto**, coloreada por los guardrails de 70%/90%.
+4. **Compacta deliberadamente.** Ejecuta `/compact` en puntos de control naturales, opcionalmente con instrucciones de foco (por ejemplo `/compact céntrate en las decisiones de schema`). Las recomendaciones del coach en **Today** incluyen "Compacta antes de que la ventana se llene" cuando el pico de contexto cruza el umbral de aviso con cero compactaciones en el rango, y "Acota el alcance de las sesiones" cuando se ejecutaron más compactaciones que el guardrail `THRESHOLD_CONTEXT_COMPACTIONS_INFO` (por defecto 3). La compactación automática frecuente significa que las sesiones superan la ventana, y cada compactación también reinicia la caché de prompt.
 5. **Una sesión por tarea.** Inicia un chat nuevo para trabajo no relacionado; las conversaciones largas acumulan contexto obsoleto y lo pagan en cada request.
-6. **Verifica el efecto en el Inspector.** El contexto estable aparece como pares de requests sanos y un acierto de caché ponderado por tokens más alto; el contexto inestable aparece como rupturas por deriva de prefijo y tokens recomputados evitables.
-7. **Lee el Playbook de gestión de contexto** en la vista Coach — muestra estas prácticas con tu pico de contexto y recuento de compactaciones observados en el rango seleccionado.
+6. **Verifica el efecto en el detalle de Sessions.** El contexto estable aparece como pares de requests sanos y un acierto de caché ponderado por tokens más alto; el contexto inestable aparece como rupturas por deriva de prefijo y tokens recomputados evitables.
+7. **Lee el Playbook de gestión de contexto** en **Today**. Muestra estas prácticas con tu pico de contexto y recuento de compactaciones observados en el rango seleccionado.

@@ -2,8 +2,8 @@
 title: "Frontier Cockpit Local Developer Guide"
 description: "Developer guide for running and using Frontier Cockpit Local with Aspire, Grafana, Prometheus, Tempo, Loki, and local automation."
 author: "Frontier Cockpit Team"
-date: "2026-07-02"
-version: "1.1.0"
+date: "2026-08-11"
+version: "1.2.0"
 status: "approved"
 tags: ["github-copilot", "developer", "local", "aspire", "grafana", "opentelemetry"]
 ---
@@ -18,6 +18,7 @@ This guide explains how a developer uses the Frontier Cockpit Local observabilit
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.2.0 | 2026-08-11 | Frontier Cockpit Team | Added the current six-view mini app navigation and explained data scope badges. |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Rebrand to Frontier Cockpit Local and Hybrid, repository-relative paths, containerized jobs, privacy-first defaults. |
 | 1.0.0 | 2026-06-17 | Frontier Cockpit Team | Initial developer guide for local observability. |
 
@@ -27,6 +28,9 @@ This guide explains how a developer uses the Frontier Cockpit Local observabilit
 - [2. What Runs Locally](#2-what-runs-locally)
 - [3. Daily Developer Workflow](#3-daily-developer-workflow)
 - [4. Dashboard Guide](#4-dashboard-guide)
+  - [4.1 Frontier Cockpit Local Mini App](#41-frontier-cockpit-local-mini-app)
+  - [4.2 Data Scope Badges](#42-data-scope-badges)
+  - [4.3 Grafana Dashboards](#43-grafana-dashboards)
 - [5. Prompt Improvement Loop](#5-prompt-improvement-loop)
 - [6. Interpreting Key Metrics](#6-interpreting-key-metrics)
 - [7. Content Capture](#7-content-capture)
@@ -90,6 +94,36 @@ For the Python-first local architecture, see [FrontierCockpit_PythonAspireLocalA
 7. Improve the next prompt based on the observed token, tool, context, and AIU behavior.
 
 ## 4. Dashboard Guide
+
+### 4.1 Frontier Cockpit Local Mini App
+
+Open the mini app at `http://localhost:3300`. The sidebar rail contains five primary views, followed by **Settings** as a quieter trailing entry.
+
+| View | Use It To Answer |
+| --- | --- |
+| **Today** | What needs attention today across AI Credits, alerts, coach recommendations, and top workspaces? |
+| **Sessions** | Which sessions used which models and costs, and what happened inside a selected session? |
+| **Trends** | How is usage changing over time, and how do workspaces compare? |
+| **Credits** | How is the pooled AI Credits budget tracking, and what do the forecast and model cost panels show? |
+| **Diagnostics** | Is the stack healthy, is the data trustworthy, and what do device-level editor signals show? |
+| **Settings** | Which thresholds apply, and where is the local or enterprise data boundary? |
+
+To inspect the event log, cache analysis, or trace links, open **Sessions** and select a session to enter its detail view.
+
+### 4.2 Data Scope Badges
+
+Every telemetry panel includes a badge that states which population it covers. The global workspace selector only narrows panels labeled **Workspace**.
+
+| Badge | Meaning |
+| --- | --- |
+| **Workspace** | Session metrics attributed to a Git workspace. The workspace selector filters these panels. |
+| **Pooled (all workspaces)** | The AI Credits allowance is shared by the billing entity and is not narrowed by workspace. |
+| **Device** | GenAI model mix, latency, and editor outcomes cover all work on this device because VS Code emits them without a repository label. |
+| **Official** | The panel uses official GitHub APIs or billing exports rather than local OpenTelemetry. |
+
+Local OpenTelemetry remains operational telemetry. A scope badge explains population, but it does not make a local estimate an official billing value.
+
+### 4.3 Grafana Dashboards
 
 | Dashboard | Use It To Answer |
 | --- | --- |

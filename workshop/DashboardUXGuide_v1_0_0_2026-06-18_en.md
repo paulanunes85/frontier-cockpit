@@ -2,8 +2,8 @@
 title: "Dashboard UX Guide"
 description: "UX strategy for improving Frontier Cockpit Local and Frontier Cockpit Hybrid Grafana dashboards."
 author: "Frontier Cockpit Team"
-date: "2026-07-02"
-version: "1.1.0"
+date: "2026-08-11"
+version: "1.2.0"
 status: "approved"
 tags: ["grafana", "dashboard", "ux", "github-copilot", "observability"]
 ---
@@ -18,6 +18,7 @@ This guide explains how to improve the Grafana dashboard experience so developer
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.2.0 | 2026-08-11 | Frontier Cockpit Team | Aligned the mini app with the six-view navigation and documented panel data scope badges. |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Rebrand to Frontier Cockpit Local, repository-relative paths, containerized jobs, privacy-first defaults, per-lab durations. |
 | 1.0.0 | 2026-06-18 | Frontier Cockpit Team | Initial UX guide for local and Azure dashboards. |
 
@@ -26,6 +27,7 @@ This guide explains how to improve the Grafana dashboard experience so developer
 - [1. UX Principles](#1-ux-principles)
 - [2. Dashboard Personas](#2-dashboard-personas)
 - [3. Local Dashboard Improvements](#3-local-dashboard-improvements)
+  - [3.5 Mini App Navigation And Data Scope](#35-mini-app-navigation-and-data-scope)
 - [4. Azure Dashboard Improvements](#4-azure-dashboard-improvements)
 - [5. Recommended Navigation](#5-recommended-navigation)
 - [6. Panel Design Standards](#6-panel-design-standards)
@@ -109,6 +111,30 @@ Improve with:
 - missing OTel signal categories;
 - a plain-language explanation of what is safe to claim.
 
+### 3.5 Mini App Navigation And Data Scope
+
+The Frontier Cockpit Local mini app uses six views:
+
+| View | Purpose | Location |
+| --- | --- | --- |
+| **Today** | Daily AI Credits status, alerts, coach recommendations, and top workspaces. | Primary sidebar rail |
+| **Sessions** | Per-session cost and models, plus session detail for the event log, cache analysis, and trace links. | Primary sidebar rail |
+| **Trends** | Usage over time and workspace comparison. | Primary sidebar rail |
+| **Credits** | AI Credits budget, plan comparison, model cost, forecast, and budget justification. | Primary sidebar rail |
+| **Diagnostics** | Stack health, data quality, and editor experience metrics. | Primary sidebar rail |
+| **Settings** | Thresholds and the local or enterprise data boundary. | Sidebar rail, trailing entry |
+
+Every telemetry panel displays a data scope badge:
+
+| Badge | Meaning |
+| --- | --- |
+| **Workspace** | Session metrics attributed to a Git workspace. The workspace selector filters these panels. |
+| **Pooled (all workspaces)** | Shared AI Credits allowance for the billing entity. The workspace selector does not narrow it. |
+| **Device** | GenAI model, latency, and editor outcome metrics emitted per VS Code window without a repository label. These panels cover all work on the device. |
+| **Official** | Data sourced from official GitHub APIs or billing exports rather than local OpenTelemetry. |
+
+Readers should use the badge, not the presence of the global workspace selector, to decide which population a panel represents.
+
 ## 4. Azure Dashboard Improvements
 
 ### 4.1 Enterprise Overview
@@ -146,6 +172,20 @@ Use audit log streaming and API ingestion to show:
 
 ## 5. Recommended Navigation
 
+Frontier Cockpit Local mini app:
+
+```text
+Primary sidebar rail
+  Today
+  Sessions
+  Trends
+  Credits
+  Diagnostics
+
+Sidebar rail, trailing entry
+  Settings
+```
+
 Local Grafana folder:
 
 ```text
@@ -182,6 +222,7 @@ GitHub Copilot
 | Links | Link from summary panels to drill-down dashboards. |
 | Thresholds | Use green, orange, red for actionable states. |
 | Tables | Keep column names friendly and sorted by latest or highest value. |
+| Scope badge | Label each telemetry panel as Workspace, Pooled (all workspaces), Device, or Official. |
 | Raw JSON | Avoid by default, use links to Aspire or Tempo for raw details. |
 
 ### 6.1 Visualization Selection

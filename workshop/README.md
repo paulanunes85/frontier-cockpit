@@ -2,8 +2,8 @@
 title: "Frontier Cockpit Local Hands-on Workshop"
 description: "Workshop index for building a Frontier Cockpit Local observability cockpit from a reusable participant template."
 author: "Frontier Cockpit Team"
-date: "2026-07-02"
-version: "1.1.0"
+date: "2026-08-11"
+version: "1.1.1"
 status: "approved"
 tags: ["github-copilot", "workshop", "opentelemetry", "aspire", "grafana", "azure"]
 ---
@@ -18,6 +18,7 @@ This folder contains a complete hands-on workshop where developers build their o
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.1.1 | 2026-08-11 | Frontier Cockpit Team | Updated the quick start for the six-view mini app navigation. |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Rebrand to Frontier Cockpit Local, repository-relative paths, containerized jobs, privacy-first defaults, per-lab durations. |
 | 1.0.1 | 2026-07-01 | Frontier Cockpit Team | Added the participant quick start for creating a personal local dashboard from the template and aligned the workshop entry point with AI Credits. |
 | 1.0.0 | 2026-06-18 | Frontier Cockpit Team | Initial workshop index. |
@@ -38,9 +39,9 @@ Use this path when the goal is for each participant to create and run their own 
 | 2 | `cp local-otel/workshop.env.example local-otel/workshop.env` | A local, gitignored participant configuration file exists. |
 | 3 | Edit `local-otel/workshop.env`. | Participant name, role, plan, seat count, and AI Credits pool match the local scenario. |
 | 4 | `local-otel/workshop-ready.sh` | Docker Desktop stack starts, the workspace is registered, telemetry is materialized, and validation runs. |
-| 5 | Open `http://localhost:3300`. | The mini app shows the participant identity and the eight local views. |
+| 5 | Open `http://localhost:3300`. | The mini app shows the participant identity and six views: Today, Sessions, Trends, Credits, Diagnostics, and Settings. |
 | 6 | Run one real GitHub Copilot Chat or agent session in the Git repository. | Real workspace-attributed telemetry is generated. |
-| 7 | Run `local-otel/workshop-ready.sh` again or click Refresh after materialization. | Sessions, tokens, cache, AI Credits estimates, Coach, and Credits views populate. |
+| 7 | Run `local-otel/workshop-ready.sh` again or click Refresh after materialization. | Today recommendations, Sessions, Trends, Credits, and Diagnostics populate. |
 
 The dashboard is a template, not a static artifact. Participants customize it through `local-otel/workshop.env`, local thresholds, and later code changes if they want to extend the React app.
 

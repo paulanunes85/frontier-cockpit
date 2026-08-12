@@ -266,3 +266,54 @@ test("agent breakdown groups model turns, tools, and errors per agent", async ()
   assert.equal(breakdown[2].agent, "copilot-chat");
   assert.equal(breakdown[2].hooks, 1);
 });
+
+test("summary cache keys separate range, workspace, and license selection", async () => {
+  const mod = await loadServer("cache-keys");
+  const base = "http://x/api/summary?range=24h&repo=all";
+  assert.notEqual(mod.summaryCacheKey(new URL(base)), mod.summaryCacheKey(new URL("http://x/api/summary?range=1h&repo=all")));
+  assert.notEqual(mod.summaryCacheKey(new URL(base)), mod.summaryCacheKey(new URL("http://x/api/summary?range=24h&repo=acme/app")));
+  assert.notEqual(
+    mod.summaryCacheKey(new URL(`${base}&plan=business&seats=1`)),
+    mod.summaryCacheKey(new URL(`${base}&plan=business&seats=9`))
+  );
+  assert.equal(mod.summaryCacheKey(new URL(base)), mod.summaryCacheKey(new URL(base)));
+  assert.notEqual(mod.sessionsCacheKey("24h", null), mod.sessionsCacheKey("24h", "acme/app"));
+});
+
+test("only the manual refresh bypasses the cache", async () => {
+  const mod = await loadServer("fresh-flag");
+  assert.equal(mod.freshFromUrl(new URL("http://x/api/summary")), false);
+  assert.equal(mod.freshFromUrl(new URL("http://x/api/summary?fresh=false")), false);
+  assert.equal(mod.freshFromUrl(new URL("http://x/api/summary?fresh=true")), true);
+});
+
+test("data scope marks pooled and editor-wide sections as not workspace filtered", async () => {
+  const mod = await loadServer("scope-map");
+  const scope = mod.dataScopeBySection();
+  assert.equal(scope.tokens, "workspace");
+  assert.equal(scope.workspaces, "workspace");
+  assert.equal(scope.history, "workspace");
+  // The AI Credits allowance is pooled per billing entity, not per repository.
+  assert.equal(scope.budget, "all-workspaces");
+  // GenAI metrics are emitted per VS Code window with no repository label.
+  assert.equal(scope.modelMix, "device");
+  assert.equal(scope.experience, "device");
+  assert.equal(scope.outcomes, "device");
+  assert.equal(scope.officialBilling, "official-github");
+});
+
+test("coach cards disclose the population behind each recommendation", async () => {
+  const mod = await loadServer("coach-scope");
+  assert.equal(mod.coachCardScopes["budget-pacing"], "all-workspaces");
+  assert.equal(mod.coachCardScopes["model-cost-concentration"], "device");
+  assert.equal(mod.coachCardScopes["cache-reuse"], undefined);
+});
+
+test("the selected workspace is applied to the Prometheus selector", async () => {
+  const mod = await loadServer("repo-matcher");
+  assert.equal(mod.repoMatcher(null), "");
+  assert.equal(mod.repoMatcher("acme/app"), ',repo="acme/app"');
+  const scoped = mod.realSessionSum("input_tokens", "24h", mod.repoMatcher("acme/app"));
+  assert.ok(scoped.includes('repo="acme/app"'));
+  assert.ok(scoped.includes('usage_scope="workspace_real"'));
+});

@@ -346,7 +346,7 @@ function escapePrometheusLabel(value: string): string {
     .replaceAll("\n", `${backslash}n`);
 }
 
-function repoMatcher(repo: string | null): string {
+export function repoMatcher(repo: string | null): string {
   return repo ? `,repo="${escapePrometheusLabel(repo)}"` : "";
 }
 
@@ -405,7 +405,7 @@ function cachedModelPrices(fresh = false) {
 // so the workspace selector genuinely narrows them. The GenAI metrics that back
 // model mix, latency, and editor outcomes are emitted per VS Code window with no
 // repository label, and the AI Credits allowance is a pooled monthly budget.
-function dataScopeBySection(): Record<string, DataScopeKind> {
+export function dataScopeBySection(): Record<string, DataScopeKind> {
   return {
     sessionMetrics: "workspace",
     tokens: "workspace",
@@ -674,7 +674,7 @@ function realWorkspaceSelector(repoLabelMatcher: string): string {
   return `usage_scope="workspace_real",workspace_kind="git",workspace_name!="unknown",repo!="",repo!="unknown"${repoLabelMatcher}`;
 }
 
-function realSessionSum(metric: string, range: string, repoLabelMatcher: string): string {
+export function realSessionSum(metric: string, range: string, repoLabelMatcher: string): string {
   return `sum(max by (trace_id) (max_over_time(copilot_real_session_${metric}_ratio{${realWorkspaceSelector(repoLabelMatcher)}}[${range}])))`;
 }
 
@@ -2844,7 +2844,18 @@ interface CoachCard {
   insight: string;
   action: string;
   params?: Record<string, string | number>;
+  scope?: DataScopeKind;
 }
+
+// Cards not listed here are built from workspace-attributed session metrics.
+export const coachCardScopes: Record<string, DataScopeKind> = {
+  "budget-pacing": "all-workspaces",
+  "credit-budget": "all-workspaces",
+  "model-cost-concentration": "device",
+  "auto-model-adoption": "device",
+  "context-compact-now": "device",
+  "context-session-scope": "device"
+};
 
 type SummaryResult = Awaited<ReturnType<typeof summary>>;
 
@@ -3067,13 +3078,15 @@ function buildCoachCards(data: SummaryResult, sessions: SessionRecord[], modelPr
 
   const cards = coachRules
     .map((rule) => rule(context))
-    .filter((card): card is CoachCard => card !== null);
+    .filter((card): card is CoachCard => card !== null)
+    .map((card) => ({ ...card, scope: coachCardScopes[card.id] ?? ("workspace" as DataScopeKind) }));
 
   if (cards.length === 0) {
     cards.push({
       id: "healthy",
       severity: "good",
       params: {},
+      scope: "workspace",
       title: "Usage looks healthy",
       insight: "Cache reuse, cold context, context pressure, and AI credits are all within the local guardrails for this range.",
       action: "Keep working as you are. Revisit this view after larger agent sessions to stay efficient."

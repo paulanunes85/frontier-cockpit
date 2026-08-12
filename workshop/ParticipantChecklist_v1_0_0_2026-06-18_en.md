@@ -2,8 +2,8 @@
 title: "Participant Checklist"
 description: "Completion checklist for developers participating in the Frontier Cockpit Local hands-on workshop."
 author: "Frontier Cockpit Team"
-date: "2026-07-02"
-version: "1.1.0"
+date: "2026-08-11"
+version: "1.1.1"
 status: "approved"
 tags: ["github-copilot", "workshop", "checklist", "developer"]
 ---
@@ -18,6 +18,7 @@ Use this checklist to confirm each participant leaves the workshop with a workin
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.1.1 | 2026-08-11 | Frontier Cockpit Team | Aligned mini app checks with the six-view navigation and data scope badges. |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Rebrand to Frontier Cockpit Local, repository-relative paths, containerized jobs, privacy-first defaults, per-lab durations. |
 | 1.0.2 | 2026-07-02 | Frontier Cockpit Team | Added the cross-platform client bootstrap path for macOS, Linux, and Windows. |
 | 1.0.1 | 2026-07-01 | Frontier Cockpit Team | Added mini app template, participant identity, and AI Credits checks. |
@@ -69,9 +70,13 @@ Use this checklist to confirm each participant leaves the workshop with a workin
 - [ ] Participant can explain Aspire vs Grafana.
 - [ ] Participant can explain the mini app as the workshop template dashboard.
 - [ ] Participant can switch the mini app between English, Portuguese, and Spanish.
-- [ ] Participant opened the mini app Overview at `http://localhost:3300`.
+- [ ] Participant opened the mini app Today view at `http://localhost:3300`.
+- [ ] Participant opened the mini app Sessions view and selected a session detail.
+- [ ] Participant opened the mini app Trends view.
 - [ ] Participant opened the mini app Credits view.
-- [ ] Participant opened the mini app Coach view.
+- [ ] Participant opened the mini app Diagnostics view.
+- [ ] Participant opened Settings from the end of the sidebar rail.
+- [ ] Participant can explain Workspace, Pooled (all workspaces), Device, and Official data scope badges.
 - [ ] Participant opened Frontier Cockpit Local Home at `http://localhost:3000/d/copilot-agent-local/frontier-cockpit-local-home`.
 - [ ] Participant opened GitHub Copilot Real Workspace Usage at `http://localhost:3000/d/copilot-real-workspace-usage-local/github-copilot-real-workspace-usage-local`.
 - [ ] Participant opened GitHub Copilot Context and Cost at `http://localhost:3000/d/copilot-context-cost-local/github-copilot-context-and-cost-local`.
@@ -122,9 +127,11 @@ The improved prompt should reduce ambiguity and make telemetry easier to interpr
 
 Collect screenshots or notes for:
 
-- [ ] Mini app Overview.
+- [ ] Mini app Today view.
+- [ ] Mini app session detail.
+- [ ] Mini app Trends view.
 - [ ] Mini app Credits view.
-- [ ] Mini app Coach view.
+- [ ] Mini app Diagnostics view.
 - [ ] Aspire trace detail.
 - [ ] Local Context and Cost dashboard.
 - [ ] Local Data Quality dashboard.

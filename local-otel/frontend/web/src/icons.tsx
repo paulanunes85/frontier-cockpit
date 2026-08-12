@@ -161,15 +161,11 @@ export function DashIcon(props: Readonly<IconProps>): ReactElement {
 }
 
 export const navIcons: Record<string, (props: Readonly<IconProps>) => ReactElement> = {
-    overview: OverviewIcon,
-    credits: CreditsIcon,
+    today: OverviewIcon,
     sessions: SessionsIcon,
-    workspaces: WorkspacesIcon,
-    coach: CoachIcon,
-    planner: PlannerIcon,
-    inspector: InspectorIcon,
-    history: HistoryIcon,
-    health: HealthIcon,
+    trends: HistoryIcon,
+    credits: CreditsIcon,
+    diagnostics: HealthIcon,
     settings: SettingsIcon
 };
 

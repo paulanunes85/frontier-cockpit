@@ -4,6 +4,11 @@ export type MetricStatus = "ok" | "unavailable";
 export type AlertSeverity = "info" | "warning" | "critical";
 export type CoachSeverity = "good" | "info" | "warning" | "critical";
 
+// Which population a panel describes. The workspace selector only narrows
+// session metrics; editor-level GenAI metrics carry no repository attribution
+// and the AI Credits allowance is pooled across all work.
+export type DataScopeKind = "workspace" | "all-workspaces" | "device" | "official-github";
+
 export interface ServiceHealth {
     id: string;
     name: string;
@@ -400,6 +405,7 @@ export interface SummaryResponse {
     links: AppLink[];
     thresholds: Record<string, number>;
     coachTuning: Record<string, number>;
+    scopeBySection: Record<string, DataScopeKind>;
     billing: BillingFacts;
     alerts: Alert[];
     economy: EconomySummary;
@@ -465,6 +471,7 @@ export interface CoachCard {
     insight: string;
     action: string;
     params?: Record<string, string | number>;
+    scope?: DataScopeKind;
 }
 
 export interface CoachResponse {
