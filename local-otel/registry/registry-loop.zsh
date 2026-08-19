@@ -26,6 +26,15 @@ while true; do
     cycle_status=1
   fi
 
+  if [[ -s ./workspaces/registry-cache.tsv ]]; then
+    if ./register-all-workspaces.sh --publish-only >/dev/null; then
+      print "$(date -u +%Y-%m-%dT%H:%M:%SZ) refreshed cached workspace registry."
+    else
+      print -u2 "$(date -u +%Y-%m-%dT%H:%M:%SZ) failed to refresh cached workspace registry."
+      cycle_status=1
+    fi
+  fi
+
   if (( cycle_status == 0 )); then
     date +%s > /tmp/frontier-registry.last-ok
     sleep_seconds="$refresh_seconds"

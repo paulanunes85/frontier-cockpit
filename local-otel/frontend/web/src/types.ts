@@ -413,6 +413,7 @@ export interface SummaryResponse {
     telemetrySemantics: {
         operationalAiu: {
             sourceAttribute: string;
+            fallbackSourceAttribute: string;
             divisor: number;
             provenance: "local-opentelemetry";
             officialBilling: false;

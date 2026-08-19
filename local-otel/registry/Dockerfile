@@ -2,20 +2,22 @@ FROM docker.io/library/alpine:3.20
 
 RUN set -eux; \
   for attempt in 1 2 3 4 5; do \
-    apk add --no-cache curl python3 zsh && break; \
-    [ "${attempt}" -eq 5 ] && exit 1; \
-    sleep $((attempt * 5)); \
+  apk add --no-cache curl python3 zsh && break; \
+  [ "${attempt}" -eq 5 ] && exit 1; \
+  sleep $((attempt * 5)); \
   done
 
 WORKDIR /app/local-otel
 
 COPY register-model-price.sh \
+  register-all-workspaces.sh \
   seed-model-prices.sh \
   ./
 COPY registry/registry-loop.zsh /app/registry-loop.zsh
 
 RUN chmod +x \
   /app/registry-loop.zsh \
+  /app/local-otel/register-all-workspaces.sh \
   /app/local-otel/register-model-price.sh \
   /app/local-otel/seed-model-prices.sh
 

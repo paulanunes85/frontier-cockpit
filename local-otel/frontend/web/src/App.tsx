@@ -1475,7 +1475,7 @@ function SessionDetailTiles({
     { label: t("inspector.tile.output"), value: formatCompact(summary.outputTokens) },
     { label: t("inspector.tile.cachedInput"), value: formatCompact(summary.cacheReadTokens) },
     { label: t("inspector.tile.totalTokens"), value: formatCompact(summary.totalTokens) },
-    { label: t("inspector.tile.credits"), value: session ? formatNumber(session.operationalAiu, 2) : "-" },
+    { label: t("inspector.tile.credits"), value: session ? formatNumber(session.operationalAiu, 2) : "—" },
     { label: t("inspector.errors"), value: formatNumber(summary.errors, 0) },
     { label: t("inspector.cacheHit"), value: formatPercent(summary.cacheEfficiency) },
     { label: t("inspector.cacheBreaks"), value: formatNumber(summary.cacheBreaks, 0) },
@@ -1789,7 +1789,7 @@ function TodayHighlights({ summary }: Readonly<{ summary: SummaryResponse | null
           <span className="stat-value">{topModel ? topModel.model : t("overview.hl.none")}</span>
           {topModel ? (
             <span className="muted">
-              {formatPercent(topModel.share)} · {topModel.estimatedAiCredits === null ? "-" : formatNumber(topModel.estimatedAiCredits, 2)} hypothetical model-price units
+              {formatPercent(topModel.share)} · {topModel.estimatedAiCredits === null ? "—" : formatNumber(topModel.estimatedAiCredits, 2)} local estimate
             </span>
           ) : null}
         </article>
@@ -1869,7 +1869,7 @@ function TodayView({
 }
 
 const aspireBase = "http://localhost:18888";
-const grafanaTrends = "http://localhost:3000/d/copilot-developer-trends-local/frontier-cockpit-developer-trends";
+const grafanaSessions = "http://localhost:3000/d/copilot-sessions-models-local/github-copilot-sessions-and-model-labels-local";
 
 function SessionsView({ sessions }: Readonly<{ sessions: SessionsResponse | null }>) {
   const t = useT();
@@ -1888,7 +1888,7 @@ function SessionsView({ sessions }: Readonly<{ sessions: SessionsResponse | null
         <div className="link-row">
           <ScopeTag scope="workspace" />
           <a href={`${aspireBase}/traces`} target="_blank" rel="noopener noreferrer">{t("sessions.aspire")}</a>
-          <a href={grafanaTrends} target="_blank" rel="noopener noreferrer">{t("sessions.grafana")}</a>
+          <a href={grafanaSessions} target="_blank" rel="noopener noreferrer">{t("sessions.grafana")}</a>
         </div>
       }
     >
@@ -2778,7 +2778,7 @@ function AppShell({ lang, setLang }: Readonly<{ lang: Lang; setLang: (lang: Lang
                 ))}
               </select>
             </div>
-            <button type="button" className="refresh" onClick={() => void reload()} disabled={isLoading}>
+            <button type="button" className="refresh" onClick={() => void reload(true)} disabled={isLoading}>
               {isLoading ? t("controls.refreshing") : t("controls.refresh")}
             </button>
           </div>

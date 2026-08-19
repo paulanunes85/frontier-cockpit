@@ -118,6 +118,8 @@ services:
       FRONTIER_SKIP_ENV_ZSH: "true"
       OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://otel-collector:4318/v1/metrics"
       REGISTRY_REFRESH_SECONDS: "300"
+    volumes:
+      - ../workspaces:/app/local-otel/workspaces:ro
     depends_on:
       otel-collector:
         condition: service_started

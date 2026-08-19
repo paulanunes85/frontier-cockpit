@@ -14,6 +14,7 @@ set -euo pipefail
 
 script_dir="${0:A:h}"
 stack_dir="$script_dir/stack"
+caller_dir="$PWD"
 hybrid=0
 update=0
 
@@ -102,6 +103,19 @@ else
 fi
 docker compose "${compose_files[@]}" up -d --wait --wait-timeout 240
 print "All health-checked services are ready."
+
+# The workspace registry is an OTLP gauge, so restarting the Collector removes
+# its in-memory series even though the telemetry volumes remain intact. Publish
+# the repository that invoked this command after the stack is ready, then replay
+# real Tempo traces so the materialized session rows regain their attribution.
+if (cd "$caller_dir" && "$script_dir/register-workspace.sh"); then
+  print "Replaying recent real GitHub Copilot traces with the refreshed workspace registry."
+  docker exec \
+    -e COPILOT_MATERIALIZE_FORCE_REPLAY=true \
+    copilot-otel-jobs zsh /app/local-otel/materialize-copilot-sessions.sh
+else
+  print -u2 "Workspace registration failed; session telemetry will remain unattributed until registration succeeds."
+fi
 
 print ""
 print "Endpoints:"

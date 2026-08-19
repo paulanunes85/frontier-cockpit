@@ -287,10 +287,13 @@ for trace_id in trace_ids:
         "cold_input_tokens": 0,
         "context_utilization_pct": 0,
         "attribution_source": "span",
+        "eligible_chat_calls": 0,
+        "representative_input_tokens": 0,
     }
 
     for batch in trace.get("batches", []):
         res = attr_map(batch.get("resource", {}).get("attributes", []))
+        summary["service_name"] = res.get("service.name", summary["service_name"])
         summary["session_id"] = res.get("session.id", summary["session_id"])
         summary["repo"] = res.get("github.copilot.git.repository", res.get("copilot_chat.repo.remote_url", summary["repo"]))
         summary["branch"] = res.get("github.copilot.git.branch", res.get("copilot_chat.repo.head_branch_name", summary["branch"]))
@@ -313,24 +316,47 @@ for trace_id in trace_ids:
                     summary["agent_name"] = attrs.get("gen_ai.agent.name", summary["agent_name"])
                 summary["conversation_id"] = attrs.get("gen_ai.conversation.id", summary["conversation_id"])
                 summary["request_shape"] = attrs.get("copilot_chat.request.shape", summary["request_shape"])
-                if operation == "invoke_agent" or summary["request_model"] == "unknown":
-                    summary["request_model"] = attrs.get("gen_ai.request.model", summary["request_model"])
-                if operation == "invoke_agent" or summary["response_model"] == "unknown":
-                    summary["response_model"] = attrs.get("gen_ai.response.model", summary["response_model"])
-                if operation == "chat" and attrs.get("gen_ai.request.model"):
-                    summary["chat_models"].add(str(attrs.get("gen_ai.request.model")))
-                summary["input_tokens"] += int(float(attrs.get("gen_ai.usage.input_tokens", 0) or 0))
-                summary["output_tokens"] += int(float(attrs.get("gen_ai.usage.output_tokens", 0) or 0))
-                summary["cache_read_tokens"] += int(float(attrs.get("gen_ai.usage.cache_read.input_tokens", 0) or 0))
-                summary["cache_creation_tokens"] += int(float(attrs.get("gen_ai.usage.cache_creation.input_tokens", 0) or 0))
-                summary["reasoning_tokens"] += int(float(attrs.get("gen_ai.usage.reasoning.output_tokens", attrs.get("gen_ai.usage.reasoning_tokens", 0)) or 0))
-                summary["nano_aiu"] += int(float(attrs.get("copilot_chat.copilot_usage_nano_aiu", 0) or 0))
-                mpt = int(float(attrs.get("copilot_chat.request.max_prompt_tokens", 0) or 0))
-                if mpt > summary["max_prompt_tokens"]:
-                    summary["max_prompt_tokens"] = mpt
-                turn_input = int(float(attrs.get("gen_ai.usage.input_tokens", 0) or 0))
-                if (operation == "chat" or span_name.startswith("chat")) and turn_input > summary["peak_turn_input_tokens"]:
-                    summary["peak_turn_input_tokens"] = turn_input
+                is_chat = operation == "chat" or span_name.startswith("chat ")
+                chat_agent = str(attrs.get("gen_ai.agent.name", "") or "")
+                is_internal_summary = chat_agent == "copilotLanguageModelWrapper"
+                if is_chat and not is_internal_summary:
+                    summary["eligible_chat_calls"] += 1
+                    request_model = attrs.get("gen_ai.request.model", "unknown")
+                    response_model = attrs.get("gen_ai.response.model", "unknown")
+                    turn_input = int(float(attrs.get("gen_ai.usage.input_tokens", 0) or 0))
+                    summary["input_tokens"] += turn_input
+                    summary["output_tokens"] += int(float(attrs.get("gen_ai.usage.output_tokens", 0) or 0))
+                    summary["cache_read_tokens"] += int(float(attrs.get("gen_ai.usage.cache_read.input_tokens", 0) or 0))
+                    summary["cache_creation_tokens"] += int(float(attrs.get("gen_ai.usage.cache_creation.input_tokens", 0) or 0))
+                    summary["reasoning_tokens"] += int(float(attrs.get("gen_ai.usage.reasoning.output_tokens", attrs.get("gen_ai.usage.reasoning_tokens", 0)) or 0))
+                    # Newer Agent Host and CLI traces use github.copilot.nano_aiu;
+                    # the extension wrapper keeps the legacy attribute.
+                    nano_aiu = attrs.get("github.copilot.nano_aiu", attrs.get("copilot_chat.copilot_usage_nano_aiu", 0))
+                    summary["nano_aiu"] += int(float(nano_aiu or 0))
+                    if meaningful(request_model):
+                        summary["chat_models"].add(str(request_model))
+                    if turn_input >= summary["representative_input_tokens"]:
+                        summary["representative_input_tokens"] = turn_input
+                        summary["request_model"] = request_model
+                        summary["response_model"] = response_model
+                    mpt = int(float(attrs.get("copilot_chat.request.max_prompt_tokens", 0) or 0))
+                    if mpt > summary["max_prompt_tokens"]:
+                        summary["max_prompt_tokens"] = mpt
+                    if turn_input > summary["peak_turn_input_tokens"]:
+                        summary["peak_turn_input_tokens"] = turn_input
+
+                    # Native GitHub Copilot Agent Host traces expose context
+                    # pressure as span events instead of copilot_chat attributes.
+                    for event in span.get("events", []):
+                        if event.get("name") != "github.copilot.session.usage_info":
+                            continue
+                        event_attrs = attr_map(event.get("attributes", []))
+                        token_limit = int(float(event_attrs.get("github.copilot.token_limit", 0) or 0))
+                        current_tokens = int(float(event_attrs.get("github.copilot.current_tokens", 0) or 0))
+                        if token_limit > summary["max_prompt_tokens"]:
+                            summary["max_prompt_tokens"] = token_limit
+                        if current_tokens > summary["peak_turn_input_tokens"]:
+                            summary["peak_turn_input_tokens"] = current_tokens
                 if operation == "execute_tool" or attrs.get("gen_ai.tool.name"):
                     summary["tool_calls"] += 1
                 if attrs.get("error.type"):
@@ -362,6 +388,11 @@ for trace_id in trace_ids:
                                 int_attr("content_chars", len(text)), attr("content_hidden", str(not show_content).lower()),
                             ],
                         })
+
+    # A trace made only of VS Code's internal title/summary model calls is not a
+    # developer session and must not populate usage, cost, or coaching panels.
+    if summary["eligible_chat_calls"] == 0:
+        continue
 
     commit_key = str(summary["commit"] or "").strip().lower()
     commit_matches = commit_registry.get(commit_key, []) if len(commit_key) >= 7 else []

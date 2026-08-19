@@ -38,14 +38,22 @@ set -euo pipefail
 
 script_dir="${0:A:h}"
 force_rescan="false"
-[[ "${1:-}" == "--rescan" ]] && force_rescan="true"
+publish_only="false"
+
+for arg in "$@"; do
+  case "$arg" in
+    --rescan) force_rescan="true" ;;
+    --publish-only) publish_only="true" ;;
+    *) print -u2 "Unknown argument: $arg"; exit 2 ;;
+  esac
+done
 
 roots_raw="${FRONTIER_WORKSPACE_ROOTS:-$HOME}"
 max_depth="${FRONTIER_WORKSPACE_MAXDEPTH:-5}"
 discovery_ttl="${FRONTIER_WORKSPACE_DISCOVERY_TTL:-3600}"
 retention_days="${FRONTIER_WORKSPACE_RETENTION:-60}"
 otlp_endpoint="${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
-metrics_url="${otlp_endpoint%/}/v1/metrics"
+metrics_url="${OTEL_EXPORTER_OTLP_METRICS_ENDPOINT:-${otlp_endpoint%/}/v1/metrics}"
 
 state_dir="${script_dir}/workspaces"
 registry_cache="${state_dir}/registry-cache.tsv"
@@ -178,7 +186,7 @@ needs_discovery() {
 # Refresh the cache when stale. A lock prevents overlapping scans. A forced rescan or
 # a first run with no cache runs in the foreground so the caller sees fresh results;
 # otherwise discovery runs in the background so this invocation stays fast.
-if needs_discovery; then
+if [[ "$publish_only" != "true" ]] && needs_discovery; then
   if mkdir "$lock_dir" 2>/dev/null; then
     if [[ "$force_rescan" == "true" || ! -s "$registry_cache" ]]; then
       discover_and_merge || true

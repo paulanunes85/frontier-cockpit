@@ -52,6 +52,57 @@ if git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
 fi
 
 workspace_hash="$(print -rn -- "$workspace_path" | shasum -a 256 | awk '{print $1}')"
+state_dir="${0:A:h}/workspaces"
+registry_cache="$state_dir/registry-cache.tsv"
+mkdir -p "$state_dir"
+
+# Persist the same metadata published below so the registry sidecar can keep
+# the gauge alive after Collector restarts and Prometheus-exporter expiration.
+FRONTIER_WORKSPACE_HASH="$workspace_hash" \
+FRONTIER_WORKSPACE_NAME="$workspace_name" \
+FRONTIER_WORKSPACE_KIND="$workspace_kind" \
+FRONTIER_GIT_BRANCH="$git_branch" \
+FRONTIER_GIT_REPO_OWNER="$git_repo_owner" \
+FRONTIER_GIT_REPO_NAME="$git_repo_name" \
+FRONTIER_GIT_REMOTE="$git_remote" \
+FRONTIER_GIT_HEAD_COMMITS="$git_head_commits" \
+python3 - "$registry_cache" <<'PY'
+import os
+import pathlib
+import time
+import sys
+
+cache_path = pathlib.Path(sys.argv[1])
+
+
+def clean(value):
+  return str(value or "unknown").replace("\t", " ").replace("\r", " ").replace("\n", " ")
+
+
+rows = {}
+if cache_path.exists():
+  for line in cache_path.read_text(encoding="utf-8").splitlines():
+    parts = line.split("\t")
+    if len(parts) >= 9:
+      rows[parts[0]] = parts[:9]
+
+row = [
+  clean(os.environ.get("FRONTIER_WORKSPACE_HASH")),
+  clean(os.environ.get("FRONTIER_WORKSPACE_NAME")),
+  clean(os.environ.get("FRONTIER_WORKSPACE_KIND")),
+  clean(os.environ.get("FRONTIER_GIT_BRANCH")),
+  clean(os.environ.get("FRONTIER_GIT_REPO_OWNER")),
+  clean(os.environ.get("FRONTIER_GIT_REPO_NAME")),
+  clean(os.environ.get("FRONTIER_GIT_REMOTE")),
+  clean(os.environ.get("FRONTIER_GIT_HEAD_COMMITS")),
+  str(int(time.time())),
+]
+rows[row[0]] = row
+
+tmp = cache_path.with_suffix(".tmp")
+tmp.write_text("".join("\t".join(item) + "\n" for item in sorted(rows.values(), key=lambda item: item[1].lower())), encoding="utf-8")
+tmp.replace(cache_path)
+PY
 
 python3 <<PY | curl -fsS -X POST "$endpoint" -H 'Content-Type: application/json' --data-binary @- >/dev/null
 import json

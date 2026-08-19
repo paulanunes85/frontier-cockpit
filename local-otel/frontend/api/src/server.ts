@@ -445,7 +445,8 @@ export function dataScopeBySection(): Record<string, DataScopeKind> {
 }
 
 export const operationalAiuSemantics = {
-  sourceAttribute: "copilot_chat.copilot_usage_nano_aiu",
+  sourceAttribute: "github.copilot.nano_aiu",
+  fallbackSourceAttribute: "copilot_chat.copilot_usage_nano_aiu",
   divisor: 1e9,
   provenance: "local-opentelemetry",
   officialBilling: false,
