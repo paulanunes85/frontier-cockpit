@@ -1,4 +1,4 @@
-FROM docker.io/library/python:3.12-slim
+FROM docker.io/library/python:3.14-slim
 
 ARG PIP_INDEX_URL=https://pypi.org/simple
 ARG DUCKDB_VERSION=1.5.5
