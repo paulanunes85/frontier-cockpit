@@ -375,10 +375,13 @@ settings_update = {
     "github.copilot.chat.otel.enabled": True,
     "github.copilot.chat.otel.exporterType": "otlp-http",
     "github.copilot.chat.otel.otlpEndpoint": "http://localhost:4318",
+    "github.copilot.chat.otel.protocol": "http/protobuf",
     "github.copilot.chat.otel.captureContent": capture,
     "github.copilot.chat.otel.maxAttributeSizeChars": 0,
     "github.copilot.chat.otel.dbSpanExporter.enabled": True,
     "chat.agentHost.otel.enabled": True,
+    "chat.agentHost.otel.exporterType": "otlp-http",
+    "chat.agentHost.otel.otlpEndpoint": "http://localhost:4318",
     "chat.agentHost.otel.captureContent": capture,
     "chat.agentHost.otel.dbSpanExporter.enabled": True,
 }
