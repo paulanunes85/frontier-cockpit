@@ -100,8 +100,9 @@ try {
     else {
         Write-Host "Starting full local stack (offline, no Azure forwarding)."
     }
-    docker compose @ComposeFiles up -d
+    docker compose @ComposeFiles up -d --wait --wait-timeout 240
     if ($LASTEXITCODE -ne 0) { Fail "docker compose failed." }
+    Write-Host "All health-checked services are ready."
 }
 finally {
     Pop-Location

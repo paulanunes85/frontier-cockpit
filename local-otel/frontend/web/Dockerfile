@@ -1,8 +1,17 @@
 FROM docker.io/library/node:22-alpine AS build
 
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci \
+  --registry="${NPM_REGISTRY}" \
+  --fetch-retries=10 \
+  --fetch-retry-mintimeout=10000 \
+  --fetch-retry-maxtimeout=120000 \
+  --fetch-timeout=120000 \
+  --no-audit \
+  --no-fund
 COPY tsconfig*.json ./
 COPY vite.config.ts ./
 COPY index.html ./

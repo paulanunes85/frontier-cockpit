@@ -65,6 +65,7 @@ export interface WorkspaceUsage {
     cacheCreationTokens: number;
     coldInputTokens: number;
     aiCredits: number;
+    operationalAiu: number;
     sessions: number;
     cacheEfficiency: number | null;
     coldRatio: number | null;
@@ -78,6 +79,7 @@ export interface HistoryPoint {
     cacheReadTokens: number | null;
     coldInputTokens: number | null;
     aiCredits: number | null;
+    operationalAiu: number | null;
 }
 
 export interface Alert {
@@ -134,6 +136,7 @@ export interface CopilotPlanFacts {
 }
 
 export interface BillingFacts {
+    scenarioStatus: "configurable-hypothetical";
     creditUsd: number;
     autoModelDiscount: number;
     noRollover: boolean;
@@ -306,6 +309,7 @@ export interface InspectorResponse {
 }
 
 export interface BudgetInsight {
+    scenarioStatus: "configurable-hypothetical";
     plan: string;
     seats: number;
     monthlyAllowanceCredits: number;
@@ -406,6 +410,15 @@ export interface SummaryResponse {
     thresholds: Record<string, number>;
     coachTuning: Record<string, number>;
     scopeBySection: Record<string, DataScopeKind>;
+    telemetrySemantics: {
+        operationalAiu: {
+            sourceAttribute: string;
+            divisor: number;
+            provenance: "local-opentelemetry";
+            officialBilling: false;
+            description: string;
+        };
+    };
     billing: BillingFacts;
     alerts: Alert[];
     economy: EconomySummary;
@@ -414,6 +427,7 @@ export interface SummaryResponse {
     experience: ExperienceMetrics;
     outcomes: OutcomeMetrics;
     metrics: {
+        operationalAiu: ScalarMetric;
         aiCredits: ScalarMetric;
         sessions: ScalarMetric;
         tokens: TokenMetrics;
@@ -442,6 +456,7 @@ export interface SessionRecord {
     branch: string;
     workspaceName: string;
     model: string;
+    modelAttribution: "single-model" | "mixed" | "unavailable";
     agent: string;
     modeBucket: string;
     operation: string;
@@ -452,6 +467,7 @@ export interface SessionRecord {
     cacheCreationTokens: number;
     coldInputTokens: number;
     aiCredits: number;
+    operationalAiu: number;
     toolCalls: number;
     contextPct: number | null;
     cacheEfficiency: number | null;

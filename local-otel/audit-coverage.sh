@@ -150,6 +150,13 @@ except Exception:
     settings = {}
 
 rows = []
+content_capture_disabled = any(
+    settings.get(key) is False
+    for key in (
+        "github.copilot.chat.otel.captureContent",
+        "chat.agentHost.otel.captureContent",
+    )
+)
 
 def add(category, item, observed, backend, expected="", note=""):
     rows.append({
@@ -168,12 +175,26 @@ for category, metrics in EXPECTED_PROM_METRICS.items():
         add(category, item, observed, "Prometheus", ",".join(names), "Metric appears only after the matching local behavior is used.")
 
 for category, tags in EXPECTED_TEMPO_TAGS.items():
+    if category == "content capture attributes" and content_capture_disabled:
+        # Raw content is optional. Omitting these rows keeps a privacy-safe
+        # false setting from being reported as a telemetry coverage failure.
+        continue
     for tag in tags:
         add(category, tag, tag in tempo_tags, "Tempo", tag, "Trace attribute appears only after a span carrying it is emitted.")
 
 if settings_file:
     for key, expected_value in EXPECTED_SETTINGS.items():
-        add("VS Code setting", key, settings.get(key) == expected_value, "VS Code User Settings", str(expected_value), "Setting must be enabled for future sessions.")
+        if key.endswith("captureContent") and key in settings:
+            add(
+                "VS Code setting",
+                key,
+                isinstance(settings.get(key), bool),
+                "VS Code User Settings",
+                "true or false",
+                "Content capture is optional. false is privacy-safe and does not reduce telemetry coverage.",
+            )
+        else:
+            add("VS Code setting", key, settings.get(key) == expected_value, "VS Code User Settings", str(expected_value), "Setting must be enabled for future sessions.")
 
 for label in ["service_name"]:
     add("Logs/events backend", f"Loki label {label}", label in loki_labels, "Loki", label, "Loki labels are sparse until logs/events with attributes are emitted.")

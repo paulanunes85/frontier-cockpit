@@ -150,7 +150,7 @@ def load_workspace_registry():
         for commit in str(record["head_commit"] or "").split():
             commit = commit.strip().lower()
             if len(commit) >= 7:
-                by_commit[commit] = record
+                by_commit.setdefault(commit, []).append(record)
         candidates.append(record)
 
     active = candidates[-1] if len(candidates) == 1 else None
@@ -364,9 +364,18 @@ for trace_id in trace_ids:
                         })
 
     commit_key = str(summary["commit"] or "").strip().lower()
-    commit_record = commit_registry.get(commit_key) if len(commit_key) >= 7 else None
+    commit_matches = commit_registry.get(commit_key, []) if len(commit_key) >= 7 else []
+    commit_record = commit_matches[0] if len(commit_matches) == 1 else None
 
-    if commit_record:
+    if len(commit_matches) > 1:
+        # A commit can be present in forks, worktrees, or multiple registered
+        # repositories. Do not let iteration order invent repository precision.
+        summary["repo"] = "unknown"
+        summary["workspace_name"] = "unknown"
+        summary["workspace_path_hash"] = "unknown"
+        summary["workspace_kind"] = "unknown"
+        summary["attribution_source"] = "ambiguous_commit_unattributed"
+    elif commit_record:
         # Primary path: per-window HEAD commit -> registry. Works for every workspace
         # simultaneously and overrides a possibly stale or wrong resource-level repo
         # inherited from the shared global environment.

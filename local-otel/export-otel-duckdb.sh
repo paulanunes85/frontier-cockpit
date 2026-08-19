@@ -520,6 +520,13 @@ if agent_host_db_path.exists():
             )
             agent_host_span_events += len(event_rows)
 
+        # Sessions are a current snapshot of one source database. Replace that
+        # source instead of appending the same stable session IDs on every
+        # export.
+        connection.execute(
+            "DELETE FROM agent_host_sqlite_sessions WHERE source_db_path = ?",
+            [source_db_path],
+        )
         session_rows = []
         for row in sqlite_connection.execute("SELECT * FROM sessions"):
             row = dict(row)

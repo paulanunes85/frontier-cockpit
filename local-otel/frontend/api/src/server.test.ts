@@ -143,6 +143,14 @@ test("inspector event classification maps GenAI operations", async () => {
   assert.equal(mod.classifyInspectorEvent("", "span"), "other");
 });
 
+test("Inspector total tokens does not double-count input cache subdivisions", async () => {
+  const mod = await loadServer("inspector-total-tokens");
+  assert.equal(mod.inspectorTotalTokens(1_000, 250), 1_250);
+  // Cache-read and cache-creation values are intentionally absent from this
+  // API because both are already included in the input-token total.
+  assert.equal(mod.inspectorTotalTokens(0, 0), 0);
+});
+
 test("model tier classification follows the registered output price", async () => {
   const mod = await loadServer("tiers");
   const prices = new Map<string, import("./server.js").ModelPrice>([
@@ -152,6 +160,22 @@ test("model tier classification follows the registered output price", async () =
   assert.equal(mod.modelTierOf("claude-opus-4.8", prices), "frontier");
   assert.equal(mod.modelTierOf("claude-sonnet-4.6", prices), "standard");
   assert.equal(mod.modelTierOf("mystery-model", prices), "unknown");
+});
+
+test("session model attribution does not assign mixed traces to one representative model", async () => {
+  const mod = await loadServer("session-model-attribution");
+  assert.deepEqual(mod.sessionModelAttribution("gpt-5.5"), {
+    model: "gpt-5.5",
+    attribution: "single-model"
+  });
+  assert.deepEqual(mod.sessionModelAttribution("gpt-5.5,claude-sonnet-4.6"), {
+    model: "mixed",
+    attribution: "mixed"
+  });
+  assert.deepEqual(mod.sessionModelAttribution("unknown"), {
+    model: "unavailable",
+    attribution: "unavailable"
+  });
 });
 
 test("planner URL parameters are validated and clamped", async () => {

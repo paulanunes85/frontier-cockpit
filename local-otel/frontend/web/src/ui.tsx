@@ -256,7 +256,7 @@ interface AlertBannerLabels {
 
 const defaultAlertLabels: AlertBannerLabels = {
     clearTitle: "No active alerts",
-    clearBody: "Token, cache, context, and AI credit usage are within the local guardrails for this range.",
+    clearBody: "Token, cache, context, and operational AIU are within the local guardrails for this range.",
     activeTitle: "Active alerts",
     note: "Thresholds are local planning guardrails, not official GitHub limits. Tune them in the Settings view.",
     severity: {

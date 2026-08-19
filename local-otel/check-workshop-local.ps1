@@ -80,6 +80,17 @@ if ($dockerReady) {
     foreach ($name in $expectedContainers) {
         if ($runningNames -contains $name) {
             Write-Pass "$name container is running."
+            $composeProject = (& docker inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' $name 2>$null)
+            if ($composeProject -eq "copilot-otel-local") {
+                Write-Pass "$name belongs to the copilot-otel-local Compose project."
+            }
+            else {
+                Write-FailLine "$name is not managed by the copilot-otel-local Compose project."
+            }
+            $healthStatus = (& docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' $name 2>$null)
+            if ($healthStatus -and $healthStatus -ne "healthy") {
+                Write-FailLine "$name health is $healthStatus."
+            }
         }
         else {
             Write-FailLine "$name container is not running. Run $ScriptDir\workshop-ready.ps1 from a Git repository."

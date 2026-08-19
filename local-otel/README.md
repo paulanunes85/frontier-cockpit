@@ -159,7 +159,7 @@ The scheduled jobs keep dashboard support data fresh. They cannot create events 
 Frontier Cockpit Local separates three different cost signals so they are never confused:
 
 - **Tokens by model** are real telemetry. Inspect them in the Sessions and Model Labels dashboard. Model labels are telemetry labels, not official billing model names.
-- **AIU** is real. GitHub Copilot emits `copilot_chat.copilot_usage_nano_aiu` per session, materialized as `copilot_real_session_nano_aiu` and shown as real AIU in the Context and Cost dashboard. AIU equals `nano_aiu / 1e9`.
+- **Operational AIU** is real local telemetry. GitHub Copilot emits `copilot_chat.copilot_usage_nano_aiu` per session, materialized as `copilot_real_session_nano_aiu`. Operational AIU equals `nano_aiu / 1e9` and is not official GitHub AI Credits.
 - **AI Credits** are the current GitHub Copilot usage-based billing unit. Current GitHub documentation states that GitHub Copilot usage consumes input, output, and cached tokens, priced by model and converted into AI Credits, where 1 AI Credit equals US$0.01. Local AIU and token telemetry are operational estimates, not official billing.
 
 Legacy request-based billing scripts remain in the repository only for historical analysis. They are not used by the current mini app. The current cockpit uses AI Credits, token classes, model labels, cache behavior, and local model price assumptions where available.
@@ -168,7 +168,7 @@ Legacy request-based billing scripts remain in the repository only for historica
 
 The Sessions and Model Labels dashboard shows both signals directly:
 
-- **Real AIU consumed (AI credits)** is a stat panel backed by `copilot_real_session_nano_aiu_ratio / 1e9`. This is the real AI-Units-equivalent reported by GitHub Copilot for workspace sessions.
+- **Operational AIU consumed** is a stat panel backed by `copilot_real_session_nano_aiu_ratio / 1e9`. It is a local operational signal reported by GitHub Copilot for workspace sessions, not official GitHub AI Credits or billing.
 - **Estimated local spend by model (USD what-if)** is a table that multiplies token counts by local planning prices.
 
 Seed the local planning prices manually if needed. The registry sidecar re-seeds them automatically every five minutes while the stack is running:

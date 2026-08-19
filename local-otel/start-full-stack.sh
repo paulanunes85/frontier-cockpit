@@ -100,7 +100,8 @@ if [[ "$hybrid" -eq 1 ]]; then
 else
   print "Starting full local stack (offline, no Azure forwarding)."
 fi
-docker compose "${compose_files[@]}" up -d
+docker compose "${compose_files[@]}" up -d --wait --wait-timeout 240
+print "All health-checked services are ready."
 
 print ""
 print "Endpoints:"

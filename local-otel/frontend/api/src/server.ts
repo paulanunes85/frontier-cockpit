@@ -260,6 +260,7 @@ export function resolveAllowance(now = new Date(), override: PlanOverride = {}):
 function billingFacts(now = new Date(), override: PlanOverride = {}) {
   const allowance = resolveAllowance(now, override);
   return {
+    scenarioStatus: "configurable-hypothetical",
     creditUsd: aiCreditUsd,
     autoModelDiscount,
     noRollover: true,
@@ -271,7 +272,7 @@ function billingFacts(now = new Date(), override: PlanOverride = {}) {
     seats: override.seats ?? copilotSeats,
     allowance,
     planCatalog: copilotPlanCatalog,
-    source: "GitHub Docs: Copilot plans and usage-based billing (individuals; organizations and enterprises). Values are reference defaults and stay configurable because they can change."
+    source: "Configured planning scenario only. Local OpenTelemetry AIU is not official GitHub billing data."
   };
 }
 
@@ -442,6 +443,14 @@ export function dataScopeBySection(): Record<string, DataScopeKind> {
     officialBilling: "official-github"
   };
 }
+
+export const operationalAiuSemantics = {
+  sourceAttribute: "copilot_chat.copilot_usage_nano_aiu",
+  divisor: 1e9,
+  provenance: "local-opentelemetry",
+  officialBilling: false,
+  description: "Operational AIU derived from local GitHub Copilot OpenTelemetry. It is not official GitHub AI Credits or billing data."
+} as const;
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 4000): Promise<Response> {
   const controller = new AbortController();
@@ -708,6 +717,7 @@ interface WorkspaceUsage {
   cacheCreationTokens: number;
   coldInputTokens: number;
   aiCredits: number;
+  operationalAiu: number;
   sessions: number;
   cacheEfficiency: number | null;
   coldRatio: number | null;
@@ -721,6 +731,7 @@ type NumericWorkspaceField =
   | "cacheCreationTokens"
   | "coldInputTokens"
   | "aiCredits"
+  | "operationalAiu"
   | "sessions";
 
 function shortRepoName(repo: string): string {
@@ -740,13 +751,13 @@ async function workspaceBreakdown(
   repoLabelMatcher = ""
 ): Promise<{ status: MetricStatus; items: WorkspaceUsage[]; message?: string }> {
   const selector = realWorkspaceSelector(repoLabelMatcher);
-  const groupBy = "sum by (workspace_path_hash, branch, workspace_name)";
+  const groupBy = "sum by (repo, workspace_path_hash, branch, workspace_name)";
   const base = (metric: string) =>
-    `${groupBy} (max by (trace_id, workspace_path_hash, branch, workspace_name) (max_over_time(copilot_real_session_${metric}_ratio{${selector}}[${range}])))`;
-  const sessionsQuery = `count by (workspace_path_hash, branch, workspace_name) (max by (trace_id, workspace_path_hash, branch, workspace_name) (max_over_time(copilot_real_session_input_tokens_ratio{${selector}}[${range}])))`;
+    `${groupBy} (max by (trace_id, repo, workspace_path_hash, branch, workspace_name) (max_over_time(copilot_real_session_${metric}_ratio{${selector}}[${range}])))`;
+  const sessionsQuery = `count by (repo, workspace_path_hash, branch, workspace_name) (max by (trace_id, repo, workspace_path_hash, branch, workspace_name) (max_over_time(copilot_real_session_input_tokens_ratio{${selector}}[${range}])))`;
   const contextPeakQuery =
-    `max by (workspace_path_hash, branch, workspace_name) ` +
-    `(max by (trace_id, workspace_path_hash, branch, workspace_name) ` +
+    `max by (repo, workspace_path_hash, branch, workspace_name) ` +
+    `(max by (trace_id, repo, workspace_path_hash, branch, workspace_name) ` +
     `(max_over_time(copilot_real_session_context_utilization_pct_ratio{${selector}}[${range}])))`;
   try {
     const [input, output, cacheRead, cacheCreation, cold, aiu, sessions, contextPeak] = await Promise.all([
@@ -761,12 +772,12 @@ async function workspaceBreakdown(
     ]);
     const map = new Map<string, WorkspaceUsage>();
     const keyOf = (metric: Record<string, string>) =>
-      `${metric.workspace_path_hash ?? ""}|${metric.branch ?? ""}|${metric.workspace_name ?? ""}`;
+      `${metric.repo ?? ""}|${metric.workspace_path_hash ?? ""}|${metric.branch ?? ""}|${metric.workspace_name ?? ""}`;
     const ensure = (metric: Record<string, string>): WorkspaceUsage => {
       const key = keyOf(metric);
       let entry = map.get(key);
       if (!entry) {
-        const repo = metric.workspace_name ?? "unknown";
+        const repo = metric.repo ?? "unknown";
         entry = {
           repo,
           repoShort: repo,
@@ -778,6 +789,7 @@ async function workspaceBreakdown(
           cacheCreationTokens: 0,
           coldInputTokens: 0,
           aiCredits: 0,
+          operationalAiu: 0,
           sessions: 0,
           cacheEfficiency: null,
           coldRatio: null,
@@ -802,6 +814,7 @@ async function workspaceBreakdown(
     apply(cacheCreation, "cacheCreationTokens");
     apply(cold, "coldInputTokens");
     apply(aiu, "aiCredits", 1 / 1e9);
+    apply(aiu, "operationalAiu", 1 / 1e9);
     apply(sessions, "sessions");
     for (const result of contextPeak) {
       const value = numericValue(result);
@@ -840,9 +853,10 @@ interface HistoryPoint {
   cacheReadTokens: number | null;
   coldInputTokens: number | null;
   aiCredits: number | null;
+  operationalAiu: number | null;
 }
 
-type NumericHistoryField = "inputTokens" | "outputTokens" | "cacheReadTokens" | "coldInputTokens" | "aiCredits";
+type NumericHistoryField = "inputTokens" | "outputTokens" | "cacheReadTokens" | "coldInputTokens" | "aiCredits" | "operationalAiu";
 
 async function usageHistory(
   range: string,
@@ -880,7 +894,8 @@ async function usageHistory(
           outputTokens: null,
           cacheReadTokens: null,
           coldInputTokens: null,
-          aiCredits: null
+          aiCredits: null,
+          operationalAiu: null
         };
         byTimestamp.set(timestamp, point);
       }
@@ -904,6 +919,7 @@ async function usageHistory(
     apply(cacheRead, "cacheReadTokens");
     apply(cold, "coldInputTokens");
     apply(aiu, "aiCredits");
+    apply(aiu, "operationalAiu");
     const points = [...byTimestamp.values()].sort((a, b) => a.t.localeCompare(b.t));
     const hasData = points.some((point) => (point.inputTokens ?? 0) > 0 || (point.aiCredits ?? 0) > 0);
     return {
@@ -1151,6 +1167,7 @@ function appLinks() {
 }
 
 interface AiCreditsBudgetInsight {
+  scenarioStatus: "configurable-hypothetical";
   plan: string;
   seats: number;
   monthlyAllowanceCredits: number;
@@ -1288,6 +1305,7 @@ async function aiCreditsBudgetInsight(override: PlanOverride = {}): Promise<AiCr
     ? exhaustionForecast(observedCredits, allowanceCredits, dailyRate)
     : { daysToExhaustion: null, projectedExhaustionDate: null };
   return {
+    scenarioStatus: "configurable-hypothetical",
     plan: override.plan ?? copilotPlan,
     seats: override.seats ?? copilotSeats,
     monthlyAllowanceCredits: allowanceCredits,
@@ -1562,6 +1580,7 @@ async function summary(url: URL) {
     thresholds,
     coachTuning,
     scopeBySection: dataScopeBySection(),
+    telemetrySemantics: { operationalAiu: operationalAiuSemantics },
     billing: billingFacts(new Date(), planOverridesFromUrl(url)),
     alerts,
     economy,
@@ -1570,6 +1589,9 @@ async function summary(url: URL) {
     experience,
     outcomes,
     metrics: {
+      operationalAiu: aiCredits,
+      // Deprecated compatibility alias. Consumers should use operationalAiu
+      // and inspect telemetrySemantics before presenting this local signal.
       aiCredits,
       sessions: workspaceReal,
       tokens: {
@@ -1646,10 +1668,26 @@ interface SessionRecord {
   cacheCreationTokens: number;
   coldInputTokens: number;
   aiCredits: number;
+  operationalAiu: number;
+  modelAttribution: "single-model" | "mixed" | "unavailable";
   toolCalls: number;
   contextPct: number | null;
   cacheEfficiency: number | null;
   spans: number;
+}
+
+export function sessionModelAttribution(chatModels: string): {
+  model: string;
+  attribution: SessionRecord["modelAttribution"];
+} {
+  const models = [...new Set(chatModels.split(",").map((model) => model.trim()).filter((model) => model && model !== "unknown"))];
+  if (models.length === 1) {
+    return { model: models[0], attribution: "single-model" };
+  }
+  if (models.length > 1) {
+    return { model: "mixed", attribution: "mixed" };
+  }
+  return { model: "unavailable", attribution: "unavailable" };
 }
 
 async function sessionsBreakdown(
@@ -1686,6 +1724,7 @@ async function sessionsBreakdown(
           branch: labels.branch ?? "",
           workspaceName: labels.workspace_name ?? "",
           model: labels.request_model ?? labels.response_model ?? "unknown",
+          modelAttribution: "unavailable",
           agent: labels.agent_name ?? "",
           modeBucket: labels.mode_bucket ?? "",
           operation: labels.operation_name ?? "",
@@ -1696,6 +1735,7 @@ async function sessionsBreakdown(
           cacheCreationTokens: 0,
           coldInputTokens: 0,
           aiCredits: 0,
+          operationalAiu: 0,
           toolCalls: 0,
           contextPct: null,
           cacheEfficiency: null,
@@ -1711,8 +1751,9 @@ async function sessionsBreakdown(
       record.spans += 1;
       if (point.value > record.inputTokens) {
         record.inputTokens = point.value;
-        // Adopt the representative labels from the heaviest span of the trace.
-        record.model = point.labels.request_model ?? record.model;
+        const modelAttribution = sessionModelAttribution(point.labels.chat_models ?? "");
+        record.model = modelAttribution.model;
+        record.modelAttribution = modelAttribution.attribution;
         record.agent = point.labels.agent_name ?? record.agent;
         record.modeBucket = point.labels.mode_bucket ?? record.modeBucket;
         record.rootSpanName = point.labels.root_span_name ?? record.rootSpanName;
@@ -1738,6 +1779,7 @@ async function sessionsBreakdown(
       const credits = point.value / 1e9;
       if (credits > record.aiCredits) {
         record.aiCredits = credits;
+        record.operationalAiu = credits;
       }
     }
     for (const point of context.points) {
@@ -1839,6 +1881,13 @@ interface InspectorSummary {
   models: string[];
   tools: string[];
   services: string[];
+}
+
+// Cache read and cache creation are subdivisions of input tokens in the
+// emitted GitHub Copilot spans. Adding them again would double-count prompt
+// tokens in the Inspector headline.
+export function inspectorTotalTokens(inputTokens: number, outputTokens: number): number {
+  return inputTokens + outputTokens;
 }
 
 // Why a prompt-cache prefix broke between two consecutive requests. The
@@ -2370,8 +2419,7 @@ async function inspectorTrace(url: URL): Promise<InspectorResponse> {
   // Mirrors the VS Code session header: a session with no activity in the
   // last two minutes reads as Idle.
   summary.sessionStatus = Date.now() - lastEnd < 120_000 ? "active" : "idle";
-  summary.totalTokens =
-    summary.inputTokens + summary.outputTokens + summary.cacheReadTokens + summary.cacheCreationTokens;
+  summary.totalTokens = inspectorTotalTokens(summary.inputTokens, summary.outputTokens);
   const promptTotal = summary.cacheReadTokens + summary.cacheCreationTokens;
   summary.cacheEfficiency = promptTotal > 0 ? summary.cacheReadTokens / promptTotal : null;
   summary.models = [...models].sort((a, b) => a.localeCompare(b));

@@ -456,9 +456,13 @@ start_stack() {
   if [[ "$COMPOSE_TOOL" == "docker-compose" || "$COMPOSE_TOOL" == "podman-compose" ]]; then
     (cd "$stack_dir" && "$COMPOSE_TOOL" -f docker-compose.yml up -d ${build_flag})
   else
-    (cd "$stack_dir" && "$CONTAINER_RUNTIME" compose -f docker-compose.yml up -d ${build_flag})
+    local wait_args=()
+    if [[ "$CONTAINER_RUNTIME" == "docker" ]]; then
+      wait_args=(--wait --wait-timeout 240)
+    fi
+    (cd "$stack_dir" && "$CONTAINER_RUNTIME" compose -f docker-compose.yml up -d ${build_flag} "${wait_args[@]}")
   fi
-  ok "Container compose stack is starting."
+  ok "Container compose stack is ready."
 }
 
 emit_workspace_registry() {

@@ -195,9 +195,10 @@ function Start-Stack {
     try {
         $composeArgs = @("compose", "-f", "docker-compose.yml", "up", "-d")
         if (!$NoBuild) { $composeArgs += "--build" }
+        $composeArgs += @("--wait", "--wait-timeout", "240")
         & docker @composeArgs
         if ($LASTEXITCODE -ne 0) { Fail "docker compose failed." }
-        Write-Pass "Docker Compose stack is starting."
+        Write-Pass "Docker Compose stack is ready."
     }
     finally {
         Pop-Location

@@ -82,6 +82,16 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   for name in "${expected_containers[@]}"; do
     if print -r -- "$running_names" | grep -qx "$name"; then
       ok "$name container is running."
+      compose_project="$(docker inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' "$name" 2>/dev/null || true)"
+      if [[ "$compose_project" == "copilot-otel-local" ]]; then
+        ok "$name belongs to the copilot-otel-local Compose project."
+      else
+        err "$name is not managed by the copilot-otel-local Compose project."
+      fi
+      health_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$name" 2>/dev/null || true)"
+      if [[ -n "$health_status" && "$health_status" != "healthy" ]]; then
+        err "$name health is $health_status."
+      fi
     else
       err "$name container is not running. Run $script_dir/workshop-ready.sh from a Git repository."
     fi

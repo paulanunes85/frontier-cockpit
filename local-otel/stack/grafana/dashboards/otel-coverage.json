@@ -50,7 +50,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_otel_coverage_status_ratio{signal_type=~\".*metric.*\", status=\"observed\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_otel_coverage_status_ratio{signal_type=~\".*metric.*\", status=\"observed\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -59,6 +59,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []
@@ -90,7 +91,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_otel_coverage_status_ratio{signal_type=~\".*attribute.*\", status=\"observed\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_otel_coverage_status_ratio{signal_type=~\".*attribute.*\", status=\"observed\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -99,6 +100,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []
@@ -131,7 +133,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count(max_over_time(copilot_otel_coverage_status_ratio{status!=\"observed\"}[$__range])) or vector(0)",
+          "expr": "count(max_over_time(copilot_otel_coverage_status_ratio{status!=\"observed\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -140,6 +142,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []

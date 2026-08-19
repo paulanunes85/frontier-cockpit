@@ -18,6 +18,7 @@ tags: ["frontier-cockpit", "frontier-cockpit-local", "docker-desktop", "frontend
 
 | Version | Date | Author | Changes |
 | --- | --- | --- | --- |
+| 1.1.1 | 2026-08-12 | Frontier Cockpit Team | Clarified that local nano-AIU is operational AIU, while official GitHub AI Credits require official billing data. |
 | 1.1.0 | 2026-07-02 | Frontier Cockpit Team | Rebrand to Frontier Cockpit Local and Hybrid, repository-relative paths, containerized jobs, privacy-first defaults. |
 | 1.0.0 | 2026-06-25 | Frontier Cockpit Team | Initial Docker Desktop frontend requirements. |
 
@@ -110,7 +111,7 @@ VS Code Insiders and GitHub Copilot remain external telemetry producers running 
 | FR-021 | The system shall keep VS Code Insiders and GitHub Copilot as external telemetry producers running on the developer machine. |
 | FR-022 | The system shall document which local processes remain outside Docker because they are telemetry producers, not backend runtime services. |
 | FR-023 | The frontend shall show official billing status as unavailable until GitHub billing exports or usage metrics APIs are connected. |
-| FR-024 | The frontend shall distinguish real AIU or AI Credits telemetry, local model-cost estimates, and USD what-if estimates in separate cards. |
+| FR-024 | The frontend shall distinguish operational AIU telemetry, official GitHub AI Credits (unavailable without official billing data), local model-cost estimates, and explicitly hypothetical USD scenarios. |
 | FR-025 | The frontend shall include a "Data Boundary" panel explaining what stays local and what can be forwarded to Azure. |
 
 ## 5. Non-Functional Requirements

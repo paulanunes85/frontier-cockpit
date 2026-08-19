@@ -75,17 +75,17 @@ print_step "Register this Git workspace"
 print_step "Send synthetic validation span"
 "$script_dir/send-test-span.sh"
 
-print_step "Materialize recent GitHub Copilot sessions"
-COPILOT_MATERIALIZE_FORCE_REPLAY=true \
-COPILOT_MATERIALIZE_CONTENT=true \
-COPILOT_MATERIALIZE_TRACE_LIMIT=1000 \
-COPILOT_MATERIALIZE_ACTIVE_WORKSPACE=true \
-"$script_dir/materialize-copilot-sessions.sh" || true
+print_step "Materialize recent GitHub Copilot sessions (inside the jobs container)"
+docker exec \
+  -e COPILOT_MATERIALIZE_FORCE_REPLAY=true \
+  -e COPILOT_MATERIALIZE_CONTENT=true \
+  -e COPILOT_MATERIALIZE_TRACE_LIMIT=1000 \
+  copilot-otel-jobs zsh /app/local-otel/materialize-copilot-sessions.sh || true
 
 print_step "Refresh local support metrics"
 "$script_dir/sample-vscode-memory.sh" >/dev/null 2>&1 || true
-"$script_dir/audit-coverage.sh" >/dev/null 2>&1 || true
-"$script_dir/daily-rollup.sh" >/dev/null 2>&1 || true
+docker exec copilot-otel-jobs zsh /app/local-otel/audit-coverage.sh >/dev/null 2>&1 || true
+docker exec copilot-otel-jobs zsh /app/local-otel/daily-rollup.sh >/dev/null 2>&1 || true
 
 print_step "Validate workshop readiness"
 "$script_dir/check-workshop-local.sh"

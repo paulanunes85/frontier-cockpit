@@ -302,8 +302,8 @@ function KpiStrip({ summary }: Readonly<{ summary: SummaryResponse | null }>) {
       <Kpi
         label={t("kpi.aiCredits")}
         tone="credits"
-        available={summary?.metrics.aiCredits.value != null}
-        value={formatNumberText(summary?.metrics.aiCredits.value, 2, t)}
+        available={summary?.metrics.operationalAiu.value != null}
+        value={formatNumberText(summary?.metrics.operationalAiu.value, 2, t)}
         sub={t("kpi.aiCreditsSub")}
       />
       <Kpi
@@ -1475,7 +1475,7 @@ function SessionDetailTiles({
     { label: t("inspector.tile.output"), value: formatCompact(summary.outputTokens) },
     { label: t("inspector.tile.cachedInput"), value: formatCompact(summary.cacheReadTokens) },
     { label: t("inspector.tile.totalTokens"), value: formatCompact(summary.totalTokens) },
-    { label: t("inspector.tile.credits"), value: session ? formatNumber(session.aiCredits, 2) : "—" },
+    { label: t("inspector.tile.credits"), value: session ? formatNumber(session.operationalAiu, 2) : "-" },
     { label: t("inspector.errors"), value: formatNumber(summary.errors, 0) },
     { label: t("inspector.cacheHit"), value: formatPercent(summary.cacheEfficiency) },
     { label: t("inspector.cacheBreaks"), value: formatNumber(summary.cacheBreaks, 0) },
@@ -1769,7 +1769,7 @@ function TodayHighlights({ summary }: Readonly<{ summary: SummaryResponse | null
           <span className="stat-value">{topWorkspace ? topWorkspace.repoShort : t("overview.hl.none")}</span>
           {topWorkspace ? (
             <span className="muted">
-              {formatNumber(topWorkspace.aiCredits, 2)} AI Credits · {formatPercent(topWorkspace.cacheEfficiency)} cache
+              {formatNumber(topWorkspace.operationalAiu, 2)} operational AIU · {formatPercent(topWorkspace.cacheEfficiency)} cache
             </span>
           ) : null}
         </article>
@@ -1789,7 +1789,7 @@ function TodayHighlights({ summary }: Readonly<{ summary: SummaryResponse | null
           <span className="stat-value">{topModel ? topModel.model : t("overview.hl.none")}</span>
           {topModel ? (
             <span className="muted">
-              {formatPercent(topModel.share)} · {topModel.estimatedAiCredits === null ? "—" : formatNumber(topModel.estimatedAiCredits, 2)} AI Credits
+              {formatPercent(topModel.share)} · {topModel.estimatedAiCredits === null ? "-" : formatNumber(topModel.estimatedAiCredits, 2)} hypothetical model-price units
             </span>
           ) : null}
         </article>
@@ -2373,8 +2373,8 @@ const thresholdKeys = [
 
 // Unit hints so the mixed-scale Value column is self-describing.
 const settingUnit: Record<string, string> = {
-  aiCreditsWarn: "AI Credits",
-  aiCreditsCrit: "AI Credits",
+  aiCreditsWarn: "Operational AIU",
+  aiCreditsCrit: "Operational AIU",
   inputTokensWarn: "tokens",
   inputTokensCrit: "tokens",
   contextWarnPct: "%",

@@ -50,7 +50,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range])) or vector(0)",
+          "expr": "count(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -59,6 +59,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []
@@ -90,7 +91,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -99,6 +100,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []
@@ -130,7 +132,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -139,6 +141,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []
@@ -170,7 +173,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{usage_scope=\"workspace_real\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -179,6 +182,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []
@@ -210,7 +214,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_content_capture_chars_ratio{usage_scope=\"workspace_real\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_real_session_content_capture_chars_ratio{usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -219,6 +223,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []

@@ -1,12 +1,21 @@
 FROM docker.io/library/python:3.12-slim
 
+ARG PIP_INDEX_URL=https://pypi.org/simple
+ARG DUCKDB_VERSION=1.5.5
+
 # zsh runs the job scripts; curl serves healthchecks and OTLP posts; duckdb
 # powers the local analytics store (developer_daily_rollup) and the long-term
 # history snapshot the dashboard API reads.
-RUN apt-get update -q \
+RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60 update -q \
   && apt-get install -y -q --no-install-recommends zsh curl \
   && rm -rf /var/lib/apt/lists/* \
-  && pip install --no-cache-dir duckdb
+  && python -m pip install \
+    --disable-pip-version-check \
+    --no-cache-dir \
+    --index-url "${PIP_INDEX_URL}" \
+    --retries 10 \
+    --timeout 60 \
+    "duckdb==${DUCKDB_VERSION}"
 
 WORKDIR /app/local-otel
 

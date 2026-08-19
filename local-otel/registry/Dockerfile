@@ -1,6 +1,11 @@
 FROM docker.io/library/alpine:3.20
 
-RUN apk add --no-cache curl python3 zsh
+RUN set -eux; \
+  for attempt in 1 2 3 4 5; do \
+    apk add --no-cache curl python3 zsh && break; \
+    [ "${attempt}" -eq 5 ] && exit 1; \
+    sleep $((attempt * 5)); \
+  done
 
 WORKDIR /app/local-otel
 

@@ -129,7 +129,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -138,6 +138,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short",
           "color": {
             "mode": "thresholds"
@@ -190,7 +191,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
           "legendFormat": "input",
           "datasource": {
             "type": "prometheus",
@@ -203,12 +204,13 @@
             "type": "prometheus",
             "uid": "prometheus-local"
           },
-          "expr": "sum(max_over_time(copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"}[$__range])) or vector(0)",
+          "expr": "sum(max_over_time(copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
           "legendFormat": "output"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short"
         },
         "overrides": []
@@ -286,7 +288,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\"}[$__range])) / 1e9 or vector(0)",
+          "expr": "sum(max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\"}[$__range])) / 1e9",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -295,6 +297,7 @@
       ],
       "fieldConfig": {
         "defaults": {
+          "noValue": "Unavailable",
           "unit": "short",
           "decimals": 2
         },
