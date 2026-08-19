@@ -1,4 +1,4 @@
-FROM docker.io/library/node:22-alpine AS build
+FROM docker.io/library/node:26-alpine AS build
 
 ARG NPM_REGISTRY=https://registry.npmjs.org/
 
