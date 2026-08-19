@@ -10,12 +10,12 @@ RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=60 -o Acquire::https
   && apt-get install -y -q --no-install-recommends zsh curl \
   && rm -rf /var/lib/apt/lists/* \
   && python -m pip install \
-    --disable-pip-version-check \
-    --no-cache-dir \
-    --index-url "${PIP_INDEX_URL}" \
-    --retries 10 \
-    --timeout 60 \
-    "duckdb==${DUCKDB_VERSION}"
+  --disable-pip-version-check \
+  --no-cache-dir \
+  --index-url "${PIP_INDEX_URL}" \
+  --retries 10 \
+  --timeout 60 \
+  "duckdb==${DUCKDB_VERSION}"
 
 WORKDIR /app/local-otel
 
@@ -41,6 +41,7 @@ ENV PROMETHEUS_URL=http://prometheus:9090
 ENV OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://otel-collector:4318/v1/metrics
 ENV OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=http://otel-collector:4318/v1/logs
 ENV COPILOT_MATERIALIZE_STATE_FILE=/state/materialized-traces.json
+ENV COPILOT_WORKSPACE_REGISTRY_FILE=/app/local-otel/workspaces/registry-cache.tsv
 ENV JOBS_MATERIALIZE_INTERVAL_SECONDS=300
 ENV JOBS_ROLLUP_INTERVAL_SECONDS=86400
 ENV JOBS_COVERAGE_INTERVAL_SECONDS=3600

@@ -38,6 +38,7 @@ copilot_service_names = [
 ]
 force_replay = os.environ.get("COPILOT_MATERIALIZE_FORCE_REPLAY", "false").lower() == "true"
 use_active_workspace = os.environ.get("COPILOT_MATERIALIZE_ACTIVE_WORKSPACE", "false").lower() == "true"
+workspace_registry_file = pathlib.Path(os.environ.get("COPILOT_WORKSPACE_REGISTRY_FILE", "/app/local-otel/workspaces/registry-cache.tsv"))
 state_path = pathlib.Path(state_file)
 if state_path.exists():
     try:
@@ -48,6 +49,7 @@ else:
     state = {}
 seen = set() if force_replay else set(state.get("seen", []))
 root_workspace_hash = hashlib.sha256(b"/").hexdigest()
+internal_chat_agents = {"copilotLanguageModelWrapper", "gitCommitMessageGenerator"}
 
 def fetch_json(url):
     with urllib.request.urlopen(url, timeout=15) as response:
@@ -119,14 +121,12 @@ def meaningful(value):
 
 def load_workspace_registry():
     query = urllib.parse.quote('copilot_workspace_registry_ratio')
+    records = {}
     try:
         data = fetch_json(f"{prometheus_url}/api/v1/query?query={query}")
     except Exception:
-        return {}, {}, None
+        data = {}
 
-    by_hash = {}
-    by_commit = {}
-    candidates = []
     for item in data.get("data", {}).get("result", []):
         metric = item.get("metric", {})
         workspace_hash = metric.get("workspace_path_hash", "unknown")
@@ -146,15 +146,38 @@ def load_workspace_registry():
             "repo_name": repo_name,
             "head_commit": metric.get("git_head_commit", ""),
         }
-        by_hash[workspace_hash] = record
+        records[workspace_hash] = record
+
+    if workspace_registry_file.is_file():
+        for line in workspace_registry_file.read_text(encoding="utf-8").splitlines():
+            parts = line.split("\t")
+            if len(parts) < 9:
+                continue
+            workspace_hash, workspace_name, workspace_kind, branch, repo_owner, repo_name, repo_remote, commits, _seen = parts[:9]
+            repo = repo_remote if meaningful(repo_remote) else repo_name
+            if not meaningful(workspace_hash) or not meaningful(repo):
+                continue
+            records[workspace_hash] = {
+                "workspace_path_hash": workspace_hash,
+                "workspace_name": workspace_name,
+                "workspace_kind": workspace_kind,
+                "repo": repo,
+                "branch": branch,
+                "repo_owner": repo_owner,
+                "repo_name": repo_name,
+                "head_commit": commits,
+            }
+
+    by_commit = {}
+    candidates = list(records.values())
+    for record in candidates:
         for commit in str(record["head_commit"] or "").split():
             commit = commit.strip().lower()
             if len(commit) >= 7:
                 by_commit.setdefault(commit, []).append(record)
-        candidates.append(record)
 
     active = candidates[-1] if len(candidates) == 1 else None
-    return by_hash, by_commit, active
+    return records, by_commit, active
 
 workspace_registry, commit_registry, active_workspace = load_workspace_registry()
 
@@ -318,7 +341,7 @@ for trace_id in trace_ids:
                 summary["request_shape"] = attrs.get("copilot_chat.request.shape", summary["request_shape"])
                 is_chat = operation == "chat" or span_name.startswith("chat ")
                 chat_agent = str(attrs.get("gen_ai.agent.name", "") or "")
-                is_internal_summary = chat_agent == "copilotLanguageModelWrapper"
+                is_internal_summary = chat_agent in internal_chat_agents
                 if is_chat and not is_internal_summary:
                     summary["eligible_chat_calls"] += 1
                     request_model = attrs.get("gen_ai.request.model", "unknown")

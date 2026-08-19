@@ -148,6 +148,7 @@ services:
       OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://otel-collector:4318/v1/logs"
       COPILOT_MATERIALIZE_CONTENT: "${FRONTIER_ENABLE_CONTENT_CAPTURE:-false}"
       COPILOT_MATERIALIZE_STATE_FILE: "/state/materialized-traces.json"
+      COPILOT_WORKSPACE_REGISTRY_FILE: "/app/local-otel/workspaces/registry-cache.tsv"
       JOBS_MATERIALIZE_INTERVAL_SECONDS: "300"
       JOBS_ROLLUP_INTERVAL_SECONDS: "86400"
       JOBS_COVERAGE_INTERVAL_SECONDS: "3600"
@@ -159,6 +160,7 @@ services:
     volumes:
       - jobs-state:/state
       - analytics-data:/analytics
+      - ../workspaces:/app/local-otel/workspaces:ro
     depends_on:
       otel-collector:
         condition: service_started
