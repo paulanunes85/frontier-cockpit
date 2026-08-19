@@ -111,7 +111,7 @@
             "type": "prometheus",
             "uid": "prometheus-local"
           },
-          "expr": "count(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))"
+          "expr": "count(max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))"
         }
       ],
       "fieldConfig": {
@@ -152,7 +152,7 @@
             "type": "prometheus",
             "uid": "prometheus-local"
           },
-          "expr": "max(max_over_time(copilot_real_session_context_utilization_pct_ratio{usage_scope=\"workspace_real\"}[$__range]))"
+          "expr": "max(max_over_time(copilot_real_session_context_utilization_pct_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))"
         }
       ],
       "fieldConfig": {
@@ -212,7 +212,7 @@
             "type": "prometheus",
             "uid": "prometheus-local"
           },
-          "expr": "sum(max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\"}[$__range])) / 1e9"
+          "expr": "sum(max_over_time(copilot_real_session_nano_aiu_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range])) / 1e9"
         }
       ],
       "fieldConfig": {
@@ -286,7 +286,7 @@
             "type": "prometheus",
             "uid": "prometheus-local"
           },
-          "expr": "topk(20, max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "topk(20, max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "format": "table",
           "instant": true
         }

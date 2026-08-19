@@ -143,12 +143,12 @@ else {
 }
 
 $workspaceRegistry = Get-PromScalar 'count(copilot_workspace_registry_ratio{workspace_kind="git"})'
-$realSessions = Get-PromScalar 'count(copilot_real_session_input_tokens_ratio{usage_scope="workspace_real"})'
-$nonWorkspaceSessions = Get-PromScalar 'count(copilot_real_session_input_tokens_ratio{usage_scope="non_workspace_real"})'
-$aiCredits = Get-PromScalar 'sum(max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope="workspace_real"}[24h])) / 1e9'
-$inputTokens = Get-PromScalar 'sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope="workspace_real"}[24h]))'
-$cacheRead = Get-PromScalar 'sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{usage_scope="workspace_real"}[24h]))'
-$workspacesObserved = Get-PromScalar 'count(max by (workspace_path_hash, workspace_name, branch) (max_over_time(copilot_real_session_input_tokens_ratio{usage_scope="workspace_real",workspace_kind="git",workspace_name!="unknown",repo!="",repo!="unknown"}[24h])))'
+$realSessions = Get-PromScalar 'count(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"})'
+$nonWorkspaceSessions = Get-PromScalar 'count(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="non_workspace_real"})'
+$aiCredits = Get-PromScalar 'sum(max_over_time(copilot_real_session_nano_aiu_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h])) / 1e9'
+$inputTokens = Get-PromScalar 'sum(max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h]))'
+$cacheRead = Get-PromScalar 'sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h]))'
+$workspacesObserved = Get-PromScalar 'count(max by (workspace_path_hash, workspace_name, branch) (max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real",workspace_kind="git",workspace_name!="unknown",repo!="",repo!="unknown"}[24h])))'
 
 $coachCards = 0
 try {

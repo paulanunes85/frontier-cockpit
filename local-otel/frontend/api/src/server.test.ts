@@ -339,6 +339,7 @@ test("the selected workspace is applied to the Prometheus selector", async () =>
   assert.equal(mod.repoMatcher("acme/app"), ',repo="acme/app"');
   const scoped = mod.realSessionSum("input_tokens", "24h", mod.repoMatcher("acme/app"));
   assert.ok(scoped.includes('repo="acme/app"'));
+  assert.ok(scoped.includes('materializer_schema="2"'));
   assert.ok(scoped.includes('usage_scope="workspace_real"'));
 });
 

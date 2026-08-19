@@ -50,7 +50,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "count(max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -91,7 +91,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "sum(max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -132,7 +132,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "sum(max_over_time(copilot_real_session_output_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -173,7 +173,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -214,7 +214,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_content_capture_chars_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "sum(max_over_time(copilot_real_session_content_capture_chars_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus-local"
@@ -255,7 +255,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count by (mode_bucket) (max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "count by (mode_bucket) (max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "legendFormat": "{{mode_bucket}}",
           "instant": true,
           "datasource": {
@@ -296,7 +296,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (request_model) (max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "sum by (request_model) (max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "legendFormat": "input {{request_model}}",
           "instant": true,
           "datasource": {
@@ -306,7 +306,7 @@
         },
         {
           "refId": "B",
-          "expr": "sum by (request_model) (max_over_time(copilot_real_session_output_tokens_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "sum by (request_model) (max_over_time(copilot_real_session_output_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "legendFormat": "output {{request_model}}",
           "instant": true,
           "datasource": {
@@ -347,7 +347,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (trace_id) (max_over_time(copilot_real_session_tool_calls_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "sum by (trace_id) (max_over_time(copilot_real_session_tool_calls_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "legendFormat": "tools {{trace_id}}",
           "instant": true,
           "datasource": {
@@ -357,7 +357,7 @@
         },
         {
           "refId": "B",
-          "expr": "sum by (trace_id) (max_over_time(copilot_real_session_error_count_ratio{usage_scope=\"workspace_real\"}[$__range]))",
+          "expr": "sum by (trace_id) (max_over_time(copilot_real_session_error_count_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range]))",
           "legendFormat": "errors {{trace_id}}",
           "instant": true,
           "datasource": {
@@ -398,7 +398,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max_over_time(copilot_real_session_input_tokens_ratio{usage_scope=\"workspace_real\"}[$__range])",
+          "expr": "max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range])",
           "format": "table",
           "instant": true,
           "datasource": {

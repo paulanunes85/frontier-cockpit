@@ -593,7 +593,7 @@ async function httpHealth(id: string, name: string, url: string): Promise<Servic
 async function jobsHealth(): Promise<ServiceHealth> {
   const checkedAt = new Date().toISOString();
   try {
-    const fresh = await queryPrometheus('count(present_over_time(copilot_real_session_input_tokens_ratio[30m]))');
+    const fresh = await queryPrometheus(`count(present_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="${materializerSchema}"}[30m]))`);
     const freshCount = fresh.length > 0 ? numericValue(fresh[0]) ?? 0 : 0;
     if (freshCount > 0) {
       return {
@@ -676,7 +676,7 @@ async function stackHealth(): Promise<ServiceHealth[]> {
 
 async function repositories(range = "24h"): Promise<string[]> {
   try {
-    const query = `max by (repo, workspace_name) (max_over_time(copilot_real_session_input_tokens_ratio{usage_scope="workspace_real",workspace_kind="git",workspace_name!="unknown",repo!="",repo!="unknown"}[${range}]))`;
+    const query = `max by (repo, workspace_name) (max_over_time(copilot_real_session_input_tokens_ratio{${realWorkspaceSelector("")}}[${range}]))`;
     const results = await queryPrometheus(query);
     const byWorkspace = new Map<string, string>();
     for (const result of results) {
@@ -699,8 +699,10 @@ async function repositories(range = "24h"): Promise<string[]> {
   }
 }
 
+const materializerSchema = "2";
+
 function realWorkspaceSelector(repoLabelMatcher: string): string {
-  return `usage_scope="workspace_real",workspace_kind="git",workspace_name!="unknown",repo!="",repo!="unknown"${repoLabelMatcher}`;
+  return `materializer_schema="${materializerSchema}",usage_scope="workspace_real",workspace_kind="git",workspace_name!="unknown",repo!="",repo!="unknown"${repoLabelMatcher}`;
 }
 
 export function realSessionSum(metric: string, range: string, repoLabelMatcher: string): string {
@@ -1479,7 +1481,7 @@ async function summary(url: URL) {
   const tokensQuery = `sum by (gen_ai_request_model, gen_ai_token_type) (increase(gen_ai_client_token_usage_sum{${copilotServiceSelector}}[${range}]))`;
   const usdQuery = `sum by (gen_ai_request_model) ((increase(gen_ai_client_token_usage_sum{${copilotServiceSelector}}[${range}]) / 1e6) * on (gen_ai_request_model, gen_ai_token_type) group_left() max by (gen_ai_request_model, gen_ai_token_type) (copilot_model_price_usd_per_million_ratio))`;
   const workspaceRealQuery = `count(max by (trace_id) (max_over_time(copilot_real_session_input_tokens_ratio{${selector}}[${range}])))`;
-  const nonWorkspaceRealQuery = `count(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope="non_workspace_real"}[${range}]))`;
+  const nonWorkspaceRealQuery = `count(max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="${materializerSchema}",usage_scope="non_workspace_real"}[${range}]))`;
   const observedCoverageQuery = `sum(max_over_time(copilot_otel_coverage_status_ratio{status="observed"}[${range}]))`;
   const notObservedCoverageQuery = `count(max_over_time(copilot_otel_coverage_status_ratio{status!="observed"}[${range}]))`;
 

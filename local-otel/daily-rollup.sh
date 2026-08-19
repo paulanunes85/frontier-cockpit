@@ -61,7 +61,7 @@ def metric_point(value, attrs):
     return {"timeUnixNano": now, "asDouble": float(value or 0), "attributes": attrs}
 
 now = str(time.time_ns())
-base_selector = 'usage_scope="workspace_real"'
+base_selector = 'materializer_schema="2",usage_scope="workspace_real"'
 queries = {
     "sessions": f"count by (repo, branch) (max_over_time(copilot_real_session_input_tokens_ratio{{{base_selector}}}[{period}]))",
     "input_tokens": f"sum by (repo, branch) (max_over_time(copilot_real_session_input_tokens_ratio{{{base_selector}}}[{period}]))",

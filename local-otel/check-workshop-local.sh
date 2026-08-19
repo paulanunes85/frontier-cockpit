@@ -135,12 +135,12 @@ else
 fi
 
 workspace_registry="$(prom_scalar 'count(copilot_workspace_registry_ratio{workspace_kind="git"})')"
-real_sessions="$(prom_scalar 'count(copilot_real_session_input_tokens_ratio{usage_scope="workspace_real"})')"
-non_workspace_sessions="$(prom_scalar 'count(copilot_real_session_input_tokens_ratio{usage_scope="non_workspace_real"})')"
-ai_credits="$(prom_scalar 'sum(max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope="workspace_real"}[24h])) / 1e9')"
-input_tokens="$(prom_scalar 'sum(max_over_time(copilot_real_session_input_tokens_ratio{usage_scope="workspace_real"}[24h]))')"
-cache_read="$(prom_scalar 'sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{usage_scope="workspace_real"}[24h]))')"
-workspaces_observed="$(prom_scalar 'count(max by (workspace_path_hash, workspace_name, branch) (max_over_time(copilot_real_session_input_tokens_ratio{usage_scope="workspace_real",workspace_kind="git",workspace_name!="unknown",repo!="",repo!="unknown"}[24h])))')"
+real_sessions="$(prom_scalar 'count(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"})')"
+non_workspace_sessions="$(prom_scalar 'count(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="non_workspace_real"})')"
+ai_credits="$(prom_scalar 'sum(max_over_time(copilot_real_session_nano_aiu_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h])) / 1e9')"
+input_tokens="$(prom_scalar 'sum(max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h]))')"
+cache_read="$(prom_scalar 'sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h]))')"
+workspaces_observed="$(prom_scalar 'count(max by (workspace_path_hash, workspace_name, branch) (max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real",workspace_kind="git",workspace_name!="unknown",repo!="",repo!="unknown"}[24h])))')"
 coach_cards="0"
 coach_cards="$(python3 <<'PY'
 import json

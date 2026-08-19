@@ -172,7 +172,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(max_over_time(copilot_real_session_nano_aiu_ratio{usage_scope=\"workspace_real\"}[$__range])) / 1e9",
+          "expr": "sum(max_over_time(copilot_real_session_nano_aiu_ratio{materializer_schema=\"2\",usage_scope=\"workspace_real\"}[$__range])) / 1e9",
           "instant": true,
           "datasource": {
             "type": "prometheus",

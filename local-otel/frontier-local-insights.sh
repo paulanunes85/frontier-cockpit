@@ -45,7 +45,7 @@ def prom(query):
     url = f"{prometheus_url}/api/v1/query?" + urllib.parse.urlencode({"query": query})
     return fetch_json(url).get("data", {}).get("result", [])
 
-base_selector = 'usage_scope="workspace_real"'
+base_selector = 'materializer_schema="2",usage_scope="workspace_real"'
 queries = {
     "sessions": f"count by (repo, branch) (max_over_time(copilot_real_session_input_tokens_ratio{{{base_selector}}}[{period}]))",
     "input_tokens": f"sum by (repo, branch) (max_over_time(copilot_real_session_input_tokens_ratio{{{base_selector}}}[{period}]))",

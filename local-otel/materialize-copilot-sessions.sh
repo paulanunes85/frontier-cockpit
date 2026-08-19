@@ -472,6 +472,7 @@ for trace_id in trace_ids:
         attr("root_span_name", summary["root_span_name"]), attr("mode_bucket", summary["mode_bucket"]),
         attr("usage_scope", summary["usage_scope"]), attr("workspace_filterable", summary["workspace_filterable"]),
         attr("attribution_source", summary["attribution_source"]),
+        attr("materializer_schema", "2"),
         attr("real_usage", "true"),
     ]
     for metric_name, value in [
