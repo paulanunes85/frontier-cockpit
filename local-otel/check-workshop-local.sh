@@ -135,8 +135,8 @@ else
 fi
 
 workspace_registry="$(prom_scalar 'count(copilot_workspace_registry_ratio{workspace_kind="git"})')"
-real_sessions="$(prom_scalar 'count(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"})')"
-non_workspace_sessions="$(prom_scalar 'count(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="non_workspace_real"})')"
+real_sessions="$(prom_scalar 'count(max by (trace_id) (max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h])))')"
+non_workspace_sessions="$(prom_scalar 'count(max by (trace_id) (max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="non_workspace_real"}[24h])))')"
 ai_credits="$(prom_scalar 'sum(max_over_time(copilot_real_session_nano_aiu_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h])) / 1e9')"
 input_tokens="$(prom_scalar 'sum(max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h]))')"
 cache_read="$(prom_scalar 'sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h]))')"

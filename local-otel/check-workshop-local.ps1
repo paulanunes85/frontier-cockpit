@@ -143,8 +143,8 @@ else {
 }
 
 $workspaceRegistry = Get-PromScalar 'count(copilot_workspace_registry_ratio{workspace_kind="git"})'
-$realSessions = Get-PromScalar 'count(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"})'
-$nonWorkspaceSessions = Get-PromScalar 'count(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="non_workspace_real"})'
+$realSessions = Get-PromScalar 'count(max by (trace_id) (max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h])))'
+$nonWorkspaceSessions = Get-PromScalar 'count(max by (trace_id) (max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="non_workspace_real"}[24h])))'
 $aiCredits = Get-PromScalar 'sum(max_over_time(copilot_real_session_nano_aiu_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h])) / 1e9'
 $inputTokens = Get-PromScalar 'sum(max_over_time(copilot_real_session_input_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h]))'
 $cacheRead = Get-PromScalar 'sum(max_over_time(copilot_real_session_cache_read_tokens_ratio{materializer_schema="2",usage_scope="workspace_real"}[24h]))'
