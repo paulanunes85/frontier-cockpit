@@ -1,4 +1,4 @@
-FROM docker.io/library/alpine:3.20
+FROM docker.io/library/alpine:3.24
 
 RUN set -eux; \
   for attempt in 1 2 3 4 5; do \
